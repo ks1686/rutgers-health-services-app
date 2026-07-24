@@ -1,0 +1,38 @@
+---
+description: CWC Health App — Flutter/tech, offline, accessibility, and privacy build constraints
+alwaysApply: true
+---
+
+# CWC technical constraints
+
+This repo is the **Flutter** cross-platform (Android + iOS) build under Dr. Haghani / ECE students.
+
+## Platform
+
+- **Android-first:** optimize for budget / government-program devices; include a low-RAM (~2GB) device in the test matrix; Android 8+ era baseline.
+- Installed size target **&lt; ~40MB**; no mandatory large first-run downloads.
+- Videos and map tiles: Wi‑Fi or explicit user action only.
+- Prefer open-source / low-cost dependencies (TECH-8).
+
+## Offline-first
+
+Every MVP feature except optional map tiles and external links must work **with no connectivity**. Bundle/cache: Nearby list, Learn, tutorials metadata, Help Now numbers. Sync content opportunistically when online via remote-config / hosted JSON (no app-store release for content-only updates).
+
+## Privacy & security (study build)
+
+- Personal health data **local-only**; encrypt at rest (platform keystore).
+- No ads, no third-party analytics SDKs, no location tracking.
+- If user opts into GPS for Nearby: use coordinates **transiently on-device** for distance; never store/transmit.
+- PIN/biometric may protect My Health only—never Nearby, Learn, tutorials, or Help Now.
+- One-tap erase personal data; hide PIN-locked content from app-switcher previews.
+- Usability instrumentation only behind a research build flag + consent disclosure.
+
+## Accessibility
+
+- WCAG 2.1 AA; ≥48dp targets; never color-only meaning.
+- Base body **≥18pt** + in-app larger-text toggle; honor OS font scaling.
+- Icons always paired with text labels; TalkBack + VoiceOver; no gesture-only actions.
+
+## Before shipping Help Now
+
+Verify NJ peer warmline number/hours with CSPNJ; CAB-approve the resource set.

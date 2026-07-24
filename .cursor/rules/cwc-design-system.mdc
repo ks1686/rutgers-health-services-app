@@ -1,0 +1,31 @@
+---
+description: CWC Health App — Rutgers Scarlet design tokens and UI language
+alwaysApply: true
+---
+
+# CWC design system (v1.1 Rutgers Scarlet)
+
+Canonical visuals: Figma `yAwsNNegakKROue3o0CAMJ`. Tokens/detail: `CWC_Health_App/02_CWC_Health_App_Design_Reference_v1.1.md`.
+
+## Tokens
+
+| Token | Hex | Role |
+|-------|-----|------|
+| `primary` | `#CC0033` | Scarlet — CTAs, active tab, Help Now, filled support |
+| `primary-tint` | `#FAE7EC` | Soft scarlet tint |
+| `ink` | `#21262B` | Primary text |
+| `sub` | `#5F6A72` | Secondary text (Rutgers Gray) |
+| `line` | `#E4E1DB` | Borders |
+| `surface` | `#FCFBF9` | Screen background (warm, non-clinical) |
+| `card` | `#FFFFFF` | Cards |
+| `neutral-emphasis` | `#0D0D0D` | 911 + Erase My Information |
+
+## UI language & feel
+
+- Supportive copy: **“Help Now” / “You’re not alone”** — not alarmist “EMERGENCY” by default.
+- Scarlet = **action** on calm off-white; do not wash screens in red.
+- Emergency/destructive differentiate with **black**, not a second red.
+- Generous radii (cards ~10–14; pill buttons); soft card shadow ok.
+- Mock type scale ≠ production: implement ACC-1 (18pt+ / OS scaling), not literal 14pt mock body.
+
+When UI diverges from Figma/spec, bump design-ref and/or spec version and note the change—don’t silently drift.
