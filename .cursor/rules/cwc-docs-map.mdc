@@ -8,10 +8,10 @@ alwaysApply: true
 | Need | Open |
 |------|------|
 | Project / team / IRB / survey aggregates / agent ethics | `AGENTS.md` or `CWC_Health_App/00_PROJECT_RUNDOWN_CWC_Health_App.md` |
-| Requirement IDs (NAV-*, FIND-*, MYH-*, …) | `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.3.md` |
+| Requirement IDs (NAV-*, FIND-*, MYH-*, …) | `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md` |
 | Tokens, screen↔spec table, presentation notes | `CWC_Health_App/02_CWC_Health_App_Design_Reference_v1.1.md` |
 | Pixels / lo-fi co-design / hi-fi | Figma https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ |
-| Spec history only | `CWC_Health_App/archive/` (v0.1, v0.2) — **not** authoritative |
+| Spec history only | `CWC_Health_App/archive/` (v0.1–v0.3) — **not** authoritative |
 
 **Rule of three:** rundown = project; spec = behavior; design ref + Figma = look. Change one → check the other two; bump versions together.
 
