@@ -5,7 +5,7 @@
 **Canonical design file (Figma):** https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
 **File name:** CWC Health App — Lo-Fi Wireframes v0.1 *(the file name reflects its origin; it now also contains the Final Design v1.1 page)*
 **File key:** `yAwsNNegakKROue3o0CAMJ`
-**Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.3.md` (requirements — authoritative for behavior)
+**Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.4.md` (requirements — authoritative for behavior)
 **Last updated:** July 2026 — **v1.1:** rebranded to the official Rutgers visual identity (Scarlet Pantone 186 / #CC0033, used with black, gray, and white per Rutgers brand standards; supporting gray PMS 431 #5F6A72). Layout, content, and structure unchanged from v1.0.
 
 **Rule of the three documents:** the rundown explains *the project*, the spec defines *what the app does*, this document + the Figma file define *what the app looks like*. A change in any one should be checked against the other two, and versions should be bumped together.

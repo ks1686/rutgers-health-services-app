@@ -5,7 +5,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 | Doc | Authority |
 |-----|-----------|
 | `CWC_Health_App/00_PROJECT_RUNDOWN_CWC_Health_App.md` | Project context |
-| `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.3.md` | **Behavior** (requirements) |
+| `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md` | **Behavior** (requirements) |
 | `CWC_Health_App/02_CWC_Health_App_Design_Reference_v1.1.md` | **Look** (tokens + screen map) |
 | [Figma](https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ) (`yAwsNNegakKROue3o0CAMJ`) | Canonical visuals |
 
@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of July 2026 (~M13): pre-surveys analyzed; spec v0.3 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter build is the next engineering track.
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter build is the next engineering track.
 
 ## 2. Formal identity
 
@@ -43,7 +43,7 @@ CAB meets monthly; they shape recruitment, analysis, features, training, dissemi
 
 ## 4. Product (MVP) — behavior summary
 
-Authoritative detail + evidence tags: feature spec v0.3. Working names subject to CAB/[PENDING FG].
+Authoritative detail + evidence tags: feature spec v0.4. Working names subject to CAB/[PENDING FG].
 
 **IA:** Bottom tabs **Nearby | My Health | Learn | More** (no hamburger/drawer). Persistent **Help Now** in every header. Max two taps from a tab root to a core task. **Nearby** is default landing.
 
@@ -107,10 +107,27 @@ Preserve: supportive language (“Help Now” not “EMERGENCY”); color never 
 
 ## 9. Open co-design questions (do not silently “solve”)
 
-Phone-less members (~40%); tab names/icons; Help Now set/label/tone; resource categories beyond health; distance framing / map desire; trust markers + location wording; notifications; PSS Helper Mode needs; wallet-card / emergency-card priority and defaults.
+Phone-less members (~40%) — including CAB interest in a simple website / non-phone path; tab names/icons; Help Now set/label/tone; resource categories beyond health; distance framing / map desire; trust markers + location wording (PRIV-3: personal My Health data is on-device only, not a cloud profile); notifications (CAB recovery/appointment reminder interest vs. shared phones + local-only study build — MVP-safe path remains optional on-device MYH reminders); PSS Helper Mode needs (group intro + periodic check-ins; short videos / live workshops); wallet-card / emergency-card priority and defaults.
+
+**Follow-on only (out of scope this award):** personalized early-recovery push/notification packs; gamification for habit/retention. Capture for grant narrative — do not implement in the study build.
 
 ## 10. Doc hygiene
 
 - Read order for humans: `CWC_Health_App/README.txt` → `00` → `01` → `02` + Figma.
-- `CWC_Health_App/archive/` = superseded specs (v0.1, v0.2); not authoritative.
+- `CWC_Health_App/archive/` = superseded specs (v0.1–v0.3); not authoritative.
 - Prefer editing source markdown in `CWC_Health_App/` when requirements or design intent change, then sync this file and `.cursor/rules/` so agents stay aligned.
+
+---
+
+## Learned User Preferences
+
+- Prefer barebones navigation prototypes with static demo data before adding permissions, persistence, or dynamic behavior.
+- Prefer Chrome/web for quick click-through demos; use the Android emulator for meeting showcases.
+- Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
+
+## Learned Workspace Facts
+
+- Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
+- Current app stage is a v1 static navigation prototype (Nearby | My Health | Learn | More + Help Now) with fake demo data and “Demo only” snackbars.
+- `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored.
+- Default local Android emulator AVD for demos is `VM_Phone`.

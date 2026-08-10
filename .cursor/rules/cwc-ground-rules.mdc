@@ -5,7 +5,7 @@ alwaysApply: true
 
 # CWC ground rules
 
-Full context: `AGENTS.md` and `CWC_Health_App/` (spec v0.3 = behavior; design ref v1.1 + Figma = look).
+Full context: `AGENTS.md` and `CWC_Health_App/` (spec v0.4 = behavior; design ref v1.1 + Figma = look).
 
 1. **Community decides.** Preserve `[PENDING FG]` flags. Do not treat tab names, Help Now contents, distance framing, or emergency-card defaults as final.
 2. **Protect IRB data.** Never paste or commit identifiable survey rows (names, emails, IPs, geo). Aggregates only.
