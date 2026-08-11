@@ -10,10 +10,30 @@ Shared, committed plans and handoffs for humans and agents.
 
 ## CI expectations
 
-Every PR to `main` runs [`.github/workflows/flutter-ci.yml`](../../.github/workflows/flutter-ci.yml):
+Every PR to `main` runs [`.github/workflows/flutter-ci.yml`](../../.github/workflows/flutter-ci.yml) with **four parallel jobs**:
 
-1. `dart format --set-exit-if-changed .`
-2. `flutter analyze --fatal-infos`
-3. `flutter test`
+| Job | What it proves |
+|-----|----------------|
+| **Format, analyze, unit + widget tests** | Style, static analysis, Nearby unit tests, full-app widget navigation/rendering |
+| **Integration navigation smoke** | `integration_test/` tab circuit + Help Now |
+| **Compile web** | `flutter build web --release` (JS compile succeeds) |
+| **Compile Android APK** | `flutter build apk --debug` (Android toolchain + Dart AOT/debug compile) |
 
-Run the same commands locally before pushing. Pin matches Flutter **3.44.7** (stable used for Task 1).
+### Local equivalents
+
+```bash
+dart format --output=none --set-exit-if-changed .
+flutter analyze --fatal-infos
+flutter test --reporter expanded
+flutter test integration_test -d flutter-tester
+flutter build web --release
+flutter build apk --debug   # needs Android SDK
+```
+
+Flutter pin: **3.44.7** (stable).
+
+### Not in CI yet (follow-on)
+
+- iOS `flutter build ios --no-codesign` (needs macOS runner)
+- Device/emulator `flutter drive` on Chrome/Android
+- Screenshot / golden tests
