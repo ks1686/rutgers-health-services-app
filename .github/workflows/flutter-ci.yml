@@ -46,7 +46,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Run integration_test suite
-        run: flutter test integration_test --reporter expanded
+        run: flutter test integration_test -d flutter-tester --reporter expanded
 
   build-web:
     name: Compile web
