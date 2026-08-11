@@ -24,7 +24,21 @@ flutter run -d chrome          # quick desktop review
 
 - [`AGENTS.md`](AGENTS.md) — agent handoff
 - [`CWC_Health_App/`](CWC_Health_App/) — requirements + design reference
+- [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) — **Nearby live-data** collaborator handoff (plan ready; not implemented yet)
+- [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) — task-by-task implementation plan
 - Figma: https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
+
+### Nearby live data (planned)
+
+Default builds stay on static demo data. When implementation lands, live mode will use:
+
+```bash
+flutter run --dart-define=LIVE_NEARBY=true
+# Optional Google Places attempt (study build does not enable billing; OSM is the supported path):
+# flutter run --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
+```
+
+Never commit API keys.
 
 ## Feedback questions this prototype supports
 
