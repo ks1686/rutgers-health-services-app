@@ -12,6 +12,7 @@ alwaysApply: true
 | Tokens, screen↔spec table, presentation notes | `CWC_Health_App/02_CWC_Health_App_Design_Reference_v1.1.md` |
 | Pixels / lo-fi co-design / hi-fi | Figma https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ |
 | Spec history only | `CWC_Health_App/archive/` (v0.1–v0.3) — **not** authoritative |
+| Nearby live-data engineering (plan / design / tasks) | `docs/engineering/nearby-live-data.md` → `docs/superpowers/specs/` + `docs/superpowers/plans/` |
 
 **Rule of three:** rundown = project; spec = behavior; design ref + Figma = look. Change one → check the other two; bump versions together.
 
