@@ -20,9 +20,7 @@ class HelpNowButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const HelpNowScreen(),
-                ),
+                MaterialPageRoute<void>(builder: (_) => const HelpNowScreen()),
               );
             },
             child: const Padding(

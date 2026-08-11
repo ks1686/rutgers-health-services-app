@@ -10,6 +10,16 @@ flutter run -d chrome          # quick desktop review
 # or: flutter run -d <android|ios device id>
 ```
 
+## Verify (local = CI)
+
+```bash
+dart format --set-exit-if-changed .
+flutter analyze --fatal-infos
+flutter test
+```
+
+GitHub Actions runs the same checks on every PR to `main` (see `.github/workflows/flutter-ci.yml`).
+
 ## What’s in this build
 
 | Tab / screen | Demo behavior |

@@ -85,10 +85,8 @@ class MoreScreen extends StatelessWidget {
                 icon: Icons.delete_outline,
                 title: 'Erase My Information',
                 titleColor: CwcColors.neutralEmphasis,
-                onTap: () => showDemoOnlySnackBar(
-                  context,
-                  'Erase my information',
-                ),
+                onTap: () =>
+                    showDemoOnlySnackBar(context, 'Erase my information'),
               ),
             ],
           ),
