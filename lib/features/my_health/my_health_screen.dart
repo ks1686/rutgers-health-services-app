@@ -81,9 +81,7 @@ class MyHealthScreen extends StatelessWidget {
         FilledButton.icon(
           onPressed: () {
             Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const WalletCardScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const WalletCardScreen()),
             );
           },
           icon: const Icon(Icons.wallet_outlined),

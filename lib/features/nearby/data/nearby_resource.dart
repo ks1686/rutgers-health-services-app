@@ -9,10 +9,10 @@ enum NearbyCategory {
 
   /// Labels must match demo filter chips where they overlap.
   String get label => switch (this) {
-        NearbyCategory.pharmacy => 'Pharmacy',
-        NearbyCategory.clinic => 'Clinic',
-        NearbyCategory.urgentCare => 'Urgent care',
-      };
+    NearbyCategory.pharmacy => 'Pharmacy',
+    NearbyCategory.clinic => 'Clinic',
+    NearbyCategory.urgentCare => 'Urgent care',
+  };
 }
 
 /// Normalized place row for list UI (demo or live).

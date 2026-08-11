@@ -49,9 +49,9 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
             subtitle: Text(
               _showEmergencyCard
                   ? 'Would show wallet info on this unlocked screen '
-                      '(off by default in the real app). Demo toggle only.'
+                        '(off by default in the real app). Demo toggle only.'
                   : 'Off by default — turning this on would share health '
-                      'info on an unlocked screen.',
+                        'info on an unlocked screen.',
               style: const TextStyle(color: CwcColors.sub, fontSize: 13),
             ),
             value: _showEmergencyCard,
@@ -78,10 +78,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
           const Text(
             'Works even without internet',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: CwcColors.sub,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: CwcColors.sub, fontWeight: FontWeight.w500),
           ),
         ],
       ),

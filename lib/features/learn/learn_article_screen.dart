@@ -28,10 +28,7 @@ class LearnArticleScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            topic.body,
-            style: const TextStyle(fontSize: 16, height: 1.5),
-          ),
+          Text(topic.body, style: const TextStyle(fontSize: 16, height: 1.5)),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(12),

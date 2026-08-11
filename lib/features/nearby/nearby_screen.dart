@@ -39,8 +39,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
               onPressed: () => showDemoOnlySnackBar(context, 'town picker'),
             ),
             TextButton(
-              onPressed: () =>
-                  showDemoOnlySnackBar(context, 'use my location'),
+              onPressed: () => showDemoOnlySnackBar(context, 'use my location'),
               child: const Text('Use my location?'),
             ),
           ],
@@ -115,10 +114,7 @@ class _ResourceCard extends StatelessWidget {
           children: [
             Text(
               resource.name,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
@@ -156,8 +152,7 @@ class _ResourceCard extends StatelessWidget {
                   child: const Text('Text'),
                 ),
                 OutlinedButton(
-                  onPressed: () =>
-                      showDemoOnlySnackBar(context, 'Directions'),
+                  onPressed: () => showDemoOnlySnackBar(context, 'Directions'),
                   child: const Text('Directions'),
                 ),
               ],
