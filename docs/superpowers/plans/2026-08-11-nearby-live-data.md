@@ -56,9 +56,12 @@
 
 ---
 
-### Task 2: Nominatim geocode + Overpass source
+### Task 2: Nominatim geocode + Overpass source — **COMPLETE**
+
+**Status:** Done on `feat/nearby-live-task1`. Fixture-backed unit tests cover pharmacy/clinic/urgent-care parsing, NJ bbox filter, and Nominatim geocode.
 
 **Files:**
+- Create: `lib/features/nearby/data/sources/geo_point.dart`
 - Create: `lib/features/nearby/data/sources/nominatim_geocode.dart`
 - Create: `lib/features/nearby/data/sources/osm_overpass_source.dart`
 - Create: `test/features/nearby/fixtures/overpass_new_brunswick_sample.json`
@@ -74,50 +77,11 @@
   - User-Agent (required): `CWCHealthApp/0.1 (Rutgers CWC research; contact: via repo)` — adjust contact if team supplies email later
   - NJ guard: drop points outside roughly `lat 38.8–41.4`, `lng -75.6–-73.8`
 
-- [ ] **Step 1: Write failing Overpass parser test with fixture**
-
-Fixture: minimal Overpass JSON with one `amenity=pharmacy` node (name, lat, lon, phone) and one clinic way with `center`.
-
-```dart
-test('parses pharmacy and clinic into NearbyResource', () async {
-  // inject MockClient returning fixture body
-  final resources = await source.fetch(fixedGeoPoint);
-  expect(resources.map((r) => r.category), containsAll(['Pharmacy', 'Clinic']));
-});
-```
-
-- [ ] **Step 2: Run test — expect FAIL**
-
-Run: `flutter test test/features/nearby/osm_overpass_source_test.dart`
-
-- [ ] **Step 3: Implement Nominatim + Overpass**
-
-Nominatim: `GET https://nominatim.openstreetmap.org/search?city=...&state=New%20Jersey&country=USA&format=json&limit=1` with User-Agent header.
-
-Overpass: POST to `https://overpass-api.de/api/interpreter` with a query around bbox or radius (~3–5 km) for:
-
-```text
-amenity=pharmacy → Pharmacy
-amenity=clinic / healthcare=clinic → Clinic
-amenity=doctors or healthcare=urgent_care / tag variants → Urgent care only when confident; else skip
-```
-
-Prefer under-claiming categories. Map `phone` / `contact:phone`. Status default: `Hours not listed` when no opening_hours.
-
-- [ ] **Step 4: Run OSM + Nominatim unit tests — expect PASS**
-
-Run: `flutter test test/features/nearby/`
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/features/nearby/data/sources/ test/features/nearby/
-git commit -m "$(cat <<'EOF'
-Add Nominatim geocode and OSM Overpass Nearby sources.
-
-EOF
-)"
-```
+- [x] **Step 1: Write failing Overpass parser test with fixture**
+- [x] **Step 2: Run test — expect FAIL**
+- [x] **Step 3: Implement Nominatim + Overpass**
+- [x] **Step 4: Run OSM + Nominatim unit tests — expect PASS**
+- [x] **Step 5: Commit**
 
 ---
 
