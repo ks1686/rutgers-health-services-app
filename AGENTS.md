@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter build is the next engineering track.
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter v1 static navigation prototype exists; **Nearby live-data** is the next engineering plan (docs under `docs/engineering/` — implement only when explicitly requested).
 
 ## 2. Formal identity
 
@@ -116,18 +116,38 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 - Read order for humans: `CWC_Health_App/README.txt` → `00` → `01` → `02` + Figma.
 - `CWC_Health_App/archive/` = superseded specs (v0.1–v0.3); not authoritative.
 - Prefer editing source markdown in `CWC_Health_App/` when requirements or design intent change, then sync this file and `.cursor/rules/` so agents stay aligned.
+- Engineering plans/specs for agents live under `docs/` (committed). `.cursor/plans/` is local/gitignored — prefer `docs/superpowers/` for shared work.
+
+## 11. Engineering track — Nearby live data (Aug 2026)
+
+**Priority:** Nearby / locator. Static demo remains default for meetings and pre-usability.
+
+**Shared docs (start here):**
+
+| Doc | Role |
+|-----|------|
+| [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) | Collaborator handoff + locked decisions |
+| [`docs/superpowers/specs/2026-08-11-nearby-live-data-design.md`](docs/superpowers/specs/2026-08-11-nearby-live-data-design.md) | Design |
+| [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) | Task-by-task implementation plan |
+
+**Locked approach:** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
+
+**Do not implement** until an explicit execute instruction. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
 
 ---
 
 ## Learned User Preferences
 
 - Prefer barebones navigation prototypes with static demo data before adding permissions, persistence, or dynamic behavior.
-- Prefer Chrome/web for quick click-through demos; use the Android emulator for meeting showcases.
+- Prefer browser (Chrome/web) for demos and meeting showcases over the Android emulator when both are options.
 - Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
+- Nearby is the current engineering priority; keep the static Nearby prototype for demos; share live-data work via committed `docs/` plans so humans and agents can collaborate before code lands.
 
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
 - Current app stage is a v1 static navigation prototype (Nearby | My Health | Learn | More + Help Now) with fake demo data and “Demo only” snackbars.
-- `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored.
-- Default local Android emulator AVD for demos is `VM_Phone`.
+- `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
+- No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web is the usual local demo path.
+- GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.
+- Nearby live-data plan: Google soft-fail → OSM Overpass; no curated CWC overlay; `LIVE_NEARBY` default false once implemented.
