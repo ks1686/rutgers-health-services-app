@@ -1,0 +1,57 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API test fixture",
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": 40.4862,
+      "lon": -74.4518,
+      "tags": {
+        "amenity": "pharmacy",
+        "name": "Main Street Pharmacy",
+        "addr:housenumber": "214",
+        "addr:street": "Main St",
+        "addr:city": "New Brunswick",
+        "phone": "+1-732-555-0142"
+      }
+    },
+    {
+      "type": "way",
+      "id": 2002,
+      "center": {
+        "lat": 40.4920,
+        "lon": -74.4450
+      },
+      "tags": {
+        "amenity": "clinic",
+        "name": "Community Health Clinic",
+        "addr:housenumber": "88",
+        "addr:street": "Somerset St",
+        "addr:city": "New Brunswick",
+        "contact:phone": "+1-732-555-0198"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3003,
+      "lat": 40.5000,
+      "lon": -74.4400,
+      "tags": {
+        "healthcare": "urgent_care",
+        "name": "Riverside Urgent Care",
+        "addr:full": "15 Albany St, New Brunswick, NJ"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4004,
+      "lat": 42.3601,
+      "lon": -71.0589,
+      "tags": {
+        "amenity": "pharmacy",
+        "name": "Boston Pharmacy Outside NJ"
+      }
+    }
+  ]
+}
