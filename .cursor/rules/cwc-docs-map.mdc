@@ -13,6 +13,7 @@ alwaysApply: true
 | Pixels / lo-fi co-design / hi-fi | Figma https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ |
 | Spec history only | `CWC_Health_App/archive/` (v0.1–v0.3) — **not** authoritative |
 | Nearby live-data engineering (plan / design / tasks) | `docs/engineering/nearby-live-data.md` → `docs/superpowers/specs/` + `docs/superpowers/plans/` |
+| Flutter CI (format / analyze / test) | `.github/workflows/flutter-ci.yml` + `docs/engineering/README.md` |
 
 **Rule of three:** rundown = project; spec = behavior; design ref + Figma = look. Change one → check the other two; bump versions together.
 

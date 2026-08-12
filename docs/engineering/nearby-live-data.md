@@ -1,7 +1,10 @@
 # Nearby live data — collaborator handoff
 
-**Status:** Plan ready; **do not implement** until Karim (or an explicit chat/PR instruction) asks to execute.  
-**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell.
+**Status:** Implementation in progress on branch `feat/nearby-live-task1`.  
+**Task 1 (models/config/deps):** **Complete**  
+**Task 2 (Nominatim + Overpass):** **Complete** — fixture-backed unit tests; NJ guard.  
+**Next:** Task 3 (Google Places soft-fail client) or Task 4 (repository orchestration).  
+**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
 
 ## Read these in order
 
@@ -41,12 +44,24 @@ flutter run --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=.
 
 Never commit API keys. Never add billing setup scripts to this repo for the study build.
 
+## Progress
+
+| Task | Status |
+|------|--------|
+| 1 Models, config, deps | **Done** |
+| 2 Nominatim + Overpass | **Done** |
+| 3 Google Places soft-fail | Not started |
+| 4 Repository + cache | Not started |
+| 5 NearbyScreen wiring | Not started |
+| 6 Cross-platform verify + README flags | Not started |
+| 7 Collaborator close-out | Not started |
+
 ## Split work (suggested)
 
 | Person / agent | Start with |
 |----------------|------------|
-| A | Models + config + Overpass/Nominatim + tests |
-| B | Google Places soft-fail client + repository orchestration |
+| A | ~~Models + Overpass~~ → optional live smoke / help on Task 4–5 |
+| B | **Google Places soft-fail (Task 3)** + repository orchestration (Task 4) |
 | Then | UI flag wiring + disclaimer; keep demo path untouched |
 
 ## Meeting follow-ons (not this plan)

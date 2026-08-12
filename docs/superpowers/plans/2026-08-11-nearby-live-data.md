@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **Gate:** Do **not** start Tasks 1–7 until an explicit “implement / execute the Nearby live data plan” instruction. Docs-only PRs may land without code.
+> **Gate:** Implementation started on `feat/nearby-live-task1` (Task 1 complete). Continue task-by-task; do not skip ahead without tests.
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -26,7 +26,9 @@
 
 ---
 
-### Task 1: Models, config, and dependency stubs
+### Task 1: Models, config, and dependency stubs — **COMPLETE**
+
+**Status:** Done on `feat/nearby-live-task1` (`c912eaa` + follow-ups). Verified with expanded unit tests, `dart format`, `flutter analyze --fatal-infos`, and `flutter test`. CI workflow enforces the same checks.
 
 **Files:**
 - Create: `lib/features/nearby/data/nearby_resource.dart`
@@ -46,58 +48,20 @@
   - `fromEnvironment` reads `bool.fromEnvironment('LIVE_NEARBY', defaultValue: false)` and `String.fromEnvironment('GOOGLE_PLACES_API_KEY', defaultValue: '')`
   - `class NearbyFetchResult { final List<NearbyResource> resources; final NearbySourceStatus status; final DateTime fetchedAt; final String? message; }`
 
-- [ ] **Step 1: Write the failing config test**
-
-```dart
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
-
-void main() {
-  test('fromEnvironment defaults live off and empty key', () {
-    final config = NearbyConfig.fromEnvironment();
-    expect(config.liveNearby, isFalse);
-    expect(config.googlePlacesApiKey, isEmpty);
-  });
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `flutter test test/features/nearby/nearby_config_test.dart`  
-Expected: FAIL — missing library / type.
-
-- [ ] **Step 3: Add dependencies and implement models/config**
-
-In `pubspec.yaml` under `dependencies:`:
-
-```yaml
-http: ^1.2.2
-url_launcher: ^6.3.1
-```
-
-Implement the types listed in Interfaces. Keep category **labels** identical to demo chips where overlapping: `Pharmacy`, `Clinic`, `Urgent care`.
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `flutter pub get && flutter test test/features/nearby/nearby_config_test.dart`  
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add pubspec.yaml pubspec.lock lib/features/nearby/data/ test/features/nearby/nearby_config_test.dart
-git commit -m "$(cat <<'EOF'
-Add Nearby live-data models and environment config stubs.
-
-EOF
-)"
-```
+- [x] **Step 1: Write the failing config test**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Add dependencies and implement models/config**
+- [x] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Commit**
 
 ---
 
-### Task 2: Nominatim geocode + Overpass source
+### Task 2: Nominatim geocode + Overpass source — **COMPLETE**
+
+**Status:** Done on `feat/nearby-live-task1`. Fixture-backed unit tests cover pharmacy/clinic/urgent-care parsing, NJ bbox filter, and Nominatim geocode.
 
 **Files:**
+- Create: `lib/features/nearby/data/sources/geo_point.dart`
 - Create: `lib/features/nearby/data/sources/nominatim_geocode.dart`
 - Create: `lib/features/nearby/data/sources/osm_overpass_source.dart`
 - Create: `test/features/nearby/fixtures/overpass_new_brunswick_sample.json`
@@ -113,50 +77,11 @@ EOF
   - User-Agent (required): `CWCHealthApp/0.1 (Rutgers CWC research; contact: via repo)` — adjust contact if team supplies email later
   - NJ guard: drop points outside roughly `lat 38.8–41.4`, `lng -75.6–-73.8`
 
-- [ ] **Step 1: Write failing Overpass parser test with fixture**
-
-Fixture: minimal Overpass JSON with one `amenity=pharmacy` node (name, lat, lon, phone) and one clinic way with `center`.
-
-```dart
-test('parses pharmacy and clinic into NearbyResource', () async {
-  // inject MockClient returning fixture body
-  final resources = await source.fetch(fixedGeoPoint);
-  expect(resources.map((r) => r.category), containsAll(['Pharmacy', 'Clinic']));
-});
-```
-
-- [ ] **Step 2: Run test — expect FAIL**
-
-Run: `flutter test test/features/nearby/osm_overpass_source_test.dart`
-
-- [ ] **Step 3: Implement Nominatim + Overpass**
-
-Nominatim: `GET https://nominatim.openstreetmap.org/search?city=...&state=New%20Jersey&country=USA&format=json&limit=1` with User-Agent header.
-
-Overpass: POST to `https://overpass-api.de/api/interpreter` with a query around bbox or radius (~3–5 km) for:
-
-```text
-amenity=pharmacy → Pharmacy
-amenity=clinic / healthcare=clinic → Clinic
-amenity=doctors or healthcare=urgent_care / tag variants → Urgent care only when confident; else skip
-```
-
-Prefer under-claiming categories. Map `phone` / `contact:phone`. Status default: `Hours not listed` when no opening_hours.
-
-- [ ] **Step 4: Run OSM + Nominatim unit tests — expect PASS**
-
-Run: `flutter test test/features/nearby/`
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/features/nearby/data/sources/ test/features/nearby/
-git commit -m "$(cat <<'EOF'
-Add Nominatim geocode and OSM Overpass Nearby sources.
-
-EOF
-)"
-```
+- [x] **Step 1: Write failing Overpass parser test with fixture**
+- [x] **Step 2: Run test — expect FAIL**
+- [x] **Step 3: Implement Nominatim + Overpass**
+- [x] **Step 4: Run OSM + Nominatim unit tests — expect PASS**
+- [x] **Step 5: Commit**
 
 ---
 

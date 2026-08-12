@@ -10,6 +10,20 @@ flutter run -d chrome          # quick desktop review
 # or: flutter run -d <android|ios device id>
 ```
 
+## Verify (local = CI)
+
+```bash
+dart format --output=none --set-exit-if-changed .
+flutter analyze --fatal-infos
+flutter test
+flutter test integration_test -d flutter-tester
+# compile checks (also run in CI):
+# flutter build web --release
+# flutter build apk --debug
+```
+
+GitHub Actions runs format/analyze/tests, integration navigation smoke, web release build, and Android debug APK on every PR to `main` (see `.github/workflows/flutter-ci.yml`).
+
 ## What’s in this build
 
 | Tab / screen | Demo behavior |
