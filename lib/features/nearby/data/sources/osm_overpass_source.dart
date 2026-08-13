@@ -7,14 +7,37 @@ import 'geo_point.dart';
 import 'nominatim_geocode.dart' show kNearbyOsmUserAgent;
 
 /// Failure talking to or parsing Overpass.
+///
+/// [retryable] marks the "server is busy / you are rate limited" family, which
+/// is worth another attempt; everything else fails over or gives up.
 class OsmOverpassException implements Exception {
-  OsmOverpassException(this.message);
+  OsmOverpassException(this.message, {this.retryable = false});
 
   final String message;
+  final bool retryable;
 
   @override
   String toString() => 'OsmOverpassException: $message';
 }
+
+/// Public Overpass mirrors, tried in order.
+///
+/// The main instance rate limits per IP, and a room of phones on one Wi-Fi
+/// network shares an IP — so a single endpoint is not enough for field use.
+///
+/// Before adding a mirror, confirm it serves **planet-wide** data by querying a
+/// New Jersey bounding box. Regional instances (`overpass.osm.ch`, for one)
+/// answer HTTP 200 with zero elements, which would make the app tell a member
+/// there is no pharmacy near them. An outright failure is safer than that.
+/// Mirrors were last verified against New Brunswick on 2026-08-12.
+const kOverpassEndpoints = <String>[
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
+/// Statuses where the server is asking us to back off rather than refusing.
+const _retryableStatuses = <int>{429, 500, 502, 503, 504};
 
 /// Coarse New Jersey guardrail (reject out-of-state POIs).
 const double kNjLatMin = 38.8;
@@ -30,13 +53,20 @@ class OsmOverpassSource {
   OsmOverpassSource(
     this._client, {
     this.userAgent = kNearbyOsmUserAgent,
-    this.endpoint = 'https://overpass-api.de/api/interpreter',
-  });
+    this.endpoints = kOverpassEndpoints,
+    this.attemptsPerEndpoint = 2,
+    this.retryBackoff = const Duration(milliseconds: 600),
+    this.requestTimeout = const Duration(seconds: 20),
+  }) : assert(endpoints.isNotEmpty, 'At least one endpoint is required');
 
   final http.Client _client;
   final String userAgent;
-  final String endpoint;
+  final List<String> endpoints;
+  final int attemptsPerEndpoint;
+  final Duration retryBackoff;
+  final Duration requestTimeout;
 
+  /// Tries each mirror in turn, retrying only when the server asks us to wait.
   Future<List<NearbyResource>> fetch(
     GeoPoint area, {
     DateTime? fetchedAt,
@@ -44,23 +74,56 @@ class OsmOverpassSource {
     final when = fetchedAt ?? DateTime.now().toUtc();
     final query = _buildQuery(area);
 
-    final response = await _client.post(
-      Uri.parse(endpoint),
-      headers: {
-        'User-Agent': userAgent,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      body: {'data': query},
-    );
-
-    if (response.statusCode != 200) {
-      throw OsmOverpassException(
-        'HTTP ${response.statusCode}: ${response.body}',
-      );
+    Object? lastFailure;
+    for (final endpoint in endpoints) {
+      for (var attempt = 1; attempt <= attemptsPerEndpoint; attempt++) {
+        String body;
+        try {
+          body = await _post(endpoint, query);
+        } on OsmOverpassException catch (failure) {
+          lastFailure = failure;
+          if (failure.retryable && attempt < attemptsPerEndpoint) {
+            await Future<void>.delayed(retryBackoff * attempt);
+            continue;
+          }
+          break;
+        } catch (failure) {
+          lastFailure = failure;
+          break;
+        }
+        return _parse(body, when);
+      }
     }
 
-    final decoded = jsonDecode(response.body);
+    throw OsmOverpassException(
+      'All ${endpoints.length} Overpass endpoints failed. '
+      'Last error: $lastFailure',
+    );
+  }
+
+  Future<String> _post(String endpoint, String query) async {
+    final response = await _client
+        .post(
+          Uri.parse(endpoint),
+          headers: {
+            'User-Agent': userAgent,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+          },
+          body: {'data': query},
+        )
+        .timeout(requestTimeout);
+
+    if (response.statusCode == 200) return response.body;
+
+    throw OsmOverpassException(
+      'HTTP ${response.statusCode}: ${response.body}',
+      retryable: _retryableStatuses.contains(response.statusCode),
+    );
+  }
+
+  List<NearbyResource> _parse(String body, DateTime when) {
+    final decoded = jsonDecode(body);
     if (decoded is! Map<String, dynamic>) {
       throw OsmOverpassException('Unexpected Overpass payload shape');
     }
