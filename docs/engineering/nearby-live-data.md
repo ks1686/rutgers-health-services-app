@@ -1,9 +1,10 @@
 # Nearby live data — collaborator handoff
 
-**Status:** Implementation in progress (Tasks 1–2 merged to `main`).  
+**Status:** Implementation in progress (Tasks 1–3 on branch / merged as noted).  
 **Task 1 (models/config/deps):** **Complete** (ks1686)  
 **Task 2 (Nominatim + Overpass):** **Complete** (ks1686) — fixture-backed unit tests; NJ guard.  
-**Next:** Task 3 (Google Places soft-fail client) — **claimed by kholaif** (in progress claim; coding not started until owner confirms).  
+**Task 3 (Google Places soft-fail):** **Complete** (kholaif) — empty key / 403 / billing-style soft-fail; Maps Places API (New) happy path.  
+**Next:** Task 4 (repository orchestration + cache) — open; coordinate before claiming.  
 **Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
 
 ## Read these in order
@@ -50,8 +51,8 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 |------|--------|-------|
 | 1 Models, config, deps | **Done** | ks1686 |
 | 2 Nominatim + Overpass | **Done** | ks1686 |
-| 3 Google Places soft-fail | **Claimed** (awaiting start) | **kholaif** |
-| 4 Repository + cache | Open — do not start while Task 3 is active unless coordinated | — |
+| 3 Google Places soft-fail | **Done** | kholaif |
+| 4 Repository + cache | Open — claim before starting | — |
 | 5 NearbyScreen wiring | Not started | — |
 | 6 Cross-platform verify + README flags | Not started | — |
 | 7 Collaborator close-out | Not started | — |
@@ -60,8 +61,8 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 
 | Person / agent | Assignment |
 |----------------|------------|
-| ks1686 | Tasks 1–2 complete. Pick next open task only after coordinating (avoid Task 3 while claimed). |
-| **kholaif** | **Task 3 — Google Places soft-fail** (claimed). Then propose Task 4 or 5 after Task 3 is committed. |
+| ks1686 | Tasks 1–2 complete. May claim Task 4+ after coordinating with kholaif. |
+| **kholaif** | Task 3 complete. Next candidate: Task 4 (repository) or Task 5 (UI + disclaimer) — claim before coding. |
 | Later | UI flag wiring + disclaimer (Task 5); keep demo path untouched |
 
 ## Meeting follow-ons (not this plan)

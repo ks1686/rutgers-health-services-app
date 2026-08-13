@@ -132,7 +132,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Locked approach:** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
 
-**Implementation:** Tasks 1–2 complete on `main` (models + OSM Nominatim/Overpass, by ks1686). **Task 3 (Google Places soft-fail) is claimed by kholaif.** Leave Task 3 files alone unless you are kholaif. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
+**Implementation:** Tasks 1–2 complete on `main` (ks1686). **Task 3 (Google Places soft-fail) complete (kholaif).** Next: Task 4 repository + cache — claim before coding. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, and `flutter build apk --debug`.
 
