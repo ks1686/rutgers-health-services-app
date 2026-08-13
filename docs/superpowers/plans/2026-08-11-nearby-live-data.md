@@ -2,8 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **Gate:** Tasks 1–2 complete on `main`. Continue task-by-task; do not skip ahead without tests.
-> **Active claim:** Task 3 claimed by **kholaif** (2026-08-12). Other agents: do not modify Task 3 files.
+> **Gate:** Tasks 1–3 complete (Task 3 by kholaif). Continue task-by-task; do not skip ahead without tests.
+> **Next open:** Task 4 (repository + cache). Claim in `docs/engineering/nearby-live-data.md` before starting.
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -86,11 +86,10 @@
 
 ---
 
-### Task 3: Google Places source (soft-fail, no billing) — **CLAIMED by kholaif**
+### Task 3: Google Places source (soft-fail, no billing) — **COMPLETE** (kholaif)
 
 **Owner:** kholaif (Kareem)  
-**Status:** Claimed — coding starts only after owner approval in chat.  
-**Do not touch:** `google_places_source.dart` / `google_places_source_test.dart` while this claim is active.
+**Status:** Done on `feat/nearby-live-task3-kholaif`. Verified with `flutter test test/features/nearby` (16 passing) and `flutter analyze --fatal-infos` on Task 3 files.
 
 **Files:**
 - Create: `lib/features/nearby/data/sources/google_places_source.dart`
@@ -107,34 +106,11 @@
   - HTTP 403 / permission / billing-style errors → `GooglePlacesSoftFail`
   - Success with zero results → `GooglePlacesOk([])` (repository still tries OSM)
 
-- [ ] **Step 1: Write failing tests**
-
-```dart
-test('empty key soft-fails without calling HTTP', () async { ... });
-test('403 soft-fails', () async { ... });
-test('200 maps places to NearbyResource', () async { ... });
-```
-
-- [ ] **Step 2: Run — expect FAIL**
-
-- [ ] **Step 3: Implement Places API (New) HTTP client**
-
-Use Places Nearby Search (New) or Text Search over HTTPS to `places.googleapis.com` with header `X-Goog-Api-Key` and field mask for id, displayName, formattedAddress, location, nationalPhoneNumber, types. Map types to Pharmacy / Clinic / Urgent care; drop unmatched.
-
-Do **not** add billing docs or setup scripts.
-
-- [ ] **Step 4: Run tests — PASS**
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/features/nearby/data/sources/google_places_source.dart test/features/nearby/google_places_source_test.dart
-git commit -m "$(cat <<'EOF'
-Add Google Places Nearby source with expected soft-fail path.
-
-EOF
-)"
-```
+- [x] **Step 1: Write failing tests**
+- [x] **Step 2: Run — expect FAIL**
+- [x] **Step 3: Implement Places API (New) HTTP client**
+- [x] **Step 4: Run tests — PASS**
+- [x] **Step 5: Commit**
 
 ---
 
