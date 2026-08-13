@@ -4,7 +4,8 @@
 **Task 1 (models/config/deps):** **Complete** (ks1686)  
 **Task 2 (Nominatim + Overpass):** **Complete** (ks1686) — fixture-backed unit tests; NJ guard.  
 **Task 3 (Google Places soft-fail):** **Complete** (kholaif) — empty key / 403 / billing-style soft-fail; Maps Places API (New) happy path.  
-**Next:** Task 4 (repository orchestration + cache) — open; coordinate before claiming.  
+**Task 4 (repository + cache):** **In progress** (kholaif) on `feat/nearby-live-task4-kholaif`, stacked on the Task 3 PR.  
+**Next open:** Task 5 (NearbyScreen wiring + disclaimer) — unclaimed.  
 **Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
 
 ## Read these in order
@@ -52,7 +53,7 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 | 1 Models, config, deps | **Done** | ks1686 |
 | 2 Nominatim + Overpass | **Done** | ks1686 |
 | 3 Google Places soft-fail | **Done** | kholaif |
-| 4 Repository + cache | Open — claim before starting | — |
+| 4 Repository + cache | **Claimed / in progress** | **kholaif** |
 | 5 NearbyScreen wiring | Not started | — |
 | 6 Cross-platform verify + README flags | Not started | — |
 | 7 Collaborator close-out | Not started | — |
@@ -61,8 +62,8 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 
 | Person / agent | Assignment |
 |----------------|------------|
-| ks1686 | Tasks 1–2 complete. May claim Task 4+ after coordinating with kholaif. |
-| **kholaif** | Task 3 complete. Next candidate: Task 4 (repository) or Task 5 (UI + disclaimer) — claim before coding. |
+| ks1686 | Tasks 1–2 complete. Task 5 (UI + disclaimer) is the next unclaimed slot if you want it. |
+| **kholaif** | Task 3 complete. **Task 4 (repository + cache) in progress** — do not edit `nearby_repository.dart` / `nearby_cache.dart`. |
 | Later | UI flag wiring + disclaimer (Task 5); keep demo path untouched |
 
 ## Meeting follow-ons (not this plan)
