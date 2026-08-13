@@ -4,7 +4,7 @@
 **Task 1 (models/config/deps):** **Complete** (ks1686)  
 **Task 2 (Nominatim + Overpass):** **Complete** (ks1686) — fixture-backed unit tests; NJ guard.  
 **Task 3 (Google Places soft-fail):** **Complete** (kholaif) — empty key / 403 / billing-style soft-fail; Maps Places API (New) happy path.  
-**Task 4 (repository + cache):** **In progress** (kholaif) on `feat/nearby-live-task4-kholaif`, stacked on the Task 3 PR.  
+**Task 4 (repository + cache):** **Complete** (kholaif) on `feat/nearby-live-task4-kholaif`, stacked on the Task 3 PR. In-memory cache only — see caveat below.  
 **Next open:** Task 5 (NearbyScreen wiring + disclaimer) — unclaimed.  
 **Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
 
@@ -53,7 +53,7 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 | 1 Models, config, deps | **Done** | ks1686 |
 | 2 Nominatim + Overpass | **Done** | ks1686 |
 | 3 Google Places soft-fail | **Done** | kholaif |
-| 4 Repository + cache | **Claimed / in progress** | **kholaif** |
+| 4 Repository + cache | **Done** (in-memory cache) | kholaif |
 | 5 NearbyScreen wiring | Not started | — |
 | 6 Cross-platform verify + README flags | Not started | — |
 | 7 Collaborator close-out | Not started | — |
@@ -63,7 +63,15 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 | Person / agent | Assignment |
 |----------------|------------|
 | ks1686 | Tasks 1–2 complete. Task 5 (UI + disclaimer) is the next unclaimed slot if you want it. |
-| **kholaif** | Task 3 complete. **Task 4 (repository + cache) in progress** — do not edit `nearby_repository.dart` / `nearby_cache.dart`. |
+| **kholaif** | Tasks 3–4 complete (PRs #3, #4). Will claim Task 5 only if ks1686 doesn't want it. |
+
+## Task 4 decisions worth a second opinion
+
+1. **Cache is in-memory only.** `NearbyCache` is an interface with an `InMemoryNearbyCache` implementation, so results survive tab switches but not app restarts. `shared_preferences` was listed as optional in the plan; skipped to avoid adding a plugin dependency mid-spike. Dropping in a persistent implementation needs no repository changes.
+2. **Cache hits keep their original timestamp.** A cached result reports the time the data was actually fetched, not the time of the failed refresh, so the Task 5 "Updated as of …" line can't overstate freshness.
+3. **Google wins only when it returns rows.** An empty `GooglePlacesOk` falls through to OSM rather than showing an empty list.
+4. **A successful-but-empty OSM response is `osm`, not `cache`.** "No pharmacies or clinics found near <town>" is a real answer; stale cache would be misleading.
+5. **Dedupe is name + 50 m**, which mainly collapses the duplicate node/way rows Overpass returns for one building.
 | Later | UI flag wiring + disclaimer (Task 5); keep demo path untouched |
 
 ## Meeting follow-ons (not this plan)
