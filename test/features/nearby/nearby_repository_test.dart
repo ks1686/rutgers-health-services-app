@@ -68,7 +68,16 @@ class _FakeOverpass implements OsmOverpassSource {
   String get userAgent => 'fake';
 
   @override
-  String get endpoint => 'https://example.invalid';
+  List<String> get endpoints => const ['https://example.invalid'];
+
+  @override
+  int get attemptsPerEndpoint => 1;
+
+  @override
+  Duration get retryBackoff => Duration.zero;
+
+  @override
+  Duration get requestTimeout => const Duration(seconds: 1);
 
   @override
   Future<List<NearbyResource>> fetch(
