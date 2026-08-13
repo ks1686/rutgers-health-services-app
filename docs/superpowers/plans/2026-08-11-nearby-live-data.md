@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Gate:** Tasks 1–3 complete (Task 3 by kholaif). Continue task-by-task; do not skip ahead without tests.
-> **Next open:** Task 4 (repository + cache). Claim in `docs/engineering/nearby-live-data.md` before starting.
+> **Gate:** Tasks 1–4 complete. Next unclaimed: Task 5 (NearbyScreen wiring + disclaimer).
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -114,7 +114,10 @@
 
 ---
 
-### Task 4: NearbyRepository + optional cache
+### Task 4: NearbyRepository + optional cache — **COMPLETE** (kholaif)
+
+**Owner:** kholaif (Kareem)  
+**Status:** Done on `feat/nearby-live-task4-kholaif` (stacked on Task 3). 32 tests passing, `flutter analyze --fatal-infos` clean. Cache is in-memory behind a `NearbyCache` interface; `shared_preferences` deferred (see handoff doc).
 
 **Files:**
 - Create: `lib/features/nearby/data/nearby_repository.dart`
@@ -129,32 +132,11 @@
   - Dedupe: same name (case-fold) within ~50 m → keep first
   - Stamp `fetchedAt` on all rows
 
-- [ ] **Step 1: Write repository tests with fake sources**
-
-```dart
-test('google soft-fail uses OSM results', () async { ... });
-test('both fail with cache returns cache status', () async { ... });
-test('both fail without cache returns unavailable', () async { ... });
-```
-
-- [ ] **Step 2: Run — FAIL**
-
-- [ ] **Step 3: Implement repository + in-memory cache**
-
-If adding `shared_preferences`, add dep in this commit and serialize `NearbyFetchResult` for the last town key.
-
-- [ ] **Step 4: Run — PASS**
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/features/nearby/data/nearby_repository.dart lib/features/nearby/data/nearby_cache.dart test/features/nearby/nearby_repository_test.dart pubspec.yaml pubspec.lock
-git commit -m "$(cat <<'EOF'
-Orchestrate Nearby Google soft-fail to OSM with cache fallback.
-
-EOF
-)"
-```
+- [x] **Step 1: Write repository tests with fake sources**
+- [x] **Step 2: Run — FAIL**
+- [x] **Step 3: Implement repository + in-memory cache** — `shared_preferences` deferred; `NearbyCache` interface keeps that swap cheap.
+- [x] **Step 4: Run — PASS**
+- [x] **Step 5: Commit**
 
 ---
 
