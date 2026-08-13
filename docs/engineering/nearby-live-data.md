@@ -71,9 +71,19 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 Ran the assembled repository against the real Nominatim + Overpass endpoints for New Brunswick, NJ. Four things worth the team's attention:
 
 1. **The happy path works.** A good run returns five real places — University Pharmacy and Surgical, Zajac's Pharmacy, Eric B. Chandler Health Center, Saint Peter's Center for Ambulatory Resources, and a Walgreens. No invented rows.
-2. **The public Overpass endpoint is genuinely flaky.** Across five runs it returned HTTP 504 ("server too busy") once and HTTP 429 (rate limited by IP) after roughly three calls in quick succession. The repository degrades correctly to `unavailable` with a plain-language message and a "Try again" button, so nothing crashes — but **a focus-group room full of phones on one Wi-Fi network shares one public IP and will hit that rate limit.** Mitigations to discuss before usability testing: persistent cache instead of in-memory, a retry with backoff, or a second Overpass mirror. Not fixed here; it touches Task 2 files.
+2. **The public Overpass endpoint is genuinely flaky.** Across five runs it returned HTTP 504 ("server too busy") once and HTTP 429 (rate limited by IP) after roughly three calls in quick succession. The repository degrades correctly to `unavailable` with a plain-language message and a "Try again" button, so nothing crashes — but **a focus-group room full of phones on one Wi-Fi network shares one public IP and will hit that rate limit.** *Addressed in the follow-up below.*
 3. **Most OSM rows have no phone number.** Only one of five carried `phone` / `contact:phone`, so the Call and Text buttons are hidden on most live cards (the Directions button always shows). For a population that often needs to call ahead, that's a real gap in live data versus the curated directory FIND-1 describes.
 4. **The town bbox reaches past the town.** One result sat in Edison rather than New Brunswick. Still in NJ and still close, but "Nearby" currently means "in the geocoded bounding box," not "in your town."
+
+## Overpass endpoint failover (2026-08-12, kholaif)
+
+Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors instead of one URL, retries a busy or rate-limited server once with a short backoff, then fails over to the next mirror. It gives up only when every endpoint is exhausted, and it applies a 20-second per-request timeout so one hanging mirror cannot stall the screen. Behaviour is unchanged when the primary is healthy: one request, same host as before.
+
+**This touched ks1686's Task 2 file.** The parsing, the NJ guard, and the query builder are untouched — the change is purely about which server answers. The old `endpoint` field became `endpoints`.
+
+**One trap worth knowing about.** I checked five candidate mirrors against a New Brunswick bounding box before choosing. `overpass.osm.ch` answered **HTTP 200 with zero elements** because it only carries Swiss data. Adding it would not have thrown an error — the app would have calmly told a member there is no pharmacy near them. `overpass.osm.jp` fails TLS verification. `maps.mail.ru` works and returns correct data, but it is operated by VK/Mail.ru, and routing health-adjacent lookups from a Rutgers study through it is not a call I should make quietly — leaving it out. The three shipped mirrors all returned the same real New Brunswick pharmacies. There is now a comment on `kOverpassEndpoints` requiring the same check before anyone adds a fourth.
+
+**Still open:** the cache remains in-memory, so a cold start with every mirror down still shows an empty state. Persistent caching is the remaining piece of the field-reliability story and is not claimed by anyone yet.
 
 ## Task 4 decisions worth a second opinion
 
