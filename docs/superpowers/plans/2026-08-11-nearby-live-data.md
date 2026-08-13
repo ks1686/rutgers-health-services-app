@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Gate:** Tasks 1–3 complete (Task 3 by kholaif). Continue task-by-task; do not skip ahead without tests.
-> **Gate:** Tasks 1–4 complete. Next unclaimed: Task 5 (NearbyScreen wiring + disclaimer).
+> **Gate:** Tasks 1–5 complete. Next unclaimed: Task 6 (cross-platform verify + README flags).
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -140,7 +140,10 @@
 
 ---
 
-### Task 5: Wire NearbyScreen behind LIVE_NEARBY
+### Task 5: Wire NearbyScreen behind LIVE_NEARBY — **COMPLETE** (kholaif)
+
+**Owner:** kholaif (Kareem)  
+**Status:** Done on `feat/nearby-live-task5-kholaif`. 42 tests passing, integration smoke passing, `flutter analyze --fatal-infos` clean, plus a real-network run against Nominatim/Overpass (findings in the handoff doc).
 
 **Files:**
 - Modify: `lib/features/nearby/nearby_screen.dart`
@@ -155,35 +158,12 @@
 - Live path: load on init; show disclaimer; category filter; real `url_launcher` for call/sms/directions when phone/coords present
 - Empty/unavailable: plain message, no demo rows
 
-- [ ] **Step 1: Write widget tests**
+- [x] **Step 1: Write widget tests**
 
-```dart
-testWidgets('demo mode shows DemoBanner and sample pharmacy', (tester) async { ... });
-testWidgets('live mode shows unvetted disclaimer and repo cards', (tester) async { ... });
-```
-
-- [ ] **Step 2: Run — FAIL**
-
-- [ ] **Step 3: Implement UI wiring**
-
-Disclaimer copy (live only):
-
-> These places come from public maps data. They are not checked by our team. Updated as of &lt;local time&gt;.
-
-Keep map toggle placeholder. Town chip may stay New Brunswick for v1 (fixed `NearbyQuery`).
-
-- [ ] **Step 4: `flutter test` — PASS; manual web/android smoke with `LIVE_NEARBY=false`**
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/features/nearby/ lib/app.dart lib/main.dart test/
-git commit -m "$(cat <<'EOF'
-Gate live Nearby repository behind LIVE_NEARBY with disclaimer UI.
-
-EOF
-)"
-```
+- [x] **Step 2: Run — FAIL**
+- [x] **Step 3: Implement UI wiring** — disclaimer copy as specified; map toggle placeholder kept; town chip fixed to New Brunswick; "Use my location?" omitted in live mode since v1 has no GPS path.
+- [x] **Step 4: `flutter test` — PASS** (42 tests + integration smoke); demo default verified unchanged.
+- [x] **Step 5: Commit**
 
 ---
 
