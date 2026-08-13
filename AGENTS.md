@@ -132,7 +132,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Locked approach:** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
 
-**Implementation:** Tasks 1–2 complete on `main` (ks1686). **Tasks 3–5 complete (kholaif, PRs #3–#5):** Google soft-fail source, `NearbyRepository` orchestration with an in-memory `NearbyCache`, and `NearbyScreen` gated behind `LIVE_NEARBY` with the unvetted disclaimer. Next unclaimed: Task 6 (cross-platform verify + README flags). Real-network run surfaced Overpass rate limiting and sparse phone data — see the handoff doc's live-run findings. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
+**Implementation: complete, flag default off.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Live Nearby runs Google soft-fail → OSM Overpass through `NearbyRepository`, gated behind `LIVE_NEARBY`, with an unvetted-data disclaimer. Before extending this feature, read the findings in `docs/engineering/nearby-live-data.md`: Overpass rate limits per shared IP (mitigated with mirror failover), most OSM rows have no phone number, the cache is still in-memory only, and no physical Android or iOS device has run the live path yet. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, and `flutter build apk --debug`.
 
