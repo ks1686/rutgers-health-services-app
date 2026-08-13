@@ -2,7 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **Gate:** Implementation started on `feat/nearby-live-task1` (Task 1 complete). Continue task-by-task; do not skip ahead without tests.
+> **Gate:** Tasks 1–2 complete on `main`. Continue task-by-task; do not skip ahead without tests.
+> **Active claim:** Task 3 claimed by **kholaif** (2026-08-12). Other agents: do not modify Task 3 files.
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -85,7 +86,11 @@
 
 ---
 
-### Task 3: Google Places source (soft-fail, no billing)
+### Task 3: Google Places source (soft-fail, no billing) — **CLAIMED by kholaif**
+
+**Owner:** kholaif (Kareem)  
+**Status:** Claimed — coding starts only after owner approval in chat.  
+**Do not touch:** `google_places_source.dart` / `google_places_source_test.dart` while this claim is active.
 
 **Files:**
 - Create: `lib/features/nearby/data/sources/google_places_source.dart`
