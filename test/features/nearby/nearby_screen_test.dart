@@ -246,6 +246,33 @@ void main() {
       expect(opened.last.query, contains('40.4862,-74.4518'));
     });
 
+    testWidgets('every source category has a filter chip', (tester) async {
+      final repository = _StubRepository(
+        _result(
+          resources: [
+            for (final category in NearbyCategory.values)
+              _resource(
+                name: 'Place ${category.label}',
+                category: category.label,
+              ),
+          ],
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(config: _liveConfig, repository: repository),
+      );
+
+      for (final category in NearbyCategory.values) {
+        expect(
+          find.widgetWithText(FilterChip, category.label),
+          findsOneWidget,
+          reason: 'no chip filters ${category.label}',
+        );
+      }
+    });
+
     testWidgets('rows without a phone hide Call and Text', (tester) async {
       final repository = _StubRepository(
         _result(resources: [_resource(name: 'No Phone Clinic', phone: null)]),

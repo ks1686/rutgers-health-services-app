@@ -1,12 +1,13 @@
 # Nearby live data — collaborator handoff
 
-**Status:** Implementation in progress (Tasks 1–3 on branch / merged as noted).  
+**Status:** **Implemented (flag default off).** Tasks 1–6 complete and merged to `main`.  
 **Task 1 (models/config/deps):** **Complete** (ks1686)  
 **Task 2 (Nominatim + Overpass):** **Complete** (ks1686) — fixture-backed unit tests; NJ guard.  
 **Task 3 (Google Places soft-fail):** **Complete** (kholaif) — empty key / 403 / billing-style soft-fail; Maps Places API (New) happy path.  
 **Task 4 (repository + cache):** **Complete** (kholaif) on `feat/nearby-live-task4-kholaif`, stacked on the Task 3 PR. In-memory cache only — see caveat below.  
 **Task 5 (NearbyScreen wiring + disclaimer):** **Complete** (kholaif) on `feat/nearby-live-task5-kholaif`. Verified against real OSM — see live-run findings below.  
-**Next open:** Task 6 (cross-platform verify + README flags) — unclaimed.  
+**Task 6 (cross-platform verify + README flags):** **Complete** (kholaif) — two Android release blockers found and fixed; see below.  
+**Next open:** nothing in this plan. Remaining risks are listed under "Not done / still open."  
 **Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
 
 ## Read these in order
@@ -84,6 +85,29 @@ Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors in
 **One trap worth knowing about.** I checked five candidate mirrors against a New Brunswick bounding box before choosing. `overpass.osm.ch` answered **HTTP 200 with zero elements** because it only carries Swiss data. Adding it would not have thrown an error — the app would have calmly told a member there is no pharmacy near them. `overpass.osm.jp` fails TLS verification. `maps.mail.ru` works and returns correct data, but it is operated by VK/Mail.ru, and routing health-adjacent lookups from a Rutgers study through it is not a call I should make quietly — leaving it out. The three shipped mirrors all returned the same real New Brunswick pharmacies. There is now a comment on `kOverpassEndpoints` requiring the same check before anyone adds a fourth.
 
 **Still open:** the cache remains in-memory, so a cold start with every mirror down still shows an empty state. Persistent caching is the remaining piece of the field-reliability story and is not claimed by anyone yet.
+
+## Cross-platform verification (2026-08-12, kholaif — Task 6)
+
+**Two Android release blockers were found and fixed.** Neither is visible in debug builds or in CI, which is why they survived this long:
+
+1. **`INTERNET` permission was missing from the release manifest.** It was declared only in `android/app/src/debug/` and `android/app/src/profile/`, where the Flutter tooling puts it for hot reload. Debug builds therefore had network and release builds would not have — so the live Nearby tab would have failed completely on any APK handed to a participant, with CI staying green because it only builds `--debug`. Now declared in `android/app/src/main/AndroidManifest.xml` and confirmed present in the merged release manifest of an actual `flutter build apk --release`.
+2. **Android 11+ package visibility blocked the card actions.** The manifest declared `<queries>` only for `PROCESS_TEXT`. Without entries for `https`, `tel`, and `smsto`, `url_launcher` cannot resolve the Call, Text, and Directions buttons on API 30 and above — which is essentially every current phone. Added and verified in the same merged manifest.
+
+**Verified working:**
+
+| Check | Result |
+|---|---|
+| `flutter build apk --release` | Builds; merged manifest carries `INTERNET` + all three `<queries>` intents |
+| Web CORS | Nominatim and both primary Overpass mirrors return `Access-Control-Allow-Origin: *`, so web needs no proxy |
+| Live data end to end | Real New Brunswick pharmacies and clinics returned from the live repository |
+| Demo default | Unchanged; full suite green with the flag off |
+| Category chips | Now derived from `NearbyCategory.values`, with a test asserting every source category has a chip |
+
+**Not verified — needs someone with the hardware:**
+
+- **No physical Android device or emulator run.** The build is verified and the manifest is correct, but nobody has yet tapped Call on a real phone. This is the single most valuable thing left to check, since Android is 21 of 27 member phones.
+- **No iOS run at all.** The dev machine is Windows. iOS needs no extra configuration for `launchUrl`, but that is reasoning, not evidence.
+- **macOS is not a supported target.** `macos/Runner/Release.entitlements` has no `com.apple.security.network.client`, so live requests would fail. Left alone deliberately rather than shipping a change that cannot be tested from Windows.
 
 ## Task 4 decisions worth a second opinion
 

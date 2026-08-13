@@ -135,7 +135,13 @@ class _NearbyLiveView extends StatefulWidget {
 
 class _NearbyLiveViewState extends State<_NearbyLiveView> {
   static const _query = NearbyQuery();
-  static const _categories = ['All', 'Pharmacy', 'Clinic', 'Urgent care'];
+
+  /// Derived from the source enum so a renamed category cannot silently stop
+  /// matching the chip that filters it.
+  static final _categories = [
+    'All',
+    ...NearbyCategory.values.map((category) => category.label),
+  ];
 
   http.Client? _ownedClient;
   late final NearbyRepository _repository;
