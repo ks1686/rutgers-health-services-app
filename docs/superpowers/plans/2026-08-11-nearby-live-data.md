@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Gate:** Tasks 1–3 complete (Task 3 by kholaif). Continue task-by-task; do not skip ahead without tests.
-> **Gate:** Tasks 1–5 complete. Next unclaimed: Task 6 (cross-platform verify + README flags).
+> **Gate:** Tasks 1–6 complete. Nearby live data is implemented with the flag default off. Remaining risks are tracked in `docs/engineering/nearby-live-data.md`.
 
 **Goal:** Add a flag-gated live Nearby pipeline (Google Places soft-fail → OSM Overpass) on Flutter iOS/Android while keeping the static demo as the default.
 
@@ -167,45 +167,15 @@
 
 ---
 
-### Task 6: Cross-platform verification + README flags
+### Task 6: Cross-platform verification + README flags — **COMPLETE** (kholaif)
 
-**Files:**
-- Modify: `README.md` — document `LIVE_NEARBY` / `GOOGLE_PLACES_API_KEY`
-- Modify: `docs/engineering/nearby-live-data.md` — mark implementation status when done
+**Owner:** kholaif (Kareem). Also required fixing `android/app/src/main/AndroidManifest.xml`, which was not in the original file list.
 
-- [ ] **Step 1: Run full test suite**
-
-Run: `flutter test`
-
-- [ ] **Step 2: Manual live-on OSM (no Google key)**
-
-```bash
-flutter run -d chrome --dart-define=LIVE_NEARBY=true
-# Also once each: Android emulator/device and iOS simulator if available
-```
-
-Expect: OSM (or cache/empty) — not demo fake names unless they coincidentally exist in OSM.
-
-- [ ] **Step 3: Confirm demo default**
-
-```bash
-flutter run -d chrome
-```
-
-Expect: unchanged static demo.
-
-- [ ] **Step 4: Update README with flag docs (no billing instructions)**
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add README.md docs/engineering/nearby-live-data.md
-git commit -m "$(cat <<'EOF'
-Document Nearby LIVE_NEARBY flags after cross-platform smoke checks.
-
-EOF
-)"
-```
+- [x] **Step 1: Full test suite** — green.
+- [x] **Step 2: Live-on OSM** — verified against real Nominatim/Overpass; real New Brunswick places returned, no demo names. **Two Android release blockers found and fixed** (missing `INTERNET` in the release manifest; missing Android 11+ `<queries>` for `tel`/`smsto`/`https`), both confirmed in the merged manifest of a real `flutter build apk --release`. No physical device or iOS run was possible on a Windows host — logged as open in the handoff doc.
+- [x] **Step 3: Demo default confirmed** — unchanged.
+- [x] **Step 4: README flag docs** — flags table, behavior, and platform notes; no billing instructions.
+- [x] **Step 5: Commit**
 
 ---
 
