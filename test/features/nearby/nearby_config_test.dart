@@ -48,7 +48,7 @@ void main() {
         address: '1 College Ave, New Brunswick, NJ',
         lat: 40.4862,
         lng: -74.4518,
-        status: 'Hours not listed',
+        openingHoursRaw: null,
         source: 'osm',
         fetchedAt: fetchedAt,
         phone: '(732) 555-0100',

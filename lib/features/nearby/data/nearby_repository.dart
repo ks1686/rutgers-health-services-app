@@ -165,7 +165,7 @@ class NearbyRepository {
       phone: row.phone,
       lat: row.lat,
       lng: row.lng,
-      status: row.status,
+      openingHoursRaw: row.openingHoursRaw,
       source: row.source,
       fetchedAt: when,
     );

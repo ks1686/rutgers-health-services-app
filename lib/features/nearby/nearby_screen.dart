@@ -12,17 +12,26 @@ import 'data/nearby_fetch_result.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
+import 'data/opening_hours.dart';
+import 'widgets/nearby_hours_control.dart';
 import 'widgets/nearby_live_disclaimer.dart';
 
 typedef NearbyLinkLauncher = Future<bool> Function(Uri uri);
 
 /// Nearby tab. Static demo by default; live locator behind `LIVE_NEARBY`.
 class NearbyScreen extends StatelessWidget {
-  const NearbyScreen({super.key, this.config, this.repository, this.launcher});
+  const NearbyScreen({
+    super.key,
+    this.config,
+    this.repository,
+    this.launcher,
+    this.clock,
+  });
 
   final NearbyConfig? config;
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
+  final DateTime Function()? clock;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +43,7 @@ class NearbyScreen extends StatelessWidget {
       config: resolved,
       repository: repository,
       launcher: launcher,
+      clock: clock,
     );
   }
 }
@@ -93,7 +103,10 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
         for (final resource in _filtered) ...[
           _PlaceCard(
             name: resource.name,
-            status: resource.status,
+            hours: Text(
+              resource.status,
+              style: const TextStyle(color: CwcColors.sub, fontSize: 13),
+            ),
             description: resource.description,
             badges: [
               resource.walkTime,
@@ -123,11 +136,17 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
 }
 
 class _NearbyLiveView extends StatefulWidget {
-  const _NearbyLiveView({required this.config, this.repository, this.launcher});
+  const _NearbyLiveView({
+    required this.config,
+    this.repository,
+    this.launcher,
+    this.clock,
+  });
 
   final NearbyConfig config;
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
+  final DateTime Function()? clock;
 
   @override
   State<_NearbyLiveView> createState() => _NearbyLiveViewState();
@@ -303,7 +322,12 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         for (final resource in rows) ...[
           _PlaceCard(
             name: resource.name,
-            status: resource.status,
+            hours: NearbyHoursControl(
+              view: parseOpeningHours(
+                resource.openingHoursRaw,
+                (widget.clock ?? DateTime.now)(),
+              ),
+            ),
             badges: [resource.category],
             address: resource.address,
             actions: _actionsFor(resource),
@@ -427,7 +451,7 @@ class _MapPlaceholder extends StatelessWidget {
 class _PlaceCard extends StatelessWidget {
   const _PlaceCard({
     required this.name,
-    required this.status,
+    required this.hours,
     required this.badges,
     required this.address,
     required this.actions,
@@ -435,7 +459,7 @@ class _PlaceCard extends StatelessWidget {
   });
 
   final String name;
-  final String status;
+  final Widget hours;
   final List<String> badges;
   final String address;
   final List<Widget> actions;
@@ -454,10 +478,7 @@ class _PlaceCard extends StatelessWidget {
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
-            Text(
-              status,
-              style: const TextStyle(color: CwcColors.sub, fontSize: 13),
-            ),
+            hours,
             if (description != null) ...[
               const SizedBox(height: 8),
               Text(description!),

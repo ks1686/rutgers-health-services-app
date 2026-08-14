@@ -35,6 +35,7 @@ class _NearbyHoursControlState extends State<NearbyHoursControl> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
+          container: true,
           button: true,
           label: '$summary, $action',
           child: InkWell(
