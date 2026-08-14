@@ -63,7 +63,7 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 
 ## Split work
 
-This spike is closed. Next engineering (separate plans): readable hours on live cards; FIND-4 OSM map view.
+This spike is closed. Next engineering (separate plans): FIND-4 OSM map view. Readable hours on live cards is implemented on the hours-expand branch.
 
 ## As-built (Chrome web, 2026-08-14, ks1686)
 
@@ -73,7 +73,7 @@ Verified on latest `main` with `LIVE_NEARBY=true` (release web bundle). Matches 
 |------|----------|
 | Disclaimer | “These places come from public maps data. They are not checked by our team.” + “Updated as of …” |
 | Sample rows | University Pharmacy and Surgical (New Brunswick); Walgreens (Edison — bbox overshoot reproduced) |
-| Hours | Raw OSM `opening_hours` string in the card status line (e.g. `Mo-Fr …; Sa …; Su …`), or “Hours not listed”. Hard to read at 13pt. **Next plan.** |
+| Hours | Live cards: **Open now** / **Closed** (tap to expand Mon–Sun). Unparseable or missing OSM tags: **Hours not listed**. |
 | Map toggle | Still a placeholder: “Map view is not ready yet.” FIND-4 unmet. **Next plan.** |
 | GPS | Live mode has no “Use my location?” (town is fixed to New Brunswick) |
 | Call / Text | Hidden when OSM has no phone; Directions always shown |
@@ -90,7 +90,7 @@ Verified on latest `main` with `LIVE_NEARBY=true` (release web bundle). Matches 
 | `healthcare=urgent_care` only | Urgent care |
 | hospital, doctors, dentist, `healthcare=yes`, CWC, wellness | **Dropped** (under-claim) |
 
-Hours are **not parsed**: the `opening_hours` tag is copied into `NearbyResource.status`. That is OSM syntax, not the spec's plain-language “Open until 7pm” (FIND-1). Google Places live rows currently always get `Hours not listed`.
+Hours: OSM `opening_hours` is stored on `NearbyResource.openingHoursRaw` and parsed on the live card into **Open now** / **Closed** (tap to expand Mon–Sun). Unparseable or missing tags: **Hours not listed**. Google Places live rows currently always get **Hours not listed** (`openingHoursRaw: null`). Spec FIND-1 (curated directory) is unchanged.
 
 ## Live-run findings (2026-08-12, kholaif)
 
@@ -147,8 +147,8 @@ Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors in
 
 Separate plans — do not fold into the closed Tasks 1–7:
 
-1. **Readable hours on live cards** [TEAM 2026-08-14] — collapsed “Open now” / “Closed” (tap to expand OSM hours). Spec FIND-1 wants plain-language hours; as-built dumps the raw tag.
-2. **FIND-4 map view** [TEAM 2026-08-14] — optional OSM tiles, Wi‑Fi / explicit action, list still works offline (TECH-3 / TECH-6). Placeholder toggle is already in the live UI.
+1. **Readable hours on live cards** [TEAM 2026-08-14] — **Done** on the hours-expand branch (flag default still off). Collapsed “Open now” / “Closed” (tap to expand Mon–Sun). Unparseable or missing OSM tags: “Hours not listed”.
+2. **FIND-4 map view** [TEAM 2026-08-14] — **next.** Optional OSM tiles, Wi‑Fi / explicit action, list still works offline (TECH-3 / TECH-6). Placeholder toggle is already in the live UI.
 3. Persistent on-device cache for cold start when every Overpass mirror is down.
 4. Physical Android Call/Text/Directions tap; iOS smoke.
 

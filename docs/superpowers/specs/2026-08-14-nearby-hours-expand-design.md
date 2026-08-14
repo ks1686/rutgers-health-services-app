@@ -1,6 +1,6 @@
 # Nearby live hours — expand/collapse design (2026-08-14)
 
-**Status:** Design approved. Implementation plan: [`../plans/2026-08-14-nearby-hours-expand.md`](../plans/2026-08-14-nearby-hours-expand.md).  
+**Status:** Implemented on the hours-expand branch (flag default still off). Implementation plan: [`../plans/2026-08-14-nearby-hours-expand.md`](../plans/2026-08-14-nearby-hours-expand.md).  
 **Parent:** [`2026-08-11-nearby-live-data-design.md`](2026-08-11-nearby-live-data-design.md) (live Nearby spike, implemented).  
 **Handoff:** [`docs/engineering/nearby-live-data.md`](../../engineering/nearby-live-data.md).  
 **Evidence:** [TEAM 2026-08-14] — live OSM `opening_hours` dumped into the card is hard to read.

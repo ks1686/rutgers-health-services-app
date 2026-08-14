@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. Next Nearby work: readable hours + FIND-4 map (separate plans).
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. Next Nearby work: FIND-4 map (separate plan).
 
 ## 2. Formal identity
 
@@ -49,7 +49,7 @@ Authoritative detail + evidence tags: feature spec v0.4. Working names subject t
 
 | Area | MVP |
 |------|-----|
-| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (hours still raw tags; map toggle is a placeholder) |
+| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; map toggle is a placeholder) |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Six domains; ~6th-grade; source-labeled; offline; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: 988 call+text, 911, Poison Control, member’s CWC, NJ peer warmline; optional emergency card (off by default) |
@@ -132,9 +132,9 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Locked approach (this spike):** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
 
-**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. As-built gaps (do not treat as done): raw OSM hours on cards; map toggle is still a placeholder; cache is in-memory only; no physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
+**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. Hours expand is implemented on the hours-expand branch (flag default still off). As-built gaps (do not treat as done): map toggle is still a placeholder; cache is in-memory only; no physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
 
-**Next (separate plans, not this spike):** readable hours (Open now / Closed, tap to expand); FIND-4 OSM map view.
+**Next (separate plans, not this spike):** FIND-4 OSM map view.
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, and `flutter build apk --debug`.
 

@@ -46,7 +46,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 | Tab / screen | Demo behavior |
 |--------------|---------------|
-| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; map toggle is still a placeholder; hours currently dump raw OSM `opening_hours` |
+| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; map toggle is still a placeholder; Open now / Closed expands weekday hours when OSM tags parse |
 | My Health | Sample appointments / meds / providers; wallet card screen |
 | Learn | Six topics → short articles with source labels |
 | More | List to placeholder pages; Erase → “Demo only” snackbar |
