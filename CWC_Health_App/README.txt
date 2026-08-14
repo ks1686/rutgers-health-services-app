@@ -3,7 +3,7 @@ CWC Health App — Document Set (August 2026, Rutgers Scarlet edition)
 AGENT / CURSOR ENTRY (preferred for coding agents):
   ../../AGENTS.md                                 — distilled handoff at repo root
   ../../.cursor/rules/*.mdc                       — always-on Cursor project rules
-  ../../docs/engineering/nearby-live-data.md      — Nearby live-data engineering handoff (Aug 2026)
+  ../../docs/engineering/nearby-live-data.md      — Nearby live-data handoff (implemented; local demo is live-on Chrome)
   ../../docs/superpowers/plans/                   — task-by-task implementation plans for agents
 
 SOURCE DOCUMENTS (authoritative detail — keep versioned here):

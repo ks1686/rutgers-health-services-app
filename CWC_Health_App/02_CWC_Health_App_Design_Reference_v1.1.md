@@ -6,7 +6,7 @@
 **File name:** CWC Health App — Lo-Fi Wireframes v0.1 *(the file name reflects its origin; it now also contains the Final Design v1.1 page)*
 **File key:** `yAwsNNegakKROue3o0CAMJ`
 **Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.4.md` (requirements — authoritative for behavior)
-**Last updated:** July 2026 — **v1.1:** rebranded to the official Rutgers visual identity (Scarlet Pantone 186 / #CC0033, used with black, gray, and white per Rutgers brand standards; supporting gray PMS 431 #5F6A72). Layout, content, and structure unchanged from v1.0.
+**Last updated:** August 2026 — **v1.1** tokens/Figma unchanged. As-built Flutter Nearby notes added under §2 (live OSM, raw hours, map placeholder) — not a visual rebrand; next look change should bump to v1.2.
 
 **Rule of the three documents:** the rundown explains *the project*, the spec defines *what the app does*, this document + the Figma file define *what the app looks like*. A change in any one should be checked against the other two, and versions should be bumped together.
 
@@ -33,7 +33,9 @@ The Figma file contains two pages:
 | More | Large-type icon list: How to Use This App · Ask a Peer · Helper Mode · Settings · How This App Protects You · Erase My Information (styled in Rutgers black) | NAV-3, HELP-1 through HELP-4, PRIV-3, PRIV-5 |
 | Help Now | Full-screen overlay (Back header, no tab bar); "You're not alone" intro; 988 (call/text), Peer Warmline, My Wellness Center as filled primary buttons; 911 black-outlined; Poison Control neutral-outlined; emergency-card toggle shown off by default with its consequence stated; "works even without internet" note | NOW-1 through NOW-4, deliberate peer-forward hierarchy |
 
-Every screen (except Help Now, which is the destination) carries the persistent **Help Now pill** in the header (NOW-1) and the four-tab bottom bar with the active tab tinted (NAV-1). Sample data is intentionally realistic-but-fake (Dr. Rivera, Main Street Pharmacy, Metformin/Sertraline) so review conversations focus on structure, not placeholders.
+Every screen (except Help Now, which is the destination) carries the persistent **Help Now pill** in the header (NOW-1) and the four-tab bottom bar with the active tab tinted (NAV-1). Sample data in Figma is intentionally realistic-but-fake (Dr. Rivera, Main Street Pharmacy, Metformin/Sertraline) so review conversations focus on structure, not placeholders.
+
+**As built in the Flutter study build (August 2026, not a Figma change):** Nearby can show live OSM rows behind `LIVE_NEARBY` (disclaimer banner; hours currently the raw `opening_hours` tag; “See these on a map” is still a placeholder). Tokens and Figma frames above remain canonical for look. Engineering detail: `docs/engineering/nearby-live-data.md`.
 
 ## 3. Design tokens
 

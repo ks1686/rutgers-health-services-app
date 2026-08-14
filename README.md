@@ -1,14 +1,30 @@
 # CWC Health App
 
-Navigation prototype (v1) for co-design feedback. Rutgers Scarlet chrome, four bottom tabs (**Nearby | My Health | Learn | More**), and a persistent **Help Now** control. All content is **static demo data** — no accounts, permissions, persistence, maps, or real calls/SMS.
+Navigation prototype for co-design feedback. Rutgers Scarlet chrome, four bottom tabs (**Nearby | My Health | Learn | More**), and a persistent **Help Now** control. **Nearby live listings** (OpenStreetMap) are the current engineering demo. Other tabs still use static sample data. No accounts, no stored credentials, no third-party analytics.
 
 ## Run
 
+Local review is **Chrome with live Nearby**. Flutter’s debug web-server does not boot in Safari.
+
 ```bash
 flutter pub get
-flutter run -d chrome          # quick desktop review
-# or: flutter run -d <android|ios device id>
+flutter run -d chrome --dart-define=LIVE_NEARBY=true
 ```
+
+`LIVE_NEARBY` still **defaults off** at compile time, so a meeting APK without the flag keeps the fake New Brunswick list. Do not use the flag-off list as the working engineering demo.
+
+```bash
+# Flag-off static list (tests / meeting APKs only)
+flutter run -d chrome
+```
+
+Optional Google Places attempt (study build does not enable billing; OSM is the supported path):
+
+```bash
+flutter run -d chrome --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
+```
+
+Never commit API keys.
 
 ## Verify (local = CI)
 
@@ -30,7 +46,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 | Tab / screen | Demo behavior |
 |--------------|---------------|
-| Nearby | New Brunswick sample resources; category chips; map toggle placeholder (live locator available behind `LIVE_NEARBY`, off by default) |
+| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; map toggle is still a placeholder; hours currently dump raw OSM `opening_hours` |
 | My Health | Sample appointments / meds / providers; wallet card screen |
 | Learn | Six topics → short articles with source labels |
 | More | List to placeholder pages; Erase → “Demo only” snackbar |
@@ -40,20 +56,20 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 - [`AGENTS.md`](AGENTS.md) — agent handoff
 - [`CWC_Health_App/`](CWC_Health_App/) — requirements + design reference
-- [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) — **Nearby live-data** collaborator handoff (implemented; flag default off)
+- [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) — **Nearby live-data** collaborator handoff (implemented; local demo is live-on)
 - [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) — task-by-task implementation plan
 - Figma: https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
 
 ### Nearby live data
 
-**Default builds stay on static demo data.** Live mode is opt-in per build and there is no runtime switch, so a demo build cannot accidentally show live listings.
+**Default compile stays on static Nearby data** so a meeting build cannot accidentally show live listings. Local engineering uses the flag **on**. There is no runtime switch.
 
 ```bash
-# Static demo (the default — what co-design sessions should use)
-flutter run -d chrome
-
-# Live locator: OpenStreetMap only, no key or billing required
+# Local engineering demo
 flutter run -d chrome --dart-define=LIVE_NEARBY=true
+
+# Flag-off static list (compile default)
+flutter run -d chrome
 
 # Live locator with a Google Places attempt layered in front of OSM
 flutter run -d chrome --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...

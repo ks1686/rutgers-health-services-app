@@ -4,7 +4,7 @@ Shared, committed plans and handoffs for humans and agents.
 
 | Path | Purpose |
 |------|---------|
-| [`nearby-live-data.md`](nearby-live-data.md) | Nearby live-data collaborator handoff |
+| [`nearby-live-data.md`](nearby-live-data.md) | Nearby live-data collaborator handoff (**implemented**; local demo is live-on) |
 | [`../superpowers/specs/`](../superpowers/specs/) | Design specs |
 | [`../superpowers/plans/`](../superpowers/plans/) | Task-by-task implementation plans |
 
@@ -37,3 +37,5 @@ Flutter pin: **3.44.7** (stable).
 - iOS `flutter build ios --no-codesign` (needs macOS runner)
 - Device/emulator `flutter drive` on Chrome/Android
 - Screenshot / golden tests
+
+Nearby live-data Tasks 1–6 are on `main`. Next engineering plans (not started): readable hours on live cards; FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).

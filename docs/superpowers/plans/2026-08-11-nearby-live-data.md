@@ -179,15 +179,15 @@
 
 ---
 
-### Task 7: Collaborator close-out
+### Task 7: Collaborator close-out — **DOCS WRITTEN** (ks1686, 2026-08-14)
 
-**Files:** none required beyond status tweaks in `docs/engineering/nearby-live-data.md`
+**Files:** `docs/engineering/nearby-live-data.md` (as-built + category caveats); this checkbox list.
 
-- [ ] **Step 1: Set handoff status to “Implemented (flag default off)”** in `docs/engineering/nearby-live-data.md`
-- [ ] **Step 2: List any OSM category mapping caveats discovered**
-- [ ] **Step 3: Do not bump feature spec FIND-1 unless research team asks**
-- [ ] **Step 4: Open or update PR description with test evidence (Android + iOS/web)**
-- [ ] **Step 5: Commit doc status if changed**
+- [x] **Step 1: Set handoff status to “Implemented (flag default off)”** in `docs/engineering/nearby-live-data.md`
+- [x] **Step 2: List any OSM category mapping caveats discovered** — pharmacy / clinic / `healthcare=urgent_care` only; hospital/doctors/CWC dropped; `opening_hours` copied raw into `status`.
+- [x] **Step 3: Do not bump feature spec FIND-1 unless research team asks** — v0.4 unchanged; tension still documented in the handoff.
+- [x] **Step 4: Open or update PR description with test evidence (Android + iOS/web)** — PRs #3–#7 plus 2026-08-14 Chrome web live verify in the handoff. No physical Android/iOS yet.
+- [ ] **Step 5: Commit doc status if changed** — docs updated locally 2026-08-14; commit with the next requested docs PR.
 
 ---
 
