@@ -323,6 +323,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           _PlaceCard(
             name: resource.name,
             hours: NearbyHoursControl(
+              key: ValueKey(resource.id),
               view: parseOpeningHours(
                 resource.openingHoursRaw,
                 (widget.clock ?? DateTime.now)(),
