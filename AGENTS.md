@@ -132,7 +132,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Locked approach (this spike):** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
 
-**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. Hours expand is implemented on the hours-expand branch (flag default still off). As-built gaps (do not treat as done): map toggle is still a placeholder; cache is in-memory only; no physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
+**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. Hours expand is on `main` (flag default still off). As-built gaps (do not treat as done): map toggle is still a placeholder; cache is in-memory only; no physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
 
 **Next (separate plans, not this spike):** FIND-4 OSM map view.
 
@@ -153,7 +153,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Other tabs still use static demo data and “Demo only” snackbars.
+- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Other tabs still use static demo data and “Demo only” snackbars.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
 - No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web / Chrome is the usual local demo path.
 - GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.
