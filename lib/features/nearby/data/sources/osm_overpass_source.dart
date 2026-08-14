@@ -201,11 +201,7 @@ out center tags;
     final id = '$type-$idNum';
 
     final phone = tagMap['phone'] ?? tagMap['contact:phone'];
-    final hours = tagMap['opening_hours'];
-    final status = (hours != null && hours.trim().isNotEmpty)
-        ? hours.trim()
-        : 'Hours not listed';
-
+    final hours = tagMap['opening_hours']?.trim();
     return NearbyResource(
       id: id,
       name: name,
@@ -214,7 +210,7 @@ out center tags;
       phone: phone,
       lat: coords.$1,
       lng: coords.$2,
-      status: status,
+      openingHoursRaw: (hours == null || hours.isEmpty) ? null : hours,
       source: 'osm',
       fetchedAt: when,
     );

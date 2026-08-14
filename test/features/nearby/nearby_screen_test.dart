@@ -51,6 +51,7 @@ NearbyResource _resource({
   String? phone = '+1-732-555-0142',
   double lat = 40.4862,
   double lng = -74.4518,
+  String? openingHoursRaw,
 }) {
   return NearbyResource(
     id: name,
@@ -60,7 +61,7 @@ NearbyResource _resource({
     phone: phone,
     lat: lat,
     lng: lng,
-    status: 'Hours not listed',
+    openingHoursRaw: openingHoursRaw,
     source: 'osm',
     fetchedAt: DateTime(2026, 8, 12, 21, 5),
   );
@@ -110,6 +111,16 @@ void main() {
 
       expect(find.textContaining('Demo only'), findsOneWidget);
     });
+
+    testWidgets('demo cards keep Open until 7pm and have no Open now', (
+      tester,
+    ) async {
+      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
+
+      expect(find.text('Open until 7pm'), findsOneWidget);
+      expect(find.text('Open now'), findsNothing);
+      expect(find.text('Hours not listed'), findsNothing);
+    });
   });
 
   group('live mode', () {
@@ -127,7 +138,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       expect(repository.calls, 1);
@@ -155,7 +170,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       expect(find.text('Main Street Pharmacy'), findsNothing);
@@ -171,7 +190,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
@@ -189,7 +212,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       expect(find.textContaining('This is a saved copy'), findsOneWidget);
@@ -207,7 +234,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       await tester.tap(find.widgetWithText(FilterChip, 'Clinic'));
@@ -232,6 +263,7 @@ void main() {
             opened.add(uri);
             return true;
           },
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
         ),
       );
 
@@ -261,7 +293,11 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       for (final category in NearbyCategory.values) {
@@ -280,12 +316,69 @@ void main() {
 
       await pumpScreen(
         tester,
-        NearbyScreen(config: _liveConfig, repository: repository),
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
       );
 
       expect(find.text('Call'), findsNothing);
       expect(find.text('Text'), findsNothing);
       expect(find.text('Directions'), findsOneWidget);
+    });
+
+    testWidgets('live card with OSM hours shows Open now and expands', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(
+          resources: [
+            _resource(
+              name: 'University Pharmacy',
+              openingHoursRaw:
+                  'Mo-Fr 09:00-19:00; Sa 09:00-17:00; Su 10:00-16:00',
+            ),
+          ],
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(find.text('Hours not listed'), findsNothing);
+      expect(find.text('Open now'), findsOneWidget);
+      expect(find.text('Monday 9:00 AM – 7:00 PM'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Open now, show hours'));
+      await tester.pumpAndSettle();
+      expect(find.text('Monday 9:00 AM – 7:00 PM'), findsOneWidget);
+    });
+
+    testWidgets('live card without hours stays Hours not listed', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Highland Pharmacy')]),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(find.text('Hours not listed'), findsOneWidget);
+      expect(find.text('Open now'), findsNothing);
     });
   });
 

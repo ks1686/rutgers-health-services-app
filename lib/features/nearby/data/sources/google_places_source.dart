@@ -181,7 +181,7 @@ class GooglePlacesSource {
       phone: (phone == null || phone.isEmpty) ? null : phone,
       lat: lat.toDouble(),
       lng: lng.toDouble(),
-      status: 'Hours not listed',
+      openingHoursRaw: null,
       source: 'google',
       fetchedAt: when,
     );

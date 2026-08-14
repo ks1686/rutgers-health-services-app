@@ -106,7 +106,7 @@ NearbyResource _resource({
     address: '1 Test St, New Brunswick, NJ',
     lat: lat,
     lng: lng,
-    status: 'Hours not listed',
+    openingHoursRaw: null,
     source: source,
     fetchedAt: fetchedAt ?? DateTime.utc(2026, 8, 12),
   );

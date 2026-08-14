@@ -24,10 +24,10 @@ class NearbyResource {
     required this.address,
     required this.lat,
     required this.lng,
-    required this.status,
     required this.source,
     required this.fetchedAt,
     this.phone,
+    this.openingHoursRaw,
   });
 
   final String id;
@@ -39,7 +39,9 @@ class NearbyResource {
   final String? phone;
   final double lat;
   final double lng;
-  final String status;
+
+  /// Raw OSM `opening_hours` tag, or null when unknown.
+  final String? openingHoursRaw;
 
   /// One of: `google`, `osm`, `cache`.
   final String source;
