@@ -1,49 +1,50 @@
 # Nearby live data — collaborator handoff
 
-**Status:** **Implemented (flag default off).** Tasks 1–6 complete and merged to `main`.  
+**Status:** **Implemented (flag default off).** Tasks 1–6 complete and merged to `main`. Task 7 close-out docs synced 2026-08-14.  
 **Task 1 (models/config/deps):** **Complete** (ks1686)  
 **Task 2 (Nominatim + Overpass):** **Complete** (ks1686) — fixture-backed unit tests; NJ guard.  
 **Task 3 (Google Places soft-fail):** **Complete** (kholaif) — empty key / 403 / billing-style soft-fail; Maps Places API (New) happy path.  
-**Task 4 (repository + cache):** **Complete** (kholaif) on `feat/nearby-live-task4-kholaif`, stacked on the Task 3 PR. In-memory cache only — see caveat below.  
-**Task 5 (NearbyScreen wiring + disclaimer):** **Complete** (kholaif) on `feat/nearby-live-task5-kholaif`. Verified against real OSM — see live-run findings below.  
+**Task 4 (repository + cache):** **Complete** (kholaif). In-memory cache only — see caveat below.  
+**Task 5 (NearbyScreen wiring + disclaimer):** **Complete** (kholaif). Verified against real OSM — see live-run findings below.  
 **Task 6 (cross-platform verify + README flags):** **Complete** (kholaif) — two Android release blockers found and fixed; see below.  
-**Next open:** nothing in this plan. Remaining risks are listed under "Not done / still open."  
-**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus; static demo stays for pre-usability show-and-tell (`LIVE_NEARBY` still default off).
+**Task 7 (collaborator close-out):** **Docs synced 2026-08-14** (ks1686). FIND-1 not rewritten. Commit of this close-out is with the next docs PR.  
+**Local demo:** **Live Nearby in Chrome** (`LIVE_NEARBY=true`). The flag-off static list is not used for local engineering review.  
+**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus. Compile-time `LIVE_NEARBY` still defaults **off** so a meeting APK cannot accidentally show live listings.
 
 ## Read these in order
 
 | # | Doc | Why |
 |---|-----|-----|
-| 1 | This file | Locked decisions + how to run later |
-| 2 | [`../superpowers/specs/2026-08-11-nearby-live-data-design.md`](../superpowers/specs/2026-08-11-nearby-live-data-design.md) | Design / architecture |
-| 3 | [`../superpowers/plans/2026-08-11-nearby-live-data.md`](../superpowers/plans/2026-08-11-nearby-live-data.md) | Task-by-task implementation plan for humans/agents |
+| 1 | This file | Locked decisions + how to run + as-built notes |
+| 2 | [`../superpowers/specs/2026-08-11-nearby-live-data-design.md`](../superpowers/specs/2026-08-11-nearby-live-data-design.md) | Design / architecture (this spike; map was a non-goal) |
+| 3 | [`../superpowers/plans/2026-08-11-nearby-live-data.md`](../superpowers/plans/2026-08-11-nearby-live-data.md) | Task-by-task implementation plan (Tasks 1–6 done) |
 | 4 | [`../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md`](../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md) | FIND-* / TECH-* (note tension below) |
 | 5 | [`../../AGENTS.md`](../../AGENTS.md) | Project + agent ground rules |
 
 ## Locked decisions (do not reopen without Karim)
 
-1. **Demo default stays static.** `liveNearby` defaults **off**. Meeting demos use today’s New Brunswick fake list.
+1. **Compile-time default stays static.** `liveNearby` defaults **off**. A build without the flag still shows the New Brunswick fake list. **Local engineering review uses live-on** (`--dart-define=LIVE_NEARBY=true` in Chrome). [TEAM 2026-08-14]
 2. **Live path:** Google Places HTTP (optional) → **soft-fail** → **OSM Overpass** (supported path).
 3. **No Google Cloud billing** for the study build. Empty / denied key is expected; OSM must work alone.
 4. **No curated CWC overlay** in this spike (no bundled wellness/CWC merge JSON).
 5. **Cross-platform:** one pure-Dart HTTP path for **iOS and Android** (no Apple MapKit-only search).
-6. **Out of scope here:** map tiles UI, favorites, GPS permission flow, Learn/training changes.
+6. **Out of scope for *this* spike:** map tiles UI, favorites, GPS permission flow, Learn/training changes. Map is FIND-4 and is the next engineering plan, not a silent add-on here.
 
 ## Spec tension (intentional spike)
 
 Spec **FIND-1** (curated directory) and **TECH-6** (no commercial map API costs) remain authoritative for the funded MVP narrative. This workstream is a **live-locator spike** from the 2026-08-11 action item. Do **not** silently rewrite FIND-1. If live OSM becomes the product direction, bump the feature spec in a separate PR with research-team buy-in.
 
-## Flags (planned; not in app yet)
+## Flags (in the app)
 
 ```bash
-# Default demo (meetings / pre-usability)
-flutter run -d chrome
-
-# Live mode once implemented (OSM expected; Google skipped without key)
+# Local engineering demo (Chrome). Flutter's debug web-server does not boot in Safari.
 flutter run -d chrome --dart-define=LIVE_NEARBY=true
 
+# Flag-off static list (compile default — meeting APKs / tests that assert demo rows)
+flutter run -d chrome
+
 # Optional Google attempt only if someone later enables a key + billing (not study default)
-flutter run --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
+flutter run -d chrome --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
 ```
 
 Never commit API keys. Never add billing setup scripts to this repo for the study build.
@@ -57,15 +58,39 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 | 3 Google Places soft-fail | **Done** | kholaif |
 | 4 Repository + cache | **Done** (in-memory cache) | kholaif |
 | 5 NearbyScreen wiring | **Done** | kholaif |
-| 6 Cross-platform verify + README flags | Not started | — |
-| 7 Collaborator close-out | Not started | — |
+| 6 Cross-platform verify + README flags | **Done** | kholaif |
+| 7 Collaborator close-out | **Docs written 2026-08-14** | ks1686 |
 
-## Split work (active)
+## Split work
 
-| Person / agent | Assignment |
-|----------------|------------|
-| ks1686 | Tasks 1–2 complete. Task 6 (cross-platform verify + README flags) is the next free slot. |
-| **kholaif** | Tasks 3–5 complete (PRs #3, #4, #5). Not claiming Task 6 yet. |
+This spike is closed. Next engineering (separate plans): readable hours on live cards; FIND-4 OSM map view.
+
+## As-built (Chrome web, 2026-08-14, ks1686)
+
+Verified on latest `main` with `LIVE_NEARBY=true` (release web bundle). Matches kholaif's 2026-08-12 live-run: real New Brunswick-area places, unvetted disclaimer, no demo names.
+
+| What | As built |
+|------|----------|
+| Disclaimer | “These places come from public maps data. They are not checked by our team.” + “Updated as of …” |
+| Sample rows | University Pharmacy and Surgical (New Brunswick); Walgreens (Edison — bbox overshoot reproduced) |
+| Hours | Raw OSM `opening_hours` string in the card status line (e.g. `Mo-Fr …; Sa …; Su …`), or “Hours not listed”. Hard to read at 13pt. **Next plan.** |
+| Map toggle | Still a placeholder: “Map view is not ready yet.” FIND-4 unmet. **Next plan.** |
+| GPS | Live mode has no “Use my location?” (town is fixed to New Brunswick) |
+| Call / Text | Hidden when OSM has no phone; Directions always shown |
+| Categories | Live chips: All / Pharmacy / Clinic / Urgent care. No CWC or Wellness rows |
+
+## OSM category mapping caveats (Task 7)
+
+`OsmOverpassSource._categoryFor` is deliberately narrow:
+
+| OSM tags | Live category |
+|----------|----------------|
+| `amenity=pharmacy` | Pharmacy |
+| `amenity=clinic` or `healthcare=clinic` | Clinic |
+| `healthcare=urgent_care` only | Urgent care |
+| hospital, doctors, dentist, `healthcare=yes`, CWC, wellness | **Dropped** (under-claim) |
+
+Hours are **not parsed**: the `opening_hours` tag is copied into `NearbyResource.status`. That is OSM syntax, not the spec's plain-language “Open until 7pm” (FIND-1). Google Places live rows currently always get `Hours not listed`.
 
 ## Live-run findings (2026-08-12, kholaif)
 
@@ -102,11 +127,12 @@ Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors in
 | Live data end to end | Real New Brunswick pharmacies and clinics returned from the live repository |
 | Demo default | Unchanged; full suite green with the flag off |
 | Category chips | Now derived from `NearbyCategory.values`, with a test asserting every source category has a chip |
+| Chrome web live (2026-08-14) | Real listings + disclaimer; Flutter `web-server` + Safari does **not** boot the debug app — use `-d chrome` |
 
 **Not verified — needs someone with the hardware:**
 
 - **No physical Android device or emulator run.** The build is verified and the manifest is correct, but nobody has yet tapped Call on a real phone. This is the single most valuable thing left to check, since Android is 21 of 27 member phones.
-- **No iOS run at all.** The dev machine is Windows. iOS needs no extra configuration for `launchUrl`, but that is reasoning, not evidence.
+- **No iOS run at all.** Original Task 6 host was Windows. iOS needs no extra configuration for `launchUrl`, but that is reasoning, not evidence.
 - **macOS is not a supported target.** `macos/Runner/Release.entitlements` has no `com.apple.security.network.client`, so live requests would fail. Left alone deliberately rather than shipping a change that cannot be tested from Windows.
 
 ## Task 4 decisions worth a second opinion
@@ -116,8 +142,16 @@ Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors in
 3. **Google wins only when it returns rows.** An empty `GooglePlacesOk` falls through to OSM rather than showing an empty list.
 4. **A successful-but-empty OSM response is `osm`, not `cache`.** "No pharmacies or clinics found near <town>" is a real answer; stale cache would be misleading.
 5. **Dedupe is name + 50 m**, which mainly collapses the duplicate node/way rows Overpass returns for one building.
-| Later | UI flag wiring + disclaimer (Task 5); keep demo path untouched |
+
+## Next engineering (not this spike)
+
+Separate plans — do not fold into the closed Tasks 1–7:
+
+1. **Readable hours on live cards** [TEAM 2026-08-14] — collapsed “Open now” / “Closed” (tap to expand OSM hours). Spec FIND-1 wants plain-language hours; as-built dumps the raw tag.
+2. **FIND-4 map view** [TEAM 2026-08-14] — optional OSM tiles, Wi‑Fi / explicit action, list still works offline (TECH-3 / TECH-6). Placeholder toggle is already in the live UI.
+3. Persistent on-device cache for cold start when every Overpass mirror is down.
+4. Physical Android Call/Text/Directions tap; iOS smoke.
 
 ## Meeting follow-ons (not this plan)
 
-Unvetted disclaimer + “updated as of” ship with live UI. Favorites, voice-nav training materials, Learn sustainability, and first-run walkthrough are tracked as meeting feedback — separate plans.
+Favorites, voice-nav training materials, Learn sustainability, and first-run walkthrough are tracked as meeting feedback — separate plans.

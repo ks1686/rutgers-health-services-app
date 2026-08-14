@@ -1,5 +1,7 @@
 # Nearby live data — design (2026-08-11)
 
+**Status (2026-08-14):** Implemented on `main`, gated by `LIVE_NEARBY` (compile default still off). Local engineering demo is Chrome with the flag **on**. Map tiles and parsed hours were non-goals of this spike; they are the next plans. Handoff: [`docs/engineering/nearby-live-data.md`](../../engineering/nearby-live-data.md).
+
 ## Problem
 
 The Flutter app’s Nearby tab is a static New Brunswick demo. The 2026-08-11 meeting asked engineering to advance a **live locator** for pharmacies/clinics while demos continue on the current prototype. Google Places was mentioned on the call; the study build will **not** enable Google billing, so OSM must be the reliable live path.
@@ -67,4 +69,7 @@ Pure Dart `http` clients. Same code on Android and iOS. Identify Nominatim/Overp
 
 ## Open follow-ons
 
-Full FIND-2 region/town picker; optional GPS shortcut; OSM map tiles; post-usability decision on curated vs live directory for FIND-1.
+- Readable hours on live cards — design: [`2026-08-14-nearby-hours-expand-design.md`](2026-08-14-nearby-hours-expand-design.md).
+- FIND-4 OSM map tiles (placeholder toggle already in live UI).
+- Full FIND-2 region/town picker; optional GPS shortcut.
+- Persistent on-device cache; post-usability decision on curated vs live directory for FIND-1.

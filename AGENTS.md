@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter v1 static navigation prototype exists; **Nearby live-data** is the next engineering plan (docs under `docs/engineering/` — implement only when explicitly requested).
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. Next Nearby work: readable hours + FIND-4 map (separate plans).
 
 ## 2. Formal identity
 
@@ -49,13 +49,13 @@ Authoritative detail + evidence tags: feature spec v0.4. Working names subject t
 
 | Area | MVP |
 |------|-----|
-| **Nearby** | Curated NJ directory (cached offline); region/town picker primary; GPS optional + explained; list-first with walk-time; optional OSM map |
+| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (hours still raw tags; map toggle is a placeholder) |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Six domains; ~6th-grade; source-labeled; offline; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: 988 call+text, 911, Poison Control, member’s CWC, NJ peer warmline; optional emergency card (off by default) |
 | **More** | Tutorials + ≤90s Wi‑Fi-downloadable videos, Ask a Peer, PSS Helper Mode (demo data), settings, plain-language privacy, one-tap erase |
 
-**Tech:** Flutter (chosen track for this repo) or RN per proposal; Android 8+ era / low-RAM test device; &lt;~40MB; offline-first; remote-config/hosted JSON for directory + Learn + Help Now numbers; WCAG 2.1 AA, ≥48dp targets, 18pt+ body + OS scaling, TalkBack/VoiceOver; open-source/low-cost stack.
+**Tech:** Flutter (this repo); Android 8+ era / low-RAM test device; &lt;~40MB; offline-first; remote-config/hosted JSON for directory + Learn + Help Now numbers; WCAG 2.1 AA, ≥48dp targets, 18pt+ body + OS scaling, TalkBack/VoiceOver; open-source/low-cost stack.
 
 **Out of scope this award:** symptom tracking / clinical assessment; diagnosis/treatment advice; EHR/portal credential storage or integration; member messaging; social feeds; gamification; AI answers; Spanish; crisis logic beyond the static Help Now set. Portal integration, Spanish, guarded AI → follow-on grant narrative.
 
@@ -118,38 +118,43 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 - Prefer editing source markdown in `CWC_Health_App/` when requirements or design intent change, then sync this file and `.cursor/rules/` so agents stay aligned.
 - Engineering plans/specs for agents live under `docs/` (committed). `.cursor/plans/` is local/gitignored — prefer `docs/superpowers/` for shared work.
 
-## 11. Engineering track — Nearby live data (Aug 2026)
+## 11. Engineering track — Nearby (Aug 2026)
 
-**Priority:** Nearby / locator. Static demo remains default for meetings and pre-usability.
+**Priority:** Nearby / locator. **Local demo = live-on Chrome.** Compile-time `LIVE_NEARBY` still defaults off so meeting APKs stay on the fake list.
 
 **Shared docs (start here):**
 
 | Doc | Role |
 |-----|------|
-| [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) | Collaborator handoff + locked decisions |
-| [`docs/superpowers/specs/2026-08-11-nearby-live-data-design.md`](docs/superpowers/specs/2026-08-11-nearby-live-data-design.md) | Design |
-| [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) | Task-by-task implementation plan |
+| [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) | Collaborator handoff + as-built + next work |
+| [`docs/superpowers/specs/2026-08-11-nearby-live-data-design.md`](docs/superpowers/specs/2026-08-11-nearby-live-data-design.md) | Live-data spike design (implemented) |
+| [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) | Tasks 1–6 done; Task 7 docs written |
 
-**Locked approach:** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
+**Locked approach (this spike):** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
 
-**Implementation: complete, flag default off.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Live Nearby runs Google soft-fail → OSM Overpass through `NearbyRepository`, gated behind `LIVE_NEARBY`, with an unvetted-data disclaimer. Before extending this feature, read the findings in `docs/engineering/nearby-live-data.md`: Overpass rate limits per shared IP (mitigated with mirror failover), most OSM rows have no phone number, the cache is still in-memory only, and no physical Android or iOS device has run the live path yet. Spec FIND-1/TECH-6 tension is documented in the handoff — do not silently rewrite the feature spec.
+**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. As-built gaps (do not treat as done): raw OSM hours on cards; map toggle is still a placeholder; cache is in-memory only; no physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
+
+**Next (separate plans, not this spike):** readable hours (Open now / Closed, tap to expand); FIND-4 OSM map view.
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, and `flutter build apk --debug`.
+
+**Run (local):** `flutter run -d chrome --dart-define=LIVE_NEARBY=true` — not Safari; Flutter debug web-server does not boot there.
 
 ---
 
 ## Learned User Preferences
 
-- Prefer barebones navigation prototypes with static demo data before adding permissions, persistence, or dynamic behavior.
-- Prefer browser (Chrome/web) for demos and meeting showcases over the Android emulator when both are options.
+- Prefer Cursor’s Simple Browser / agent embedded browser for local Flutter web preview. Flutter debug `web-server` does not boot in Safari. System Chrome is a fallback, not the default for agent review.
 - Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
-- Nearby is the current engineering priority; keep the static Nearby prototype for demos; share live-data work via committed `docs/` plans so humans and agents can collaborate before code lands.
+- Nearby is the current engineering priority. Local review uses **live Nearby** (`LIVE_NEARBY=true`); the flag-off static list is not the working demo.
+- Prefer GitHub Actions CI that covers format, analyze, unit/widget/integration tests, and web/Android compile—not format/lint alone.
+- Prefer Nearby feature work in a git worktree under `/Users/ks1686/Documents/Worktrees/` rather than dirtying the main checkout.
 
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Current app stage is a v1 static navigation prototype (Nearby | My Health | Learn | More + Help Now) with fake demo data and “Demo only” snackbars.
+- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Other tabs still use static demo data and “Demo only” snackbars.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
-- No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web is the usual local demo path.
+- No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web / Chrome is the usual local demo path.
 - GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.
-- Nearby live-data plan: Google soft-fail → OSM Overpass; no curated CWC overlay; `LIVE_NEARBY` default false once implemented.
+- Flutter CI is `.github/workflows/flutter-ci.yml`.
