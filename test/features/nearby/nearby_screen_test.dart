@@ -361,6 +361,47 @@ void main() {
       expect(find.text('Monday 9:00 AM – 7:00 PM'), findsOneWidget);
     });
 
+    testWidgets(
+      'filtering after expand does not leak hours onto the remaining card',
+      (tester) async {
+        const hours = 'Mo-Fr 09:00-19:00; Sa 09:00-17:00; Su 10:00-16:00';
+        final repository = _StubRepository(
+          _result(
+            resources: [
+              _resource(name: 'Highland Pharmacy', openingHoursRaw: hours),
+              _resource(
+                name: 'Riverside Clinic',
+                category: 'Clinic',
+                openingHoursRaw: hours,
+              ),
+            ],
+          ),
+        );
+
+        await pumpScreen(
+          tester,
+          NearbyScreen(
+            config: _liveConfig,
+            repository: repository,
+            clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+          ),
+        );
+
+        await tester.tap(find.bySemanticsLabel('Open now, show hours').first);
+        await tester.pumpAndSettle();
+        expect(find.text('Monday 9:00 AM – 7:00 PM'), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(FilterChip, 'Clinic'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Highland Pharmacy'), findsNothing);
+        expect(find.text('Riverside Clinic'), findsOneWidget);
+        expect(find.text('Monday 9:00 AM – 7:00 PM'), findsNothing);
+        expect(find.bySemanticsLabel('Open now, show hours'), findsOneWidget);
+        expect(find.bySemanticsLabel('Open now, hide hours'), findsNothing);
+      },
+    );
+
     testWidgets('live card without hours stays Hours not listed', (
       tester,
     ) async {
