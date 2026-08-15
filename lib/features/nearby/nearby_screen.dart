@@ -8,7 +8,6 @@ import '../../data/demo_resources.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
 import '../../widgets/demo_snackbar.dart';
-import 'data/nearby_cache.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
