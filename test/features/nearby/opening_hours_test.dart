@@ -82,6 +82,32 @@ void main() {
     );
   });
 
+  test('Su off keeps weekdays and marks Sunday closed', () {
+    final view = parseOpeningHours(
+      'Mo-Fr 09:00-19:00; Sa 09:00-17:00; Su off',
+      DateTime.utc(2026, 8, 11, 14, 42),
+    );
+    expect(view.kind, OpeningHoursKind.openNow);
+    expect(view.weekdayLines!.last, 'Sunday Closed');
+  });
+
+  test('00:00-24:00 is open all day', () {
+    final view = parseOpeningHours(
+      'Mo-Su 00:00-24:00',
+      DateTime.utc(2026, 8, 11, 14, 42),
+    );
+    expect(view.kind, OpeningHoursKind.openNow);
+  });
+
+  test('PH off after a weekday rule is ignored, not fatal', () {
+    final view = parseOpeningHours(
+      'Mo-Fr 09:00-19:00; PH off',
+      DateTime.utc(2026, 8, 11, 14, 42),
+    );
+    expect(view.kind, OpeningHoursKind.openNow);
+    expect(view.weekdayLines, isNotNull);
+  });
+
   test('wrapping day range is unknown', () {
     expect(
       parseOpeningHours(
