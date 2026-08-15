@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
-import '../../widgets/demo_snackbar.dart';
 import 'placeholder_page.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -85,8 +84,18 @@ class MoreScreen extends StatelessWidget {
                 icon: Icons.delete_outline,
                 title: 'Erase My Information',
                 titleColor: CwcColors.neutralEmphasis,
-                onTap: () =>
-                    showDemoOnlySnackBar(context, 'Erase my information'),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Nothing to erase in this demo. Your health info '
+                        'is not saved on this phone.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
               ),
             ],
           ),
