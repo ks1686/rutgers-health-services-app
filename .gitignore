@@ -85,3 +85,10 @@ app.*.map.json
 key.properties
 **/android/key.properties
 Secrets.xcconfig
+
+# IRB / survey exports — never commit identifiable dumps
+*.xlsx
+*.xls
+**/*qualtrics*
+**/*survey*.csv
+survey-exports/
