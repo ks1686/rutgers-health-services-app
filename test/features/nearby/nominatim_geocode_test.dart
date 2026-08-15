@@ -25,6 +25,10 @@ void main() {
       expect(request.url.queryParameters['state'], 'New Jersey');
       expect(request.url.queryParameters['country'], 'USA');
       expect(request.headers['User-Agent'], contains('CWCHealthApp'));
+      expect(
+        request.headers['User-Agent'],
+        contains('github.com/ks1686/rutgers-health-services-app'),
+      );
       return http.Response(
         payload,
         200,

@@ -46,4 +46,32 @@ class NearbyResource {
   /// One of: `google`, `osm`, `cache`.
   final String source;
   final DateTime fetchedAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'category': category,
+    'address': address,
+    'phone': phone,
+    'lat': lat,
+    'lng': lng,
+    'openingHoursRaw': openingHoursRaw,
+    'source': source,
+    'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+  };
+
+  static NearbyResource fromJson(Map<String, dynamic> json) {
+    return NearbyResource(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String,
+      address: json['address'] as String,
+      phone: json['phone'] as String?,
+      lat: (json['lat'] as num).toDouble(),
+      lng: (json['lng'] as num).toDouble(),
+      openingHoursRaw: json['openingHoursRaw'] as String?,
+      source: json['source'] as String,
+      fetchedAt: DateTime.parse(json['fetchedAt'] as String).toUtc(),
+    );
+  }
 }

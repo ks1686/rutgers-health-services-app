@@ -287,6 +287,24 @@ void main() {
     expect(result.message, isNot(contains('Overpass')));
   });
 
+  test('geocode failure with cached point still queries Overpass', () async {
+    final cache = InMemoryNearbyCache();
+    await cache.writePoint(query, area);
+    final overpass = _FakeOverpass(
+      result: [_resource(id: 'o1', name: 'From cache point')],
+    );
+    final repo = build(
+      geocode: _FakeGeocode(error: Exception('down')),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: overpass,
+      cache: cache,
+    );
+    final result = await repo.fetch(query);
+    expect(overpass.calls, 1);
+    expect(result.status, NearbySourceStatus.osm);
+    expect(result.resources.single.name, 'From cache point');
+  });
+
   test('geocode failure falls back to cache when available', () async {
     final cache = InMemoryNearbyCache();
     final cachedAt = DateTime.utc(2026, 8, 10, 12);

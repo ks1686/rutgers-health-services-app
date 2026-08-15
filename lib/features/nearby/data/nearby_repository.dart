@@ -62,12 +62,17 @@ class NearbyRepository {
   Future<NearbyFetchResult> fetch(NearbyQuery query) async {
     final when = _clock();
 
-    final GeoPoint area;
+    GeoPoint area;
     try {
       area = await geocoder.geocode(query);
+      await cache?.writePoint(query, area);
     } catch (e) {
       debugPrint('Nearby geocode failed: $e');
-      return _cachedOr(query, kNearbyMemberLookupFailed);
+      final cachedPoint = await cache?.readPoint(query);
+      if (cachedPoint == null) {
+        return _cachedOr(query, kNearbyMemberLookupFailed);
+      }
+      area = cachedPoint;
     }
 
     final googleRows = await _tryGoogle(area, when);

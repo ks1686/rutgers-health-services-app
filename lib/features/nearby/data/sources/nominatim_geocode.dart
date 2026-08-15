@@ -7,7 +7,7 @@ import '../nearby_query.dart';
 import 'geo_point.dart';
 
 const kNearbyOsmUserAgent =
-    'CWCHealthApp/0.1 (Rutgers CWC research; contact: via repo)';
+    'CWCHealthApp/0.1 (https://github.com/ks1686/rutgers-health-services-app; Rutgers CWC research)';
 
 /// Failure talking to or parsing Nominatim.
 class NominatimException implements Exception {
