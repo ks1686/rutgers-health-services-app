@@ -19,7 +19,7 @@ class DemoBanner extends StatelessWidget {
         'Draft for co-design — nothing is final until the community says so.',
         style: TextStyle(
           color: CwcColors.ink,
-          fontSize: 13,
+          fontSize: 18,
           height: 1.35,
           fontWeight: FontWeight.w500,
         ),

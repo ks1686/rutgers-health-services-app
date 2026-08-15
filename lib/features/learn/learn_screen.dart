@@ -36,61 +36,71 @@ class LearnScreen extends StatelessWidget {
           style: TextStyle(color: CwcColors.sub, height: 1.35),
         ),
         const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: demoLearnTopics.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.05,
-          ),
-          itemBuilder: (context, index) {
-            final topic = demoLearnTopics[index];
-            return Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => LearnArticleScreen(topic: topic),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(_iconFor(topic.iconLabel), color: CwcColors.primary),
-                      const Spacer(),
-                      Text(
-                        topic.title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        topic.summary,
-                        style: const TextStyle(
-                          color: CwcColors.sub,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.3;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: demoLearnTopics.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: largeText ? 1 : 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: largeText ? 220 : 176,
               ),
+              itemBuilder: (context, index) {
+                final topic = demoLearnTopics[index];
+                return Card(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => LearnArticleScreen(topic: topic),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            _iconFor(topic.iconLabel),
+                            color: CwcColors.primary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            topic.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Expanded(
+                            child: Text(
+                              topic.summary,
+                              style: const TextStyle(
+                                color: CwcColors.sub,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
           },
         ),
         const SizedBox(height: 16),
         const Text(
           'Sources are labeled on each article (for example, CDC).',
-          style: TextStyle(color: CwcColors.sub, fontSize: 13),
+          style: TextStyle(color: CwcColors.sub, fontSize: 18),
         ),
       ],
     );
