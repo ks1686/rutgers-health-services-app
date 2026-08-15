@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/demo_help_now.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_snackbar.dart';
+import '../../widgets/link_launcher.dart';
+import 'help_now_config.dart';
 
 class HelpNowScreen extends StatefulWidget {
-  const HelpNowScreen({super.key});
+  const HelpNowScreen({super.key, this.config, this.launcher});
+
+  final HelpNowConfig? config;
+  final LinkLauncher? launcher;
 
   @override
   State<HelpNowScreen> createState() => _HelpNowScreenState();
@@ -14,8 +20,40 @@ class HelpNowScreen extends StatefulWidget {
 class _HelpNowScreenState extends State<HelpNowScreen> {
   bool _showEmergencyCard = false;
 
+  HelpNowConfig get _config => widget.config ?? HelpNowConfig.fromEnvironment();
+
+  Future<void> _open(Uri uri) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final launcher = widget.launcher ?? _launchExternal;
+    final opened = await launcher(uri);
+    if (!opened) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not open that on this phone.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<bool> _launchExternal(Uri uri) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  void _onAction(DemoHelpAction action) {
+    final uri = action.callUri ?? action.textUri;
+    if (uri != null) {
+      _open(uri);
+      return;
+    }
+    showDemoOnlySnackBar(context, action.label);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final live = _config.helpNowLive;
+    final actions = helpNowActions(live: live);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help Now'),
@@ -32,14 +70,21 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'One tap to reach support. These buttons are demo-only '
-            '(they do not place calls or texts yet).',
-            style: TextStyle(color: CwcColors.sub, height: 1.4),
+          Text(
+            live
+                ? 'One tap to reach support. 988, 911, and Poison Control '
+                      'can call or text from this phone. The Wellness Center '
+                      'and peer warmline are still sample numbers.'
+                : 'One tap to reach support. These buttons are demo-only '
+                      '(they do not place calls or texts yet).',
+            style: const TextStyle(color: CwcColors.sub, height: 1.4),
           ),
           const SizedBox(height: 20),
-          for (final action in demoHelpActions) ...[
-            _HelpActionButton(action: action),
+          for (final action in actions) ...[
+            _HelpActionButton(
+              action: action,
+              onPressed: () => _onAction(action),
+            ),
             const SizedBox(height: 12),
           ],
           const SizedBox(height: 8),
@@ -87,9 +132,10 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
 }
 
 class _HelpActionButton extends StatelessWidget {
-  const _HelpActionButton({required this.action});
+  const _HelpActionButton({required this.action, required this.onPressed});
 
   final DemoHelpAction action;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +162,7 @@ class _HelpActionButton extends StatelessWidget {
     switch (action.style) {
       case DemoHelpStyle.primaryFilled:
         return FilledButton(
-          onPressed: () => showDemoOnlySnackBar(context, action.label),
+          onPressed: onPressed,
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(56),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -125,7 +171,7 @@ class _HelpActionButton extends StatelessWidget {
         );
       case DemoHelpStyle.blackOutline:
         return OutlinedButton(
-          onPressed: () => showDemoOnlySnackBar(context, action.label),
+          onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: CwcColors.neutralEmphasis,
             side: const BorderSide(
@@ -139,7 +185,7 @@ class _HelpActionButton extends StatelessWidget {
         );
       case DemoHelpStyle.neutralOutline:
         return OutlinedButton(
-          onPressed: () => showDemoOnlySnackBar(context, action.label),
+          onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(56),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

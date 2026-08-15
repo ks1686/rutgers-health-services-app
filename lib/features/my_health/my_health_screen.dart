@@ -21,7 +21,7 @@ class MyHealthScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Text(
-            'Protected by your PIN — only you can see this',
+            'Sample only — this build does not lock My Health yet.',
             style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
           ),
         ),
