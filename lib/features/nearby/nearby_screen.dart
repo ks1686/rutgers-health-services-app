@@ -8,6 +8,7 @@ import '../../widgets/demo_banner.dart';
 import '../../widgets/demo_snackbar.dart';
 import 'data/nearby_cache.dart';
 import 'data/nearby_config.dart';
+import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
@@ -227,9 +228,16 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           return _buildLoading();
         }
         final result = snapshot.data;
-        if (result == null || result.resources.isEmpty) {
+        if (result == null) {
           return _buildProblem(
-            result?.message ?? 'We could not load places right now.',
+            kNearbyMemberLoadFailed,
+            suggestConnection: true,
+          );
+        }
+        if (result.resources.isEmpty) {
+          return _buildProblem(
+            result.message ?? kNearbyMemberLoadFailed,
+            suggestConnection: result.status == NearbySourceStatus.unavailable,
           );
         }
         return _buildResults(result);
@@ -254,7 +262,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     );
   }
 
-  Widget _buildProblem(String message) {
+  Widget _buildProblem(String message, {required bool suggestConnection}) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
       children: [
@@ -263,12 +271,14 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           textAlign: TextAlign.center,
           style: const TextStyle(color: CwcColors.ink, height: 1.4),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Check your connection, then try again.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: CwcColors.sub, fontSize: 13, height: 1.4),
-        ),
+        if (suggestConnection) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Check your connection, then try again.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: CwcColors.sub, fontSize: 13, height: 1.4),
+          ),
+        ],
         const SizedBox(height: 20),
         Center(
           child: FilledButton(

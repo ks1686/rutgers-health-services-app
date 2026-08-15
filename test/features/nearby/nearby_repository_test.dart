@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
@@ -244,6 +245,37 @@ void main() {
 
     expect(result.status, NearbySourceStatus.unavailable);
     expect(result.resources, isEmpty);
+  });
+
+  test('geocode failure uses the member-safe lookup sentence', () async {
+    final repo = build(
+      geocode: _FakeGeocode(error: Exception('HTTP 502: <html>overpass')),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: _FakeOverpass(result: const []),
+    );
+
+    final result = await repo.fetch(query);
+
+    expect(result.status, NearbySourceStatus.unavailable);
+    expect(result.message, kNearbyMemberLookupFailed);
+    expect(result.message, isNot(contains('HTTP')));
+    expect(result.message, isNot(contains('html')));
+  });
+
+  test('overpass failure uses the member-safe load sentence', () async {
+    final repo = build(
+      geocode: _FakeGeocode(result: area),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: _FakeOverpass(
+        error: Exception('All 3 Overpass endpoints failed'),
+      ),
+    );
+
+    final result = await repo.fetch(query);
+
+    expect(result.status, NearbySourceStatus.unavailable);
+    expect(result.message, kNearbyMemberLoadFailed);
+    expect(result.message, isNot(contains('Overpass')));
   });
 
   test('geocode failure falls back to cache when available', () async {

@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'nearby_cache.dart';
 import 'nearby_config.dart';
+import 'nearby_errors.dart';
 import 'nearby_fetch_result.dart';
 import 'nearby_query.dart';
 import 'nearby_resource.dart';
@@ -64,7 +66,8 @@ class NearbyRepository {
     try {
       area = await geocoder.geocode(query);
     } catch (e) {
-      return _cachedOr(query, 'Could not look up ${query.town}: $e');
+      debugPrint('Nearby geocode failed: $e');
+      return _cachedOr(query, kNearbyMemberLookupFailed);
     }
 
     final googleRows = await _tryGoogle(area, when);
@@ -96,7 +99,8 @@ class NearbyRepository {
         ),
       );
     } catch (e) {
-      return _cachedOr(query, 'Could not load places right now: $e');
+      debugPrint('Nearby Overpass failed: $e');
+      return _cachedOr(query, kNearbyMemberLoadFailed);
     }
   }
 
