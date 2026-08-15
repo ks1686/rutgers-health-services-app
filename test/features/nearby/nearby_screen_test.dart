@@ -372,12 +372,12 @@ void main() {
       await tester.tap(find.text('Call'));
       await tester.pumpAndSettle();
       expect(opened.single.scheme, 'tel');
-      expect(opened.single.path, '+1-732-555-0142');
+      expect(opened.single.path, '17325550142');
 
       await tester.tap(find.text('Directions'));
       await tester.pumpAndSettle();
-      expect(opened.last.host, 'www.google.com');
-      expect(opened.last.query, contains('40.4862,-74.4518'));
+      expect(opened.last.scheme, 'geo');
+      expect(opened.last.toString(), contains('40.4862,-74.4518'));
     });
 
     testWidgets('every source category has a filter chip', (tester) async {
@@ -409,6 +409,45 @@ void main() {
           reason: 'no chip filters ${category.label}',
         );
       }
+    });
+
+    testWidgets('live map toggle is hidden', (tester) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Highland Pharmacy')]),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(find.text('See these on a map'), findsNothing);
+      expect(find.text('Map view is not ready yet'), findsNothing);
+    });
+
+    testWidgets('missing phone shows Phone not listed and still has Directions', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'No Phone Shop', phone: null)]),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(find.text('Phone not listed'), findsOneWidget);
+      expect(find.text('Call'), findsNothing);
+      expect(find.text('Directions'), findsOneWidget);
     });
 
     testWidgets('rows without a phone hide Call and Text', (tester) async {

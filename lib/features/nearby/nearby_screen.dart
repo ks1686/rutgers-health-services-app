@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -10,6 +11,7 @@ import 'data/nearby_cache.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
+import 'data/nearby_launchers.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
@@ -168,7 +170,6 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   late Future<NearbyFetchResult> _pending;
 
   String _category = 'All';
-  bool _showMapPlaceholder = false;
   bool _reloadQueued = false;
 
   @override
@@ -322,12 +323,6 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           onSelected: (category) => setState(() => _category = category),
         ),
         const SizedBox(height: 8),
-        _MapToggle(
-          value: _showMapPlaceholder,
-          subtitle: 'Map view is not ready yet',
-          onChanged: (value) => setState(() => _showMapPlaceholder = value),
-        ),
-        if (_showMapPlaceholder) const _MapPlaceholder(),
         if (rows.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -349,6 +344,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             ),
             badges: [resource.category],
             address: resource.address,
+            description: resource.phone == null ? 'Phone not listed' : null,
             actions: _actionsFor(resource),
           ),
           const SizedBox(height: 12),
@@ -362,19 +358,21 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     return [
       if (phone != null) ...[
         OutlinedButton(
-          onPressed: () => _open(Uri(scheme: 'tel', path: phone)),
+          onPressed: () => _open(nearbyTelUri(phone)),
           child: const Text('Call'),
         ),
         OutlinedButton(
-          onPressed: () => _open(Uri(scheme: 'sms', path: phone)),
+          onPressed: () => _open(nearbySmsUri(phone)),
           child: const Text('Text'),
         ),
       ],
       OutlinedButton(
         onPressed: () => _open(
-          Uri.parse(
-            'https://www.google.com/maps/search/?api=1'
-            '&query=${resource.lat},${resource.lng}',
+          nearbyDirectionsUri(
+            lat: resource.lat,
+            lng: resource.lng,
+            name: resource.name,
+            isWeb: kIsWeb,
           ),
         ),
         child: const Text('Directions'),
