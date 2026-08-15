@@ -169,6 +169,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
 
   String _category = 'All';
   bool _showMapPlaceholder = false;
+  bool _reloadQueued = false;
 
   @override
   void initState() {
@@ -195,8 +196,15 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   void _reload() {
+    if (_reloadQueued) return;
+    _reloadQueued = true;
     setState(() {
-      _pending = _repository.fetch(_query);
+      _pending = _repository.fetch(_query).whenComplete(() {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _reloadQueued = false);
+        });
+      });
     });
   }
 
@@ -282,7 +290,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         const SizedBox(height: 20),
         Center(
           child: FilledButton(
-            onPressed: _reload,
+            onPressed: _reloadQueued ? null : _reload,
             child: const Text('Try again'),
           ),
         ),

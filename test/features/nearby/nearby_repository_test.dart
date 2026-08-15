@@ -26,6 +26,12 @@ class _FakeGeocode implements NominatimGeocode {
   String get baseUrl => 'https://example.invalid';
 
   @override
+  Duration get requestTimeout => const Duration(seconds: 1);
+
+  @override
+  Duration get retryBackoff => Duration.zero;
+
+  @override
   Future<GeoPoint> geocode(NearbyQuery query) async {
     calls++;
     if (error != null) throw error!;
@@ -47,6 +53,9 @@ class _FakeGoogle implements GooglePlacesSource {
 
   @override
   int get radiusMeters => 4000;
+
+  @override
+  Duration get requestTimeout => const Duration(seconds: 1);
 
   @override
   Future<GooglePlacesOutcome> fetch(

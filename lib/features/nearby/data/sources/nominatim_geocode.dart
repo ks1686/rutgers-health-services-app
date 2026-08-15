@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -24,11 +25,15 @@ class NominatimGeocode {
     this._client, {
     this.userAgent = kNearbyOsmUserAgent,
     this.baseUrl = 'https://nominatim.openstreetmap.org',
+    this.requestTimeout = const Duration(seconds: 10),
+    this.retryBackoff = const Duration(milliseconds: 600),
   });
 
   final http.Client _client;
   final String userAgent;
   final String baseUrl;
+  final Duration requestTimeout;
+  final Duration retryBackoff;
 
   Future<GeoPoint> geocode(NearbyQuery query) async {
     final uri = Uri.parse('$baseUrl/search').replace(
@@ -41,13 +46,42 @@ class NominatimGeocode {
       },
     );
 
-    final response = await _client.get(
-      uri,
-      headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
-    );
+    http.Response? response;
+    NominatimException? lastError;
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await _client
+            .get(
+              uri,
+              headers: {'User-Agent': userAgent, 'Accept': 'application/json'},
+            )
+            .timeout(requestTimeout);
+      } on TimeoutException {
+        lastError = NominatimException('lookup timed out');
+        if (attempt == 1) {
+          await Future<void>.delayed(retryBackoff);
+          continue;
+        }
+        throw lastError;
+      }
+
+      if (response.statusCode == 429) {
+        lastError = NominatimException('HTTP 429');
+        if (attempt == 1) {
+          await Future<void>.delayed(retryBackoff);
+          continue;
+        }
+        throw lastError;
+      }
+      break;
+    }
+
+    if (response == null) {
+      throw lastError ?? NominatimException('lookup timed out');
+    }
 
     if (response.statusCode != 200) {
-      throw NominatimException('HTTP ${response.statusCode}: ${response.body}');
+      throw NominatimException('HTTP ${response.statusCode}');
     }
 
     final decoded = jsonDecode(response.body);
