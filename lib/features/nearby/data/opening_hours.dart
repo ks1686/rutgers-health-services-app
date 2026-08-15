@@ -32,6 +32,12 @@ final _rulePattern = RegExp(
   r'(\d{2}:\d{2}-\d{2}:\d{2}(?:,\d{2}:\d{2}-\d{2}:\d{2})*)$',
 );
 
+final _offPattern = RegExp(
+  r'^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))? off$',
+);
+
+final _phPattern = RegExp(r'^PH\b');
+
 OpeningHoursView parseOpeningHours(String? raw, DateTime nowUtc) {
   final trimmed = raw?.trim();
   if (trimmed == null || trimmed.isEmpty) {
@@ -51,13 +57,21 @@ OpeningHoursView parseOpeningHours(String? raw, DateTime nowUtc) {
     for (var d = DateTime.monday; d <= DateTime.sunday; d++) d: [],
   };
 
+  var sawHoursRule = false;
   for (final chunk in trimmed.split(';')) {
     final rule = chunk.trim();
     if (rule.isEmpty) continue;
+    if (_phPattern.hasMatch(rule)) continue;
+    final offMatch = _offPattern.firstMatch(rule);
+    if (offMatch != null) {
+      sawHoursRule = true;
+      continue;
+    }
     final match = _rulePattern.firstMatch(rule);
     if (match == null) {
       return const OpeningHoursView(kind: OpeningHoursKind.unknown);
     }
+    sawHoursRule = true;
     final startDay = _dayToken[match.group(1)!]!;
     final endDay = match.group(2) == null
         ? startDay
@@ -78,6 +92,10 @@ OpeningHoursView parseOpeningHours(String? raw, DateTime nowUtc) {
     for (var d = startDay; d <= endDay; d++) {
       byDay[d]!.addAll(intervals);
     }
+  }
+
+  if (!sawHoursRule) {
+    return const OpeningHoursView(kind: OpeningHoursKind.unknown);
   }
 
   final et = easternWallClock(nowUtc);
@@ -105,11 +123,14 @@ int? _hhmm(String raw) {
   if (bits.length != 2) return null;
   final h = int.tryParse(bits[0]);
   final m = int.tryParse(bits[1]);
-  if (h == null || m == null || h > 23 || m > 59) return null;
+  if (h == null || m == null || m > 59) return null;
+  if (h == 24 && m == 0) return 24 * 60;
+  if (h > 23) return null;
   return h * 60 + m;
 }
 
 String _ampm(int minutes) {
+  if (minutes >= 24 * 60) return '12:00 AM';
   final h24 = minutes ~/ 60;
   final m = minutes % 60;
   final h12 = h24 % 12 == 0 ? 12 : h24 % 12;
