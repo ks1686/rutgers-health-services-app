@@ -50,7 +50,7 @@ ThemeData buildCwcTheme() {
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           color: selected ? CwcColors.primary : CwcColors.sub,
         );
@@ -76,7 +76,7 @@ ThemeData buildCwcTheme() {
       backgroundColor: CwcColors.card,
       selectedColor: CwcColors.primaryTint,
       side: const BorderSide(color: CwcColors.line),
-      labelStyle: const TextStyle(color: CwcColors.ink, fontSize: 13),
+      labelStyle: const TextStyle(color: CwcColors.ink, fontSize: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -97,9 +97,27 @@ ThemeData buildCwcTheme() {
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
-    textTheme: base.textTheme.apply(
-      bodyColor: CwcColors.ink,
-      displayColor: CwcColors.ink,
+    textTheme: base.textTheme.copyWith(
+      bodyLarge: base.textTheme.bodyLarge?.copyWith(
+        fontSize: 18,
+        height: 1.4,
+        color: CwcColors.ink,
+      ),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(
+        fontSize: 18,
+        height: 1.4,
+        color: CwcColors.ink,
+      ),
+      bodySmall: base.textTheme.bodySmall?.copyWith(
+        fontSize: 18,
+        height: 1.4,
+        color: CwcColors.ink,
+      ),
+      titleMedium: base.textTheme.titleMedium?.copyWith(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: CwcColors.ink,
+      ),
     ),
   );
 }

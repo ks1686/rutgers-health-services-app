@@ -110,7 +110,7 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
             name: resource.name,
             hours: Text(
               resource.status,
-              style: const TextStyle(color: CwcColors.sub, fontSize: 13),
+              style: const TextStyle(color: CwcColors.sub, fontSize: 18),
             ),
             description: resource.description,
             badges: [
@@ -293,7 +293,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           const Text(
             'Check your connection, then try again.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: CwcColors.sub, fontSize: 13, height: 1.4),
+            style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.4),
           ),
         ],
         const SizedBox(height: 20),
@@ -519,7 +519,7 @@ class _PlaceCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               address,
-              style: const TextStyle(color: CwcColors.sub, fontSize: 13),
+              style: const TextStyle(color: CwcColors.sub, fontSize: 18),
             ),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: actions),

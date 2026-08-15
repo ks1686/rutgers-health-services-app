@@ -22,6 +22,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 64,
         title: Text(_titles[_tabIndex]),
         actions: const [HelpNowButton()],
       ),

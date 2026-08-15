@@ -59,7 +59,7 @@ class NearbyLiveDisclaimer extends StatelessWidget {
             'They are not checked by our team.',
             style: TextStyle(
               color: CwcColors.ink,
-              fontSize: 13,
+              fontSize: 18,
               height: 1.35,
               fontWeight: FontWeight.w500,
             ),
@@ -69,7 +69,7 @@ class NearbyLiveDisclaimer extends StatelessWidget {
             'Updated as of ${formatNearbyTimestamp(fetchedAt)}.',
             style: const TextStyle(
               color: CwcColors.sub,
-              fontSize: 13,
+              fontSize: 18,
               height: 1.35,
             ),
           ),
@@ -79,7 +79,7 @@ class NearbyLiveDisclaimer extends StatelessWidget {
               'This is a saved copy. We could not reach the internet just now.',
               style: TextStyle(
                 color: CwcColors.sub,
-                fontSize: 13,
+                fontSize: 18,
                 height: 1.35,
               ),
             ),
