@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
@@ -181,6 +182,54 @@ void main() {
       expect(find.textContaining('Draft for co-design'), findsNothing);
       expect(find.text('Could not load places right now.'), findsOneWidget);
       expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('empty OSM does not blame the connection', (tester) async {
+      final repository = _StubRepository(
+        _result(
+          resources: const [],
+          status: NearbySourceStatus.osm,
+          message: 'No pharmacies or clinics found near New Brunswick.',
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(
+        find.text('No pharmacies or clinics found near New Brunswick.'),
+        findsOneWidget,
+      );
+      expect(find.text('Check your connection, then try again.'), findsNothing);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('unavailable still asks to check the connection', (tester) async {
+      final repository = _StubRepository(
+        _result(
+          resources: const [],
+          status: NearbySourceStatus.unavailable,
+          message: kNearbyMemberLoadFailed,
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(find.text(kNearbyMemberLoadFailed), findsOneWidget);
+      expect(find.text('Check your connection, then try again.'), findsOneWidget);
     });
 
     testWidgets('try again refetches', (tester) async {
