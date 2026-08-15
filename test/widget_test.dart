@@ -111,4 +111,21 @@ void main() {
       await openHelpNowAndBack();
     }
   });
+
+  testWidgets('My Health banner does not claim a PIN', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('My Health').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Protected by your PIN'), findsNothing);
+    expect(find.textContaining('does not lock My Health'), findsOneWidget);
+  });
+
+  testWidgets('Erase explains nothing is stored', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('More').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Erase My Information'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nothing to erase'), findsOneWidget);
+  });
 }
