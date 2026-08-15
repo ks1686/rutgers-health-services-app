@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/demo_resources.dart';
@@ -15,6 +16,7 @@ import 'data/nearby_launchers.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
+import 'data/prefs_nearby_cache.dart';
 import 'data/opening_hours.dart';
 import 'widgets/nearby_hours_control.dart';
 import 'widgets/nearby_live_disclaimer.dart';
@@ -178,22 +180,28 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     final injected = widget.repository;
     if (injected != null) {
       _repository = injected;
+      _pending = _repository.fetch(_query);
     } else {
-      final client = http.Client();
-      _ownedClient = client;
-      _repository = NearbyRepository.fromClient(
-        client,
-        config: widget.config,
-        cache: InMemoryNearbyCache(),
-      );
+      _pending = _boot();
     }
-    _pending = _repository.fetch(_query);
   }
 
   @override
   void dispose() {
     _ownedClient?.close();
     super.dispose();
+  }
+
+  Future<NearbyFetchResult> _boot() async {
+    final prefs = await SharedPreferences.getInstance();
+    final client = http.Client();
+    _ownedClient = client;
+    _repository = NearbyRepository.fromClient(
+      client,
+      config: widget.config,
+      cache: PrefsNearbyCache(prefs),
+    );
+    return _repository.fetch(_query);
   }
 
   void _reload() {

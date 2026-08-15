@@ -49,8 +49,7 @@ class _StubRepository implements NearbyRepository {
 }
 
 class _DelayedStubRepository extends _StubRepository {
-  _DelayedStubRepository(this.first, NearbyFetchResult later)
-    : super(later);
+  _DelayedStubRepository(this.first, NearbyFetchResult later) : super(later);
 
   final Future<NearbyFetchResult> first;
 
@@ -226,7 +225,9 @@ void main() {
       expect(find.text('Try again'), findsOneWidget);
     });
 
-    testWidgets('unavailable still asks to check the connection', (tester) async {
+    testWidgets('unavailable still asks to check the connection', (
+      tester,
+    ) async {
       final repository = _StubRepository(
         _result(
           resources: const [],
@@ -245,7 +246,10 @@ void main() {
       );
 
       expect(find.text(kNearbyMemberLoadFailed), findsOneWidget);
-      expect(find.text('Check your connection, then try again.'), findsOneWidget);
+      expect(
+        find.text('Check your connection, then try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('try again refetches', (tester) async {
@@ -429,26 +433,27 @@ void main() {
       expect(find.text('Map view is not ready yet'), findsNothing);
     });
 
-    testWidgets('missing phone shows Phone not listed and still has Directions', (
-      tester,
-    ) async {
-      final repository = _StubRepository(
-        _result(resources: [_resource(name: 'No Phone Shop', phone: null)]),
-      );
+    testWidgets(
+      'missing phone shows Phone not listed and still has Directions',
+      (tester) async {
+        final repository = _StubRepository(
+          _result(resources: [_resource(name: 'No Phone Shop', phone: null)]),
+        );
 
-      await pumpScreen(
-        tester,
-        NearbyScreen(
-          config: _liveConfig,
-          repository: repository,
-          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
-        ),
-      );
+        await pumpScreen(
+          tester,
+          NearbyScreen(
+            config: _liveConfig,
+            repository: repository,
+            clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+          ),
+        );
 
-      expect(find.text('Phone not listed'), findsOneWidget);
-      expect(find.text('Call'), findsNothing);
-      expect(find.text('Directions'), findsOneWidget);
-    });
+        expect(find.text('Phone not listed'), findsOneWidget);
+        expect(find.text('Call'), findsNothing);
+        expect(find.text('Directions'), findsOneWidget);
+      },
+    );
 
     testWidgets('rows without a phone hide Call and Text', (tester) async {
       final repository = _StubRepository(
