@@ -1,0 +1,44 @@
+{
+  "appointments": [
+    {
+      "provider": "Dr. Rivera",
+      "whenLabel": "Thu, Aug 7 · 10:30 AM",
+      "location": "Community Health Clinic",
+      "phone": "(732) 555-0198",
+      "note": "Bring medication list"
+    },
+    {
+      "provider": "Counseling — Peer group",
+      "whenLabel": "Mon, Aug 11 · 2:00 PM",
+      "location": "New Brunswick Wellness Center",
+      "phone": "(732) 555-0177"
+    }
+  ],
+  "medications": [
+    {
+      "name": "Metformin",
+      "purpose": "Blood sugar",
+      "schedule": "1 tablet morning and evening with food"
+    },
+    {
+      "name": "Sertraline",
+      "purpose": "Mood",
+      "schedule": "1 tablet each morning"
+    }
+  ],
+  "providers": [
+    {
+      "name": "Dr. Rivera",
+      "role": "Primary care",
+      "phone": "(732) 555-0198",
+      "portalLabel": "Clinic patient portal"
+    },
+    {
+      "name": "Main Street Pharmacy",
+      "role": "Pharmacy",
+      "phone": "(732) 555-0142"
+    }
+  ],
+  "walletEmergencyContact": "Alex M. · (732) 555-0100",
+  "walletConditions": "Diabetes · Anxiety"
+}

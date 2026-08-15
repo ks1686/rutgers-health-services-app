@@ -1,0 +1,29 @@
+{
+  "demo": [
+    {
+      "label": "988 Suicide & Crisis Lifeline",
+      "detail": "Call or text 988 — 24/7",
+      "style": "primaryFilled"
+    },
+    {
+      "label": "NJ Peer Warmline",
+      "detail": "Talk with a peer (sample number)",
+      "style": "primaryFilled"
+    },
+    {
+      "label": "My Wellness Center",
+      "detail": "New Brunswick Wellness Center · (732) 555-0177",
+      "style": "primaryFilled"
+    },
+    {
+      "label": "911 Emergency",
+      "detail": "Police, fire, or medical emergency",
+      "style": "blackOutline"
+    },
+    {
+      "label": "Poison Control",
+      "detail": "1-800-222-1222",
+      "style": "neutralOutline"
+    }
+  ]
+}
