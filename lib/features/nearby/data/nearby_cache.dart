@@ -18,8 +18,8 @@ abstract class NearbyCache {
 
 /// Process-lifetime cache. Survives tab switches, not app restarts.
 ///
-/// A `shared_preferences` implementation can replace this behind [NearbyCache]
-/// without touching the repository.
+/// App code uses [PrefsNearbyCache]; this class stays for tests and as a
+/// process-lifetime fallback.
 class InMemoryNearbyCache implements NearbyCache {
   final Map<String, NearbyFetchResult> _entries = {};
   final Map<String, GeoPoint> _points = {};
