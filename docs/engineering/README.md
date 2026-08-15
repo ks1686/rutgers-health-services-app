@@ -17,7 +17,7 @@ Every PR to `main` runs [`.github/workflows/flutter-ci.yml`](../../.github/workf
 | **Format, analyze, unit + widget tests** | Style, static analysis, Nearby unit tests, full-app widget navigation/rendering |
 | **Integration navigation smoke** | `integration_test/` tab circuit + Help Now |
 | **Compile web** | `flutter build web --release` (JS compile succeeds) |
-| **Compile Android APK** | `flutter build apk --debug` (Android toolchain + Dart AOT/debug compile) |
+| **Compile Android APK** | `flutter build apk --debug` then unsigned `flutter build apk --release` (toolchain + release-manifest lock) |
 
 ### Local equivalents
 
@@ -27,7 +27,8 @@ flutter analyze --fatal-infos
 flutter test --reporter expanded
 flutter test integration_test -d flutter-tester
 flutter build web --release
-flutter build apk --debug   # needs Android SDK
+flutter build apk --debug     # needs Android SDK
+flutter build apk --release   # unsigned; needs Android SDK
 ```
 
 Flutter pin: **3.44.7** (stable).
@@ -38,4 +39,4 @@ Flutter pin: **3.44.7** (stable).
 - Device/emulator `flutter drive` on Chrome/Android
 - Screenshot / golden tests
 
-Nearby live-data Tasks 1–6 are on `main`. Next engineering plans (not started): readable hours on live cards; FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).
+Nearby live-data Tasks 1–6 are on `main`. Current hardening work is [`../superpowers/plans/2026-08-15-study-build-hardening.md`](../superpowers/plans/2026-08-15-study-build-hardening.md). Next product plan after that: FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).
