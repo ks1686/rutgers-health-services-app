@@ -4,7 +4,7 @@
          release builds are the only ones that would go out without it. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="cwc_health_app"
+        android:label="CWC Health App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -81,3 +81,5 @@ jobs:
       - run: flutter pub get
       - name: Build debug APK
         run: flutter build apk --debug
+      - name: Build unsigned release APK
+        run: flutter build apk --release
