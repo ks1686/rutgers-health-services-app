@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +44,20 @@ class _StubRepository implements NearbyRepository {
   @override
   Future<NearbyFetchResult> fetch(NearbyQuery query) async {
     calls++;
+    return result;
+  }
+}
+
+class _DelayedStubRepository extends _StubRepository {
+  _DelayedStubRepository(this.first, NearbyFetchResult later)
+    : super(later);
+
+  final Future<NearbyFetchResult> first;
+
+  @override
+  Future<NearbyFetchResult> fetch(NearbyQuery query) async {
+    calls++;
+    if (calls == 1) return first;
     return result;
   }
 }
@@ -248,6 +264,43 @@ void main() {
       await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
 
+      expect(repository.calls, 2);
+    });
+
+    testWidgets('try again is ignored while a fetch is in flight', (
+      tester,
+    ) async {
+      final first = Completer<NearbyFetchResult>();
+      final later = _result(
+        resources: const [],
+        status: NearbySourceStatus.unavailable,
+      );
+      final repository = _DelayedStubRepository(first.future, later);
+
+      await tester.binding.setSurfaceSize(const Size(400, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildCwcTheme(),
+          home: Scaffold(
+            body: NearbyScreen(
+              config: _liveConfig,
+              repository: repository,
+              clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      first.complete(
+        _result(resources: const [], status: NearbySourceStatus.unavailable),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Try again'));
+      await tester.tap(find.text('Try again'));
+      await tester.pump();
       expect(repository.calls, 2);
     });
 

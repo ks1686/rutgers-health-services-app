@@ -31,12 +31,14 @@ class GooglePlacesSource {
     required this.apiKey,
     this.endpoint = 'https://places.googleapis.com/v1/places:searchNearby',
     this.radiusMeters = kDefaultOverpassRadiusMeters,
+    this.requestTimeout = const Duration(seconds: 10),
   });
 
   final http.Client _client;
   final String apiKey;
   final String endpoint;
   final int radiusMeters;
+  final Duration requestTimeout;
 
   static const _fieldMask =
       'places.id,places.displayName,places.formattedAddress,'
@@ -62,24 +64,26 @@ class GooglePlacesSource {
     final when = fetchedAt ?? DateTime.now().toUtc();
 
     try {
-      final response = await _client.post(
-        Uri.parse(endpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': key,
-          'X-Goog-FieldMask': _fieldMask,
-        },
-        body: jsonEncode({
-          'includedTypes': _includedTypes,
-          'maxResultCount': 20,
-          'locationRestriction': {
-            'circle': {
-              'center': {'latitude': area.lat, 'longitude': area.lng},
-              'radius': radiusMeters.toDouble(),
+      final response = await _client
+          .post(
+            Uri.parse(endpoint),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': key,
+              'X-Goog-FieldMask': _fieldMask,
             },
-          },
-        }),
-      );
+            body: jsonEncode({
+              'includedTypes': _includedTypes,
+              'maxResultCount': 20,
+              'locationRestriction': {
+                'circle': {
+                  'center': {'latitude': area.lat, 'longitude': area.lng},
+                  'radius': radiusMeters.toDouble(),
+                },
+              },
+            }),
+          )
+          .timeout(requestTimeout);
 
       if (_isSoftFailStatus(response.statusCode)) {
         return GooglePlacesSoftFail(

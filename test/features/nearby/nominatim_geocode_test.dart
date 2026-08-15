@@ -53,6 +53,44 @@ void main() {
     );
   });
 
+  test('times out a hung Nominatim request', () async {
+    final client = MockClient((_) async {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      return http.Response('[]', 200);
+    });
+    final geocoder = NominatimGeocode(
+      client,
+      requestTimeout: const Duration(milliseconds: 50),
+    );
+
+    expect(
+      () => geocoder.geocode(const NearbyQuery()),
+      throwsA(isA<NominatimException>()),
+    );
+  });
+
+  test('retries once on HTTP 429 then succeeds', () async {
+    var calls = 0;
+    final client = MockClient((_) async {
+      calls++;
+      if (calls == 1) return http.Response('rate limit', 429);
+      return http.Response(
+        jsonEncode([
+          {
+            'lat': '40.4862167',
+            'lon': '-74.4518188',
+            'boundingbox': ['40.45', '40.52', '-74.49', '-74.40'],
+          },
+        ]),
+        200,
+      );
+    });
+    final geocoder = NominatimGeocode(client, retryBackoff: Duration.zero);
+    final point = await geocoder.geocode(const NearbyQuery());
+    expect(calls, 2);
+    expect(point.lat, closeTo(40.4862167, 0.0001));
+  });
+
   test('maps NJ state code to New Jersey', () async {
     final client = MockClient((request) async {
       expect(request.url.queryParameters['state'], 'New Jersey');
