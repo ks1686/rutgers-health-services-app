@@ -9,6 +9,7 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
 import '../../widgets/demo_snackbar.dart';
 import 'data/nearby_config.dart';
+import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
@@ -173,17 +174,38 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   String _category = 'All';
   bool _reloadQueued = false;
 
+  /// True once [_boot] has finished wiring the default stack. Build and
+  /// user actions check this instead of touching the late field directly.
+  bool _repositoryReady = false;
+
+  /// Whether the tab currently shows a device-location lookup (vs the town).
+  bool _deviceMode = false;
+
+  /// Optimistic flag while a device lookup is in flight (loading copy).
+  bool _devicePending = false;
+
+  /// Plain-language reason shown when a device attempt had to fall back.
+  String? _infoLine;
+
   @override
   void initState() {
     super.initState();
     final injected = widget.repository;
     if (injected != null) {
       _repository = injected;
+      _repositoryReady = true;
       _pending = _repository.fetch(_query);
     } else {
+      // The default stack always wires a device-location source; web builds
+      // are handled by hiding the affordance (see [_canUseDeviceLocation]).
       _pending = _boot();
     }
   }
+
+  /// Device location is offered only when a source exists and this is not
+  /// web (browser geolocation support comes later).
+  bool get _canUseDeviceLocation =>
+      !kIsWeb && _repositoryReady && (_repository.deviceLocation != null);
 
   @override
   void dispose() {
@@ -200,19 +222,53 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       config: widget.config,
       cache: PrefsNearbyCache(prefs),
     );
+    _repositoryReady = true;
     return _repository.fetch(_query);
   }
 
   void _reload() {
-    if (_reloadQueued) return;
+    if (_reloadQueued || !_repositoryReady) return;
     _reloadQueued = true;
     setState(() {
+      _deviceMode = false;
+      _devicePending = false;
+      _infoLine = null;
       _pending = _repository.fetch(_query).whenComplete(() {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() => _reloadQueued = false);
         });
       });
+    });
+  }
+
+  /// Opt-in one-shot device location. Coordinates are used for this single
+  /// lookup in memory; nothing about them is stored.
+  void _useMyLocation() {
+    if (_reloadQueued || !_canUseDeviceLocation) return;
+    _reloadQueued = true;
+    setState(() {
+      _devicePending = true;
+      _pending = _repository
+          .fetchNearDevice(_query)
+          .then((result) {
+            final usedDevice = result.origin != null;
+            if (!mounted) return result;
+            setState(() {
+              _deviceMode = usedDevice;
+              _devicePending = false;
+              // On success the empty-state copy carries its own message; only a
+              // fallback keeps a reason line visible.
+              _infoLine = usedDevice ? null : result.message;
+            });
+            return result;
+          })
+          .whenComplete(() {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              setState(() => _reloadQueued = false);
+            });
+          });
     });
   }
 
@@ -250,7 +306,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             suggestConnection: true,
           );
         }
-        if (result.resources.isEmpty) {
+        // An empty *town* lookup is a problem view (plain message + retry).
+        // An empty *device* lookup still gets the results chrome — origin
+        // chip, categories, and its own gentle near-you sentence.
+        if (result.resources.isEmpty && result.origin == null) {
           return _buildProblem(
             result.message ?? kNearbyMemberLoadFailed,
             suggestConnection: result.status == NearbySourceStatus.unavailable,
@@ -270,7 +329,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Finding places near ${_query.town}…',
+          _devicePending
+              ? 'Finding your location…'
+              : 'Finding places near ${_query.town}…',
           textAlign: TextAlign.center,
           style: const TextStyle(color: CwcColors.sub),
         ),
@@ -319,10 +380,34 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           fromSavedCopy: result.status == NearbySourceStatus.cache,
         ),
         const SizedBox(height: 16),
-        Chip(
-          avatar: const Icon(Icons.location_city, size: 18),
-          label: Text(_query.town),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Chip(
+              avatar: Icon(
+                _deviceMode ? Icons.my_location : Icons.location_city,
+                size: 18,
+              ),
+              label: Text(_deviceMode ? 'Using your location' : _query.town),
+            ),
+            if (_canUseDeviceLocation && !_deviceMode)
+              TextButton.icon(
+                key: const ValueKey('nearby-use-my-location'),
+                onPressed: _reloadQueued ? null : _useMyLocation,
+                icon: const Icon(Icons.my_location, size: 18),
+                label: const Text('Use my location'),
+              ),
+          ],
         ),
+        if (_infoLine != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _infoLine!,
+            style: const TextStyle(color: CwcColors.sub, fontSize: 18),
+          ),
+        ],
         const SizedBox(height: 12),
         _CategoryChips(
           categories: _categories,
@@ -334,7 +419,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
-              'No ${_category.toLowerCase()} places found near ${_query.town}.',
+              _deviceMode
+                  ? (result.message ?? kNearbyNoPlacesNearYou)
+                  : 'No ${_category.toLowerCase()} places found near '
+                        '${_query.town}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: CwcColors.sub, height: 1.4),
             ),
@@ -349,7 +437,12 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
                 (widget.clock ?? DateTime.now)(),
               ),
             ),
-            badges: [resource.category],
+            badges: [
+              resource.category,
+              if (result.origin != null) ...[
+                '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
+              ],
+            ],
             address: resource.address,
             description: resource.phone == null ? 'Phone not listed' : null,
             actions: _actionsFor(resource),
@@ -439,7 +532,7 @@ class _MapToggle extends StatelessWidget {
       title: const Text('See these on a map'),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(color: CwcColors.sub, fontSize: 13),
+        style: const TextStyle(color: CwcColors.sub, fontSize: 14),
       ),
       value: value,
       activeThumbColor: CwcColors.primary,

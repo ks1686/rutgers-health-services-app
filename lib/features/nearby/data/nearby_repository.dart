@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'device_location.dart';
 import 'nearby_cache.dart';
 import 'nearby_config.dart';
 import 'nearby_errors.dart';
@@ -30,6 +31,7 @@ class NearbyRepository {
     required this.geocoder,
     required this.googlePlaces,
     required this.overpass,
+    this.deviceLocation,
     this.cache,
     Clock? clock,
   }) : _clock = clock ?? (() => DateTime.now().toUtc());
@@ -48,6 +50,7 @@ class NearbyRepository {
         apiKey: config.googlePlacesApiKey,
       ),
       overpass: OsmOverpassSource(client),
+      deviceLocation: GeolocatorDeviceLocation(),
       cache: cache,
     );
   }
@@ -56,6 +59,10 @@ class NearbyRepository {
   final NominatimGeocode geocoder;
   final GooglePlacesSource googlePlaces;
   final OsmOverpassSource overpass;
+
+  /// Null on web today: the "use my location" affordance is hidden there.
+  /// Coordinates are used once, in memory, and never persisted or logged.
+  final DeviceLocationSource? deviceLocation;
   final NearbyCache? cache;
   final Clock _clock;
 
@@ -107,6 +114,101 @@ class NearbyRepository {
       debugPrint('Nearby Overpass failed: $e');
       return _cachedOr(query, kNearbyMemberLoadFailed);
     }
+  }
+
+  /// Live lookup centered on the member's own coordinates ("use my location").
+  ///
+  /// Differences from the town path, all deliberate:
+  /// - the geocoder is skipped (the device is the origin);
+  /// - Overpass always uses an `around` radius, never the town bounding box;
+  /// - the New Jersey guardrail is bypassed — a member can travel out of
+  ///   state, and a false "nothing near you" is worse than an out-of-state
+  ///   row;
+  /// - nothing is written to the on-device cache, so coordinates never touch
+  ///   storage (IRB §7: GPS is transient, on-device only);
+  /// - on failure it falls back honestly to the last saved town list, labeled
+  ///   as a saved copy, rather than pretending it is device-based.
+  Future<NearbyFetchResult> fetchNearDevice(NearbyQuery query) async {
+    final source = deviceLocation;
+    if (source == null) {
+      return NearbyFetchResult(
+        resources: const [],
+        status: NearbySourceStatus.unavailable,
+        fetchedAt: _clock(),
+        message: kNearbyMemberLoadFailed,
+      );
+    }
+
+    final when = _clock();
+    final outcome = await source.getCurrent();
+
+    final GeoPoint origin;
+    switch (outcome) {
+      case DeviceLocationOk(:final point):
+        origin = point;
+      case DeviceLocationSoftFail(:final reason):
+        debugPrint('Nearby device location failed: ${reason.name}');
+        // Every soft-fail lands the member back on the town lookup they saw
+        // at startup, with a plain-language reason attached (rendered as an
+        // info line under the disclaimer).
+        switch (reason) {
+          case DeviceLocationFailure.permissionDenied:
+            return _townFallback(query, kNearbyLocationDenied);
+          case DeviceLocationFailure.serviceDisabled:
+            return _townFallback(query, kNearbyLocationOff);
+          case DeviceLocationFailure.unavailable:
+            return _townFallback(query, kNearbyLocationUnavailable);
+        }
+    }
+
+    final googleRows = await _tryGoogle(origin, when);
+    if (googleRows != null && googleRows.isNotEmpty) {
+      return NearbyFetchResult(
+        resources: googleRows,
+        status: NearbySourceStatus.google,
+        fetchedAt: when,
+        origin: origin,
+      );
+    }
+
+    try {
+      final osmRows = _prepare(
+        await overpass.fetchAround(
+          origin,
+          fetchedAt: when,
+          applyRegionGuard: false,
+        ),
+        when,
+      );
+      return NearbyFetchResult(
+        resources: osmRows,
+        status: NearbySourceStatus.osm,
+        fetchedAt: when,
+        message: osmRows.isEmpty ? kNearbyNoPlacesNearYou : null,
+        origin: origin,
+      );
+    } catch (e) {
+      debugPrint('Nearby Overpass failed (device origin): $e');
+      // Same honest fallback as above — never show a device-based list that
+      // is actually the saved town copy without saying so.
+      return _townFallback(query, kNearbyLocationUnavailable);
+    }
+  }
+
+  /// Runs the town lookup and attaches a plain-language reason (from a failed
+  /// device-location attempt) to whatever it produces. The timestamp stays the
+  /// town lookup's own so "updated as of" never overstates freshness.
+  Future<NearbyFetchResult> _townFallback(
+    NearbyQuery query,
+    String message,
+  ) async {
+    final result = await fetch(query);
+    return NearbyFetchResult(
+      resources: result.resources,
+      status: result.status,
+      fetchedAt: result.fetchedAt,
+      message: message,
+    );
   }
 
   /// Returns normalized rows, or null when Google was skipped or soft-failed.

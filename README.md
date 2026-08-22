@@ -47,7 +47,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 | Tab / screen | Demo behavior |
 |--------------|---------------|
-| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; live map toggle hidden until FIND-4; Open now / Closed expands weekday hours when OSM tags parse |
+| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; live map toggle hidden until FIND-4; Open now / Closed expands weekday hours when OSM tags parse; opt-in "Use my location" (coarse, one-shot, in-memory) with ~min-walk badges on Android/iOS |
 | My Health | Sample appointments / meds / providers; wallet card screen; banner does not claim a PIN |
 | Learn | Six topics → short articles with source labels |
 | More | List to placeholder pages; Erase explains nothing is stored |
@@ -87,7 +87,9 @@ flutter run -d chrome --dart-define=LIVE_NEARBY=true
 
 #### How live mode behaves
 
-The town is fixed to New Brunswick, NJ for v1 and there is no GPS path — the app geocodes the town name through Nominatim, then queries Overpass for pharmacies, clinics, and urgent care. Results are deduplicated, cached on-device (last-success list + town point only; no identity), and stamped with the time they were fetched. When every source fails, the tab shows a plain message and a Try again button; **it never falls back to the demo listings**, because a member cannot tell invented data from real data. Empty OSM is not labeled as a connection failure. Directions use OSM (web) or `geo:` (io), not Google Maps.
+The default lookup is fixed to New Brunswick, NJ — the app geocodes the town name through Nominatim, then queries Overpass for pharmacies, clinics, and urgent care. Results are deduplicated, cached on-device (last-success list + town point only; no identity), and stamped with the time they were fetched. When every source fails, the tab shows a plain message and a Try again button; **it never falls back to the demo listings**, because a member cannot tell invented data from real data. Empty OSM is not labeled as a connection failure. Directions use OSM (web) or `geo:` (iOS/Android), not Google Maps.
+
+**"Use my location" (opt-in device location, added 2026-08-22).** On Android/iOS builds the live tab offers a *Use my location* button next to the town chip. Tapping it asks the OS for a **coarse, one-shot fix** (`geolocator`, `LocationAccuracy.low`): no background updates, no fine/GPS permission requested on Android (`ACCESS_COARSE_LOCATION` only), iOS uses the standard while-using prompt with plain-language copy. The coordinates live in memory for that single search: Overpass runs an `around:` circle from the device point, the NJ-only guardrail is skipped (members travel), and **nothing is written to the cache** — an origin never touches storage. Each card gains a "~N min walk" badge computed on-device (~80 m/min, straight-line). If the member declines, location services are off, or the fix times out, the tab falls back to the normal New Brunswick list with a plain-language reason line ("That is okay. We went back to places near New Brunswick…") — it never shows the town list as if it were device-based. Web hides the affordance until browser geolocation is wired.
 
 Overpass rate limits per IP and a room of phones on shared Wi-Fi counts as one IP, so the app tries three mirrors in order with a short retry. If you add a mirror, first confirm it serves planet-wide data — regional instances answer HTTP 200 with zero results, which would tell a member there is no pharmacy near them. See `kOverpassEndpoints`.
 

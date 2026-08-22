@@ -3,6 +3,10 @@
          The debug and profile manifests declare this for the Flutter tool, so
          release builds are the only ones that would go out without it. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Nearby "use my location": one-shot fix, kept in memory only.
+         Coarse location is enough for a multi-kilometer place search, so no
+         fine/GPS permission is requested. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="CWC Health App"
         android:name="${applicationName}"
