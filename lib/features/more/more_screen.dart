@@ -124,8 +124,10 @@ class MoreScreen extends StatelessWidget {
                   'How This App Protects You',
                   'Your appointments, medications, and providers stay on this '
                       'phone only — not in a cloud account we can see. '
-                      'Optional PIN locks My Health. Help Now is never locked. '
-                      'More privacy wording will be co-written with the '
+                      'They are stored with the phone’s built-in secure storage '
+                      '(Android Keystore / iOS Keychain). '
+                      'Optional PIN locks My Health on screen. Help Now is never '
+                      'locked. More privacy wording will be co-written with the '
                       'advisory committee.',
                 ),
               ),

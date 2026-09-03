@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/my_health/data/health_controller.dart';
-import 'features/my_health/data/prefs_health_store.dart';
+import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/health_scope.dart';
 import 'shell/app_shell.dart';
 import 'theme/cwc_theme.dart';
@@ -11,7 +10,7 @@ import 'widgets/link_launcher.dart';
 class CwcApp extends StatefulWidget {
   const CwcApp({super.key, this.healthController, this.linkLauncher});
 
-  /// Injected in tests. When null, uses on-device SharedPreferences.
+  /// Injected in tests. When null, opens Keystore/Keychain-backed store.
   final HealthController? healthController;
   final LinkLauncher? linkLauncher;
 
@@ -23,6 +22,7 @@ class _CwcAppState extends State<CwcApp> {
   HealthController? _owned;
   HealthController? _health;
   bool _booting = true;
+  String? _bootError;
 
   @override
   void initState() {
@@ -38,10 +38,14 @@ class _CwcAppState extends State<CwcApp> {
       if (mounted) setState(() => _booting = false);
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    _owned = HealthController(PrefsHealthStore(prefs));
-    _health = _owned;
-    await _health!.load();
+    try {
+      final store = await HealthStoreFactory.openSecure();
+      _owned = HealthController(store);
+      _health = _owned;
+      await _health!.load();
+    } catch (e) {
+      _bootError = 'Could not open secure My Health storage.';
+    }
     if (mounted) setState(() => _booting = false);
   }
 
@@ -53,12 +57,30 @@ class _CwcAppState extends State<CwcApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (_booting || _health == null) {
+    if (_booting) {
       return MaterialApp(
         title: 'CWC Health App',
         debugShowCheckedModeBanner: false,
         theme: buildCwcTheme(),
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+    if (_health == null) {
+      return MaterialApp(
+        title: 'CWC Health App',
+        debugShowCheckedModeBanner: false,
+        theme: buildCwcTheme(),
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                _bootError ?? 'My Health storage is unavailable.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
       );
     }
     return MaterialApp(

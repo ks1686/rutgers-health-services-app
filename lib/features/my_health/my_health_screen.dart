@@ -331,8 +331,8 @@ class _PrivacyBanner extends StatelessWidget {
         children: [
           Text(
             hasPin
-                ? 'Protected by your PIN — only you can see this on this phone.'
-                : 'Your info stays on this phone. You can add an optional PIN.',
+                ? 'Protected by your PIN — stored encrypted on this phone.'
+                : 'Your info stays encrypted on this phone. You can add an optional PIN.',
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
           ),
           const SizedBox(height: 8),
