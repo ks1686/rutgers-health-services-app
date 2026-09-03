@@ -125,18 +125,35 @@ void main() {
     },
   );
 
-  test('parse failures are not retried across mirrors', () async {
-    var calls = 0;
-    final client = MockClient((_) async {
-      calls++;
-      return http.Response('[]', 200);
-    });
+  test(
+    'malformed 200 responses fail over like any other endpoint failure',
+    () async {
+      // A captive portal or a mirror's maintenance HTML page arrives as
+      // HTTP 200 + unparseable body. That is one dead server, not "no data":
+      // the next mirror must still get its chance.
+      var calls = 0;
+      final client = MockClient((request) async {
+        calls++;
+        if (request.url.host == 'first.example') {
+          return http.Response('<html>maintenance</html>', 200);
+        }
+        return http.Response(fixture, 200);
+      });
+
+      final resources = await build(client).fetch(area);
+
+      expect(calls, greaterThanOrEqualTo(2));
+      expect(resources, isNotEmpty);
+    },
+  );
+
+  test('garbage from every mirror surfaces as an OverpassException', () async {
+    final client = MockClient((_) async => http.Response('[]', 200));
 
     await expectLater(
       build(client).fetch(area),
       throwsA(isA<OsmOverpassException>()),
     );
-    expect(calls, 1);
   });
 
   test('the shipped endpoint list has real mirrors', () {

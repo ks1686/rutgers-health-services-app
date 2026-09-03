@@ -621,29 +621,34 @@ void main() {
       expect(find.text('New Brunswick'), findsOneWidget);
     });
 
-    testWidgets('button visible with a device source; tap runs a device '
-        'lookup and shows walk times + origin chip', (tester) async {
-      final repository = _StubRepository(
-        _result(
-          resources: [_resource(name: 'Corner Pharmacy')],
-          // ~134 m from the default resource coords → ~2 min at 80 m/min.
-          origin: const GeoPoint(lat: 40.4874, lng: -74.4518),
-        ),
-        deviceLocation: _ScriptedDeviceLocation(
-          DeviceLocationOk(const GeoPoint(lat: 40.4874, lng: -74.4518)),
-        ),
-      );
+    testWidgets(
+      'with a device source, live tab asks for location on load and '
+      'shows walk times + origin chip',
+      (tester) async {
+        final repository = _StubRepository(
+          _result(resources: [_resource(name: 'Town Pharmacy')]),
+          deviceLocation: _ScriptedDeviceLocation(
+            DeviceLocationOk(const GeoPoint(lat: 40.4874, lng: -74.4518)),
+          ),
+          nearDeviceResult: _result(
+            resources: [_resource(name: 'Corner Pharmacy')],
+            // ~134 m from the default resource coords → ~2 min at 80 m/min.
+            origin: const GeoPoint(lat: 40.4874, lng: -74.4518),
+          ),
+        );
 
-      await pumpScreen(tester, screen(repository));
+        await pumpScreen(tester, screen(repository));
 
-      expect(find.text('New Brunswick'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
-      await tester.pumpAndSettle();
-
-      expect(repository.nearDeviceCalls, 1);
-      expect(find.text('Using your location'), findsOneWidget);
-      expect(find.text('~2 min walk'), findsOneWidget);
-    });
+        expect(repository.nearDeviceCalls, 1);
+        expect(repository.calls, 0);
+        expect(find.text('Using your location'), findsOneWidget);
+        expect(find.text('~2 min walk'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('nearby-use-my-location')),
+          findsNothing,
+        );
+      },
+    );
 
     testWidgets('denied permission falls back to town list and says why', (
       tester,
@@ -656,36 +661,41 @@ void main() {
         deviceLocation: _ScriptedDeviceLocation(
           DeviceLocationSoftFail(DeviceLocationFailure.permissionDenied),
         ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Town Pharmacy')],
+          message: kNearbyLocationDenied,
+        ),
       );
 
       await pumpScreen(tester, screen(repository));
-      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
-      await tester.pumpAndSettle();
 
-      // Back on the town list — honestly labeled.
+      // Back on the town list — honestly labeled. No second tap needed.
       expect(repository.nearDeviceCalls, 1);
       expect(find.text(kNearbyLocationDenied), findsOneWidget);
       expect(find.text('New Brunswick'), findsOneWidget);
       expect(find.text('Using your location'), findsNothing);
       expect(find.textContaining('min walk'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('location off falls back with its own sentence', (
       tester,
     ) async {
       final repository = _StubRepository(
-        _result(
-          resources: [_resource(name: 'Town Pharmacy')],
-          message: kNearbyLocationOff,
-        ),
+        _result(resources: [_resource(name: 'Town Pharmacy')]),
         deviceLocation: _ScriptedDeviceLocation(
           DeviceLocationSoftFail(DeviceLocationFailure.serviceDisabled),
+        ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Town Pharmacy')],
+          message: kNearbyLocationOff,
         ),
       );
 
       await pumpScreen(tester, screen(repository));
-      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
-      await tester.pumpAndSettle();
 
       expect(find.text(kNearbyLocationOff), findsOneWidget);
       expect(find.text('Using your location'), findsNothing);
@@ -708,8 +718,6 @@ void main() {
       );
 
       await pumpScreen(tester, screen(repository));
-      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
-      await tester.pumpAndSettle();
 
       expect(find.text(kNearbyNoPlacesNearYou), findsOneWidget);
       expect(find.text('Using your location'), findsOneWidget);

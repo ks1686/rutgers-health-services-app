@@ -194,18 +194,17 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     if (injected != null) {
       _repository = injected;
       _repositoryReady = true;
-      _pending = _repository.fetch(_query);
+      _pending = _initialLookup();
     } else {
-      // The default stack always wires a device-location source; web builds
-      // are handled by hiding the affordance (see [_canUseDeviceLocation]).
+      // Default stack always wires a device-location source (incl. web).
       _pending = _boot();
     }
   }
 
-  /// Device location is offered only when a source exists and this is not
-  /// web (browser geolocation support comes later).
+  /// Prefer a one-shot device fix when a source is wired; otherwise town.
+  /// Declining / failing never blocks — [fetchNearDevice] falls back to town.
   bool get _canUseDeviceLocation =>
-      !kIsWeb && _repositoryReady && (_repository.deviceLocation != null);
+      _repositoryReady && (_repository.deviceLocation != null);
 
   @override
   void dispose() {
@@ -223,11 +222,25 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       cache: PrefsNearbyCache(prefs),
     );
     _repositoryReady = true;
+    return _initialLookup();
+  }
+
+  /// Live tab asks for location first so the list is proximity-based anywhere,
+  /// not locked to the default town. Town remains the honest fallback.
+  Future<NearbyFetchResult> _initialLookup() {
+    if (_canUseDeviceLocation) {
+      _devicePending = true;
+      return _trackDeviceLookup(_repository.fetchNearDevice(_query));
+    }
     return _repository.fetch(_query);
   }
 
   void _reload() {
     if (_reloadQueued || !_repositoryReady) return;
+    if (_deviceMode && _canUseDeviceLocation) {
+      _useMyLocation();
+      return;
+    }
     _reloadQueued = true;
     setState(() {
       _deviceMode = false;
@@ -242,34 +255,38 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     });
   }
 
-  /// Opt-in one-shot device location. Coordinates are used for this single
-  /// lookup in memory; nothing about them is stored.
+  /// One-shot device location. Coordinates stay in memory for this lookup only.
   void _useMyLocation() {
     if (_reloadQueued || !_canUseDeviceLocation) return;
     _reloadQueued = true;
     setState(() {
       _devicePending = true;
-      _pending = _repository
-          .fetchNearDevice(_query)
-          .then((result) {
-            final usedDevice = result.origin != null;
-            if (!mounted) return result;
-            setState(() {
-              _deviceMode = usedDevice;
-              _devicePending = false;
-              // On success the empty-state copy carries its own message; only a
-              // fallback keeps a reason line visible.
-              _infoLine = usedDevice ? null : result.message;
-            });
-            return result;
-          })
-          .whenComplete(() {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              setState(() => _reloadQueued = false);
-            });
-          });
+      _pending = _trackDeviceLookup(_repository.fetchNearDevice(_query));
     });
+  }
+
+  Future<NearbyFetchResult> _trackDeviceLookup(
+    Future<NearbyFetchResult> pending,
+  ) {
+    return pending
+        .then((result) {
+          final usedDevice = result.origin != null;
+          if (!mounted) return result;
+          setState(() {
+            _deviceMode = usedDevice;
+            _devicePending = false;
+            // On success the empty-state copy carries its own message; only a
+            // fallback keeps a reason line visible.
+            _infoLine = usedDevice ? null : result.message;
+          });
+          return result;
+        })
+        .whenComplete(() {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _reloadQueued = false);
+          });
+        });
   }
 
   Future<void> _open(Uri uri) async {

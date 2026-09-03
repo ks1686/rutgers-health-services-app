@@ -148,12 +148,14 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 - Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
 - Nearby is the current engineering priority. Local review uses **live Nearby** (`LIVE_NEARBY=true`); the flag-off static list is not the working demo.
 - Prefer GitHub Actions CI that covers format, analyze, unit/widget/integration tests, and web/Android compile—not format/lint alone.
-- Prefer Nearby feature work in a git worktree under `/Users/ks1686/Documents/Worktrees/` rather than dirtying the main checkout.
+- Prefer Nearby (and other feature) work in a git worktree under `/Users/ks1686/Documents/Worktrees/rutgers-health-services-app/<branch>` rather than dirtying the main checkout.
+- For parallel agents on this repo, use separate worktrees per slice (e.g. Nearby vs My Health) so agents do not collide.
 
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
 - Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Other tabs still use static demo data and “Demo only” snackbars.
+- Live Nearby device path: one-shot coarse GPS on load (coordinates transient / not cached); list sorted by proximity; town picker is the fallback when location is denied or unavailable; NJ region guardrail is skipped on the device-location path so travel out of state still works.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
 - No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web / Chrome is the usual local demo path.
 - GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.

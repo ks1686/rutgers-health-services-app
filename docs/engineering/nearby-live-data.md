@@ -75,7 +75,7 @@ Verified on latest `main` with `LIVE_NEARBY=true` (release web bundle). Matches 
 | Sample rows | University Pharmacy and Surgical (New Brunswick); Walgreens (Edison — bbox overshoot reproduced) |
 | Hours | Live cards: **Open now** / **Closed** (tap to expand Mon–Sun). Unparseable or missing OSM tags: **Hours not listed**. |
 | Map toggle | Hidden on the live list until FIND-4. Demo list still has the placeholder switch. |
-| GPS | Live mode has no “Use my location?” (town is fixed to New Brunswick) |
+| GPS | Live tab asks for a one-shot coarse fix on load; sorts nearest-first; town is fallback only |
 | Call / Text | Hidden when OSM has no phone; Directions always shown |
 | Categories | Live chips: All / Pharmacy / Clinic / Urgent care. No CWC or Wellness rows |
 
@@ -152,27 +152,22 @@ Separate plans — do not fold into the closed Tasks 1–7:
 3. **FIND-4 map view** [TEAM 2026-08-14] — **next.** Optional OSM tiles. Live map toggle is hidden until then.
 4. Physical Android Call/Text/Directions tap; iOS smoke.
 
-## Opt-in device location (2026-08-22, live-location branch)
+## Device location + proximity (2026-09-03, nearby-proximity)
 
-The spike's "out of scope" GPS flow is now built as a separate slice on the
-`live-location` branch, honoring IRB §7 ("GPS only transient/on-device if opted
-in for Nearby distances") and the trust-first permission guidance:
+Live Nearby asks for a one-shot device fix on load (Android / iOS / web),
+sorts results nearest-first, and is not limited to New Brunswick. Town remains
+the honest fallback when location is denied, off, or unavailable — never shown
+as if it were device-based. Coordinates stay in memory only (never cached).
 
 | Decision | As built |
 |---|---|
 | Plugin | `geolocator` ^14.0.3, one-shot `getCurrentPosition`, low accuracy, 12 s cap |
-| Permissions | Android `ACCESS_COARSE_LOCATION` only (no fine/GPS); iOS `NSLocationWhenInUseUsageDescription` with plain-language copy |
+| Permissions | Android `ACCESS_COARSE_LOCATION` only (no fine/GPS); iOS `NSLocationWhenInUseUsageDescription` with plain-language copy; web uses browser geolocation |
 | Origin | Coordinates stay in memory for one search; `NearbyFetchResult.origin` is never persisted and device results are never written to `PrefsNearbyCache` |
 | Search shape | Overpass forced to an `around:` circle from the device point (`fetchAround`) — never the town bbox; NJ guardrail skipped because members travel |
+| Sort | Device results ordered nearest-first (straight-line meters) |
 | Distances | "~N min walk" badges computed on-device (~80 m/min straight-line), shown only when a device origin exists |
-| Failure honesty | Denied / services-off / timeout all fall back to the normal town lookup with a plain-language reason line — the tab never presents the town list as device-based, and never re-prompts after a "no" |
-| Web | Affordance hidden until browser geolocation is wired |
-
-Also on this branch: malformed-HTTP-200 Overpass bodies now fail over to the
-next mirror instead of aborting the whole lookup (the old test had locked in
-the fragile behavior; it now encodes the failover contract), and
-`PrefsNearbyCache` degrades gracefully when a saved payload is well-formed JSON
-with a damaged shape.
+| Failure honesty | Denied / services-off / timeout all fall back to the town lookup with a plain-language reason line; "Use my location" stays available to retry |
 
 ## Meeting follow-ons (not this plan)
 

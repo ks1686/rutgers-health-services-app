@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'device_location.dart';
 import 'nearby_cache.dart';
 import 'nearby_config.dart';
+import 'nearby_distance.dart';
 import 'nearby_errors.dart';
 import 'nearby_fetch_result.dart';
 import 'nearby_query.dart';
@@ -60,8 +61,9 @@ class NearbyRepository {
   final GooglePlacesSource googlePlaces;
   final OsmOverpassSource overpass;
 
-  /// Null on web today: the "use my location" affordance is hidden there.
-  /// Coordinates are used once, in memory, and never persisted or logged.
+  /// Null only in tests that exercise the town-only path. Production always
+  /// wires a device source (mobile + web). Coordinates are used once, in
+  /// memory, and never persisted or logged.
   final DeviceLocationSource? deviceLocation;
   final NearbyCache? cache;
   final Clock _clock;
@@ -148,23 +150,28 @@ class NearbyRepository {
         origin = point;
       case DeviceLocationSoftFail(:final reason):
         debugPrint('Nearby device location failed: ${reason.name}');
-        // Every soft-fail lands the member back on the town lookup they saw
-        // at startup, with a plain-language reason attached (rendered as an
-        // info line under the disclaimer).
+        // Every soft-fail lands the member back on the town lookup, with a
+        // plain-language reason attached (rendered as an info line).
         switch (reason) {
           case DeviceLocationFailure.permissionDenied:
-            return _townFallback(query, kNearbyLocationDenied);
+            return _townFallback(
+              query,
+              nearbyLocationDeniedMessage(query.town),
+            );
           case DeviceLocationFailure.serviceDisabled:
-            return _townFallback(query, kNearbyLocationOff);
+            return _townFallback(query, nearbyLocationOffMessage(query.town));
           case DeviceLocationFailure.unavailable:
-            return _townFallback(query, kNearbyLocationUnavailable);
+            return _townFallback(
+              query,
+              nearbyLocationUnavailableMessage(query.town),
+            );
         }
     }
 
     final googleRows = await _tryGoogle(origin, when);
     if (googleRows != null && googleRows.isNotEmpty) {
       return NearbyFetchResult(
-        resources: googleRows,
+        resources: _sortedByProximity(googleRows, origin),
         status: NearbySourceStatus.google,
         fetchedAt: when,
         origin: origin,
@@ -181,7 +188,7 @@ class NearbyRepository {
         when,
       );
       return NearbyFetchResult(
-        resources: osmRows,
+        resources: _sortedByProximity(osmRows, origin),
         status: NearbySourceStatus.osm,
         fetchedAt: when,
         message: osmRows.isEmpty ? kNearbyNoPlacesNearYou : null,
@@ -191,8 +198,35 @@ class NearbyRepository {
       debugPrint('Nearby Overpass failed (device origin): $e');
       // Same honest fallback as above — never show a device-based list that
       // is actually the saved town copy without saying so.
-      return _townFallback(query, kNearbyLocationUnavailable);
+      return _townFallback(
+        query,
+        nearbyLocationUnavailableMessage(query.town),
+      );
     }
+  }
+
+  /// Nearest places first so "Nearby" means proximity, not Overpass order.
+  List<NearbyResource> _sortedByProximity(
+    List<NearbyResource> rows,
+    GeoPoint origin,
+  ) {
+    final sorted = List<NearbyResource>.of(rows);
+    sorted.sort((a, b) {
+      final da = nearbyDistanceMeters(
+        fromLat: origin.lat,
+        fromLng: origin.lng,
+        toLat: a.lat,
+        toLng: a.lng,
+      );
+      final db = nearbyDistanceMeters(
+        fromLat: origin.lat,
+        fromLng: origin.lng,
+        toLat: b.lat,
+        toLng: b.lng,
+      );
+      return da.compareTo(db);
+    });
+    return sorted;
   }
 
   /// Runs the town lookup and attaches a plain-language reason (from a failed
