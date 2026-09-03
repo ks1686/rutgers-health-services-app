@@ -1,12 +1,20 @@
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
+import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   Future<void> pumpApp(WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final health = HealthController(InMemoryHealthStore());
+    await health.load();
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(const CwcApp());
+    await tester.pumpWidget(CwcApp(healthController: health));
     await tester.pumpAndSettle();
   }
 
@@ -49,8 +57,11 @@ void main() {
 
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
-    expect(find.text('Show My Wallet Card'), findsOneWidget);
-    await tester.tap(find.text('Show My Wallet Card'));
+    final walletButton = find.text('Show My Wallet Card');
+    await tester.scrollUntilVisible(walletButton, 300);
+    await tester.pumpAndSettle();
+    expect(walletButton, findsOneWidget);
+    await tester.tap(walletButton);
     await tester.pumpAndSettle();
     expect(find.text('My Health Snapshot'), findsOneWidget);
   });
@@ -112,20 +123,28 @@ void main() {
     }
   });
 
-  testWidgets('My Health banner does not claim a PIN', (tester) async {
+  testWidgets('My Health offers optional PIN without claiming it by default', (
+    tester,
+  ) async {
     await pumpApp(tester);
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('Protected by your PIN'), findsNothing);
-    expect(find.textContaining('does not lock My Health'), findsOneWidget);
+    expect(find.textContaining('stays on this phone'), findsOneWidget);
+    expect(find.text('Set PIN'), findsOneWidget);
   });
 
-  testWidgets('Erase explains nothing is stored', (tester) async {
+  testWidgets('Erase confirms and clears stored My Health data', (
+    tester,
+  ) async {
     await pumpApp(tester);
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Erase My Information'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Nothing to erase'), findsOneWidget);
+    expect(find.textContaining('cannot be undone'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Erase'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('was erased'), findsOneWidget);
   });
 }

@@ -5,9 +5,12 @@ import '../features/more/more_screen.dart';
 import '../features/my_health/my_health_screen.dart';
 import '../features/nearby/nearby_screen.dart';
 import '../widgets/help_now_button.dart';
+import '../widgets/link_launcher.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.linkLauncher});
+
+  final LinkLauncher? linkLauncher;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -28,11 +31,11 @@ class _AppShellState extends State<AppShell> {
       ),
       body: IndexedStack(
         index: _tabIndex,
-        children: const [
-          NearbyScreen(),
-          MyHealthScreen(),
-          LearnScreen(),
-          MoreScreen(),
+        children: [
+          const NearbyScreen(),
+          MyHealthScreen(launcher: widget.linkLauncher),
+          const LearnScreen(),
+          const MoreScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(

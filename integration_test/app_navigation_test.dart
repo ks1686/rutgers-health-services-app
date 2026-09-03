@@ -2,6 +2,7 @@ import 'package:cwc_health_app/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// End-to-end smoke of shell navigation and critical chrome.
 ///
@@ -11,6 +12,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('full tab circuit and Help Now', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
