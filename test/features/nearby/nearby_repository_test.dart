@@ -462,44 +462,43 @@ void main() {
     expect(result.origin, devicePoint);
   });
 
-  test('device results are sorted nearest-first by straight-line distance', () async {
-    const devicePoint = GeoPoint(lat: 40.4862, lng: -74.4518);
-    final overpass = _FakeOverpass(
-      result: [
-        _resource(
-          id: 'far',
-          name: 'Far Clinic',
-          lat: 40.52,
-          lng: -74.47,
-        ),
-        _resource(
-          id: 'near',
-          name: 'Near Pharmacy',
-          lat: 40.4870,
-          lng: -74.4518,
-        ),
-        _resource(
-          id: 'mid',
-          name: 'Mid Urgent Care',
-          lat: 40.50,
-          lng: -74.46,
-        ),
-      ],
-    );
-    final repo = build(
-      geocode: _FakeGeocode(result: area),
-      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
-      overpass: overpass,
-      deviceLocation: _ScriptedLocation(DeviceLocationOk(devicePoint)),
-    );
+  test(
+    'device results are sorted nearest-first by straight-line distance',
+    () async {
+      const devicePoint = GeoPoint(lat: 40.4862, lng: -74.4518);
+      final overpass = _FakeOverpass(
+        result: [
+          _resource(id: 'far', name: 'Far Clinic', lat: 40.52, lng: -74.47),
+          _resource(
+            id: 'near',
+            name: 'Near Pharmacy',
+            lat: 40.4870,
+            lng: -74.4518,
+          ),
+          _resource(
+            id: 'mid',
+            name: 'Mid Urgent Care',
+            lat: 40.50,
+            lng: -74.46,
+          ),
+        ],
+      );
+      final repo = build(
+        geocode: _FakeGeocode(result: area),
+        google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+        overpass: overpass,
+        deviceLocation: _ScriptedLocation(DeviceLocationOk(devicePoint)),
+      );
 
-    final result = await repo.fetchNearDevice(query);
+      final result = await repo.fetchNearDevice(query);
 
-    expect(
-      result.resources.map((r) => r.name).toList(),
-      ['Near Pharmacy', 'Mid Urgent Care', 'Far Clinic'],
-    );
-  });
+      expect(result.resources.map((r) => r.name).toList(), [
+        'Near Pharmacy',
+        'Mid Urgent Care',
+        'Far Clinic',
+      ]);
+    },
+  );
 
   test('device lookup never writes coordinates or results to cache', () async {
     final cache = InMemoryNearbyCache();

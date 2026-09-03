@@ -441,9 +441,21 @@ void main() {
       }
     });
 
-    testWidgets('live map toggle is hidden', (tester) async {
+    testWidgets('live map toggle shows OSM map for current list pins', (
+      tester,
+    ) async {
       final repository = _StubRepository(
-        _result(resources: [_resource(name: 'Highland Pharmacy')]),
+        _result(
+          resources: [
+            _resource(name: 'Highland Pharmacy'),
+            _resource(
+              name: 'Central Clinic',
+              category: 'Clinic',
+              lat: 40.49,
+              lng: -74.45,
+            ),
+          ],
+        ),
       );
 
       await pumpScreen(
@@ -455,8 +467,20 @@ void main() {
         ),
       );
 
-      expect(find.text('See these on a map'), findsNothing);
-      expect(find.text('Map view is not ready yet'), findsNothing);
+      expect(find.text('See these on a map'), findsOneWidget);
+      expect(find.byKey(const ValueKey('nearby-map-view')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('nearby-map-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('nearby-map-view')), findsOneWidget);
+      expect(find.textContaining('Map data'), findsOneWidget);
+
+      // Shared chips still filter the list (and therefore map pins).
+      await tester.tap(find.widgetWithText(FilterChip, 'Clinic'));
+      await tester.pumpAndSettle();
+      expect(find.text('Central Clinic'), findsOneWidget);
+      expect(find.text('Highland Pharmacy'), findsNothing);
     });
 
     testWidgets(
@@ -621,34 +645,31 @@ void main() {
       expect(find.text('New Brunswick'), findsOneWidget);
     });
 
-    testWidgets(
-      'with a device source, live tab asks for location on load and '
-      'shows walk times + origin chip',
-      (tester) async {
-        final repository = _StubRepository(
-          _result(resources: [_resource(name: 'Town Pharmacy')]),
-          deviceLocation: _ScriptedDeviceLocation(
-            DeviceLocationOk(const GeoPoint(lat: 40.4874, lng: -74.4518)),
-          ),
-          nearDeviceResult: _result(
-            resources: [_resource(name: 'Corner Pharmacy')],
-            // ~134 m from the default resource coords → ~2 min at 80 m/min.
-            origin: const GeoPoint(lat: 40.4874, lng: -74.4518),
-          ),
-        );
+    testWidgets('with a device source, live tab asks for location on load and '
+        'shows walk times + origin chip', (tester) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Town Pharmacy')]),
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationOk(const GeoPoint(lat: 40.4874, lng: -74.4518)),
+        ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Corner Pharmacy')],
+          // ~134 m from the default resource coords → ~2 min at 80 m/min.
+          origin: const GeoPoint(lat: 40.4874, lng: -74.4518),
+        ),
+      );
 
-        await pumpScreen(tester, screen(repository));
+      await pumpScreen(tester, screen(repository));
 
-        expect(repository.nearDeviceCalls, 1);
-        expect(repository.calls, 0);
-        expect(find.text('Using your location'), findsOneWidget);
-        expect(find.text('~2 min walk'), findsOneWidget);
-        expect(
-          find.byKey(const ValueKey('nearby-use-my-location')),
-          findsNothing,
-        );
-      },
-    );
+      expect(repository.nearDeviceCalls, 1);
+      expect(repository.calls, 0);
+      expect(find.text('Using your location'), findsOneWidget);
+      expect(find.text('~2 min walk'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsNothing,
+      );
+    });
 
     testWidgets('denied permission falls back to town list and says why', (
       tester,

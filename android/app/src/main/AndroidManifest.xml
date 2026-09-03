@@ -11,6 +11,12 @@
         android:label="CWC Health App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Google Maps SDK (FIND-4). Empty placeholder → OSM soft-fail in Dart.
+             Pass the same value as --dart-define=GOOGLE_MAPS_API_KEY via
+             -PGOOGLE_MAPS_API_KEY=… or the GOOGLE_MAPS_API_KEY env var. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -20,6 +20,7 @@ import 'data/prefs_nearby_cache.dart';
 import 'data/opening_hours.dart';
 import 'widgets/nearby_hours_control.dart';
 import 'widgets/nearby_live_disclaimer.dart';
+import 'widgets/nearby_map_view.dart';
 
 typedef NearbyLinkLauncher = Future<bool> Function(Uri uri);
 
@@ -187,6 +188,14 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   /// Plain-language reason shown when a device attempt had to fall back.
   String? _infoLine;
 
+  /// Live FIND-4 map toggle (tiles load only when on).
+  bool _showMap = false;
+
+  /// Pin ↔ card highlight (resource id).
+  String? _selectedResourceId;
+
+  final Map<String, GlobalKey> _cardKeys = {};
+
   @override
   void initState() {
     super.initState();
@@ -288,6 +297,22 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           });
         });
   }
+
+  void _onMarkerTap(String resourceId) {
+    setState(() => _selectedResourceId = resourceId);
+    final key = _cardKeys[resourceId];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 280),
+        alignment: 0.1,
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  GlobalKey _keyFor(String id) => _cardKeys.putIfAbsent(id, GlobalKey.new);
 
   Future<void> _open(Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -429,9 +454,31 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         _CategoryChips(
           categories: _categories,
           selected: _category,
-          onSelected: (category) => setState(() => _category = category),
+          onSelected: (category) => setState(() {
+            _category = category;
+            _selectedResourceId = null;
+          }),
         ),
         const SizedBox(height: 8),
+        _MapToggle(
+          key: const ValueKey('nearby-map-toggle'),
+          value: _showMap,
+          subtitle: _showMap
+              ? 'Showing places from this list'
+              : 'Optional map — uses your connection for tiles',
+          onChanged: (value) => setState(() => _showMap = value),
+        ),
+        if (_showMap) ...[
+          NearbyMapView(
+            key: const ValueKey('nearby-map-view'),
+            resources: rows,
+            preferGoogleMaps: widget.config.preferGoogleMaps,
+            origin: result.origin,
+            selectedId: _selectedResourceId,
+            onMarkerTap: _onMarkerTap,
+          ),
+          const SizedBox(height: 12),
+        ],
         if (rows.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -445,24 +492,28 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             ),
           ),
         for (final resource in rows) ...[
-          _PlaceCard(
-            name: resource.name,
-            hours: NearbyHoursControl(
-              key: ValueKey(resource.id),
-              view: parseOpeningHours(
-                resource.openingHoursRaw,
-                (widget.clock ?? DateTime.now)(),
+          KeyedSubtree(
+            key: _keyFor(resource.id),
+            child: _PlaceCard(
+              name: resource.name,
+              selected: resource.id == _selectedResourceId,
+              hours: NearbyHoursControl(
+                key: ValueKey(resource.id),
+                view: parseOpeningHours(
+                  resource.openingHoursRaw,
+                  (widget.clock ?? DateTime.now)(),
+                ),
               ),
-            ),
-            badges: [
-              resource.category,
-              if (result.origin != null) ...[
-                '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
+              badges: [
+                resource.category,
+                if (result.origin != null) ...[
+                  '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
+                ],
               ],
-            ],
-            address: resource.address,
-            description: resource.phone == null ? 'Phone not listed' : null,
-            actions: _actionsFor(resource),
+              address: resource.address,
+              description: resource.phone == null ? 'Phone not listed' : null,
+              actions: _actionsFor(resource),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -533,6 +584,7 @@ class _CategoryChips extends StatelessWidget {
 
 class _MapToggle extends StatelessWidget {
   const _MapToggle({
+    super.key,
     required this.value,
     required this.subtitle,
     required this.onChanged,
@@ -590,6 +642,7 @@ class _PlaceCard extends StatelessWidget {
     required this.address,
     required this.actions,
     this.description,
+    this.selected = false,
   });
 
   final String name;
@@ -598,10 +651,18 @@ class _PlaceCard extends StatelessWidget {
   final String address;
   final List<Widget> actions;
   final String? description;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: selected ? 2 : null,
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: CwcColors.primary, width: 2),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

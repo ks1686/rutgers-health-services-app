@@ -198,10 +198,7 @@ class NearbyRepository {
       debugPrint('Nearby Overpass failed (device origin): $e');
       // Same honest fallback as above — never show a device-based list that
       // is actually the saved town copy without saying so.
-      return _townFallback(
-        query,
-        nearbyLocationUnavailableMessage(query.town),
-      );
+      return _townFallback(query, nearbyLocationUnavailableMessage(query.town));
     }
   }
 

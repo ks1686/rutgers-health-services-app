@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. Next Nearby work: FIND-4 map (separate plan).
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. FIND-4 overhead map (Google when keyed, OSM soft-fail) is on `nearby-proximity`.
 
 ## 2. Formal identity
 
@@ -134,7 +134,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Chrome web live verified 2026-08-14. Hours expand is on `main` (flag default still off). Study-build hardening (2026-08-15): member-safe empty vs unavailable, Nominatim timeout, persistent last-success cache, live map stub hidden, 18pt body + 48dp Help Now, honest PIN/Erase copy, gated `HELP_NOW_LIVE`. Still open: physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
 
-**Next (separate plans, not this spike):** FIND-4 OSM map view.
+**Next (separate plans, not this spike):** FIND-4 overhead map is on `nearby-proximity` (Google Maps when keyed, OSM soft-fail).
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, debug APK, and unsigned release APK.
 
@@ -156,6 +156,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
 - Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Other tabs still use static demo data and “Demo only” snackbars.
 - Live Nearby device path: one-shot coarse GPS on load (coordinates transient / not cached); list sorted by proximity; town picker is the fallback when location is denied or unavailable; NJ region guardrail is skipped on the device-location path so travel out of state still works.
+- Live Nearby map (FIND-4, `nearby-proximity`): opt-in overhead map; Google Maps when `GOOGLE_MAPS_API_KEY` is set on native, else OSM/`flutter_map`; pins follow the shared category filter; no pan-to-refetch.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
 - No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web / Chrome is the usual local demo path.
 - GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.

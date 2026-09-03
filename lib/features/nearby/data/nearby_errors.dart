@@ -6,6 +6,9 @@ const kNearbyMemberLoadFailed = 'We could not load places right now.';
 const kNearbyNoPlacesNearYou =
     'We did not find any of those places close to you right now.';
 
+/// Map tiles/SDK could not load; list remains usable.
+const kNearbyMapNeedsConnection = 'Map needs a connection right now.';
+
 /// Default town used when a caller has no query yet (matches [NearbyQuery]).
 const kNearbyDefaultTown = 'New Brunswick';
 

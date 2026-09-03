@@ -149,8 +149,15 @@ Separate plans — do not fold into the closed Tasks 1–7:
 
 1. **Readable hours on live cards** — **Done.** Weekday `off` and `24:00` now parse; bare `PH off` stays unknown.
 2. **Persistent on-device cache** — **Done** in study-build hardening (`PrefsNearbyCache`).
-3. **FIND-4 map view** [TEAM 2026-08-14] — **next.** Optional OSM tiles. Live map toggle is hidden until then.
+3. **FIND-4 map view** [TEAM 2026-09-03] — **done on `nearby-proximity`.** Overhead map; Google when keyed, OSM soft-fail; shared category chips; no pan-to-refetch.
 4. Physical Android Call/Text/Directions tap; iOS smoke.
+
+## FIND-4 overhead map (2026-09-03, nearby-proximity)
+
+Design: [`../superpowers/specs/2026-09-03-nearby-map-design.md`](../superpowers/specs/2026-09-03-nearby-map-design.md).  
+Plan: [`../superpowers/plans/2026-09-03-nearby-map.md`](../superpowers/plans/2026-09-03-nearby-map.md).
+
+**Implemented** on this branch: opt-in map on live Nearby; Google Maps when `GOOGLE_MAPS_API_KEY` works on native; OSM `flutter_map` soft-fail (study default, including web); pins for the current filtered list; shared category chips; no pan-to-refetch.
 
 ## Device location + proximity (2026-09-03, nearby-proximity)
 
