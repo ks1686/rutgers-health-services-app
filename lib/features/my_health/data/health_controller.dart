@@ -32,15 +32,15 @@ class HealthController extends ChangeNotifier {
   static const _pinSalt = 'cwc-health-pin-v1';
 
   /// Study-build PIN fingerprint (not keystore encryption — PRIV-4 follow-on).
+  /// Uses 32-bit FNV-1a so dart2js / web compile stays valid (no >53-bit ints).
   static String hashPin(String pin) {
     final bytes = utf8.encode('$_pinSalt:$pin');
-    // FNV-1a 64-bit over UTF-8 — enough to avoid storing digits in the clear.
-    var hash = 0xcbf29ce484222325;
+    var hash = 0x811c9dc5;
     for (final b in bytes) {
       hash ^= b;
-      hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
     }
-    return hash.toRadixString(16).padLeft(16, '0');
+    return hash.toRadixString(16).padLeft(8, '0');
   }
 
   static String newId() =>
