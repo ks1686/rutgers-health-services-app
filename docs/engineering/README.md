@@ -39,4 +39,4 @@ Flutter pin: **3.44.7** (stable).
 - Device/emulator `flutter drive` on Chrome/Android
 - Screenshot / golden tests
 
-Nearby live-data Tasks 1–6 are on `main`. Current hardening work is [`../superpowers/plans/2026-08-15-study-build-hardening.md`](../superpowers/plans/2026-08-15-study-build-hardening.md). Next product plan after that: FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).
+Nearby live-data Tasks 1–6 are on `main`. Current hardening work is [`../superpowers/plans/2026-08-15-study-build-hardening.md`](../superpowers/plans/2026-08-15-study-build-hardening.md). My Health persistence / CRUD / optional PIN / Erase: [`../superpowers/plans/2026-09-03-my-health.md`](../superpowers/plans/2026-09-03-my-health.md). Next Nearby product plan: FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).

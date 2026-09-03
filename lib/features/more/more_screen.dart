@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
+import '../my_health/health_scope.dart';
 import 'placeholder_page.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -11,6 +12,52 @@ class MoreScreen extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PlaceholderPage(title: title, body: body),
+      ),
+    );
+  }
+
+  Future<void> _erase(BuildContext context) async {
+    final health = HealthScope.maybeOf(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Erase my information?'),
+        content: const Text(
+          'This deletes appointments, medications, providers, wallet details, '
+          'and your My Health PIN from this phone. It cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: CwcColors.neutralEmphasis,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Erase'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    if (health == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not reach My Health storage.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    await health.eraseAll();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Your My Health information was erased from this phone.'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -64,7 +111,8 @@ class MoreScreen extends StatelessWidget {
                 onTap: () => _open(
                   context,
                   'Settings',
-                  'Text size, optional PIN, and town preference will go here.',
+                  'Text size and town preference will go here. '
+                      'Optional My Health PIN is set from the My Health tab.',
                 ),
               ),
               const Divider(height: 1),
@@ -74,9 +122,11 @@ class MoreScreen extends StatelessWidget {
                 onTap: () => _open(
                   context,
                   'How This App Protects You',
-                  'Plain-language privacy copy will be co-written with the '
-                      'advisory committee. In the real app, your health info '
-                      'stays on your phone.',
+                  'Your appointments, medications, and providers stay on this '
+                      'phone only — not in a cloud account we can see. '
+                      'Optional PIN locks My Health. Help Now is never locked. '
+                      'More privacy wording will be co-written with the '
+                      'advisory committee.',
                 ),
               ),
               const Divider(height: 1),
@@ -84,18 +134,7 @@ class MoreScreen extends StatelessWidget {
                 icon: Icons.delete_outline,
                 title: 'Erase My Information',
                 titleColor: CwcColors.neutralEmphasis,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Nothing to erase in this demo. Your health info '
-                        'is not saved on this phone.',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onTap: () => _erase(context),
               ),
             ],
           ),
