@@ -9,6 +9,7 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
 import '../../widgets/demo_snackbar.dart';
 import 'data/nearby_config.dart';
+import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
@@ -19,6 +20,7 @@ import 'data/prefs_nearby_cache.dart';
 import 'data/opening_hours.dart';
 import 'widgets/nearby_hours_control.dart';
 import 'widgets/nearby_live_disclaimer.dart';
+import 'widgets/nearby_map_view.dart';
 
 typedef NearbyLinkLauncher = Future<bool> Function(Uri uri);
 
@@ -173,17 +175,45 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   String _category = 'All';
   bool _reloadQueued = false;
 
+  /// True once [_boot] has finished wiring the default stack. Build and
+  /// user actions check this instead of touching the late field directly.
+  bool _repositoryReady = false;
+
+  /// Whether the tab currently shows a device-location lookup (vs the town).
+  bool _deviceMode = false;
+
+  /// Optimistic flag while a device lookup is in flight (loading copy).
+  bool _devicePending = false;
+
+  /// Plain-language reason shown when a device attempt had to fall back.
+  String? _infoLine;
+
+  /// Live FIND-4 map toggle (tiles load only when on).
+  bool _showMap = false;
+
+  /// Pin ↔ card highlight (resource id).
+  String? _selectedResourceId;
+
+  final Map<String, GlobalKey> _cardKeys = {};
+
   @override
   void initState() {
     super.initState();
     final injected = widget.repository;
     if (injected != null) {
       _repository = injected;
-      _pending = _repository.fetch(_query);
+      _repositoryReady = true;
+      _pending = _initialLookup();
     } else {
+      // Default stack always wires a device-location source (incl. web).
       _pending = _boot();
     }
   }
+
+  /// Prefer a one-shot device fix when a source is wired; otherwise town.
+  /// Declining / failing never blocks — [fetchNearDevice] falls back to town.
+  bool get _canUseDeviceLocation =>
+      _repositoryReady && (_repository.deviceLocation != null);
 
   @override
   void dispose() {
@@ -200,13 +230,31 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       config: widget.config,
       cache: PrefsNearbyCache(prefs),
     );
+    _repositoryReady = true;
+    return _initialLookup();
+  }
+
+  /// Live tab asks for location first so the list is proximity-based anywhere,
+  /// not locked to the default town. Town remains the honest fallback.
+  Future<NearbyFetchResult> _initialLookup() {
+    if (_canUseDeviceLocation) {
+      _devicePending = true;
+      return _trackDeviceLookup(_repository.fetchNearDevice(_query));
+    }
     return _repository.fetch(_query);
   }
 
   void _reload() {
-    if (_reloadQueued) return;
+    if (_reloadQueued || !_repositoryReady) return;
+    if (_deviceMode && _canUseDeviceLocation) {
+      _useMyLocation();
+      return;
+    }
     _reloadQueued = true;
     setState(() {
+      _deviceMode = false;
+      _devicePending = false;
+      _infoLine = null;
       _pending = _repository.fetch(_query).whenComplete(() {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -215,6 +263,56 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       });
     });
   }
+
+  /// One-shot device location. Coordinates stay in memory for this lookup only.
+  void _useMyLocation() {
+    if (_reloadQueued || !_canUseDeviceLocation) return;
+    _reloadQueued = true;
+    setState(() {
+      _devicePending = true;
+      _pending = _trackDeviceLookup(_repository.fetchNearDevice(_query));
+    });
+  }
+
+  Future<NearbyFetchResult> _trackDeviceLookup(
+    Future<NearbyFetchResult> pending,
+  ) {
+    return pending
+        .then((result) {
+          final usedDevice = result.origin != null;
+          if (!mounted) return result;
+          setState(() {
+            _deviceMode = usedDevice;
+            _devicePending = false;
+            // On success the empty-state copy carries its own message; only a
+            // fallback keeps a reason line visible.
+            _infoLine = usedDevice ? null : result.message;
+          });
+          return result;
+        })
+        .whenComplete(() {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _reloadQueued = false);
+          });
+        });
+  }
+
+  void _onMarkerTap(String resourceId) {
+    setState(() => _selectedResourceId = resourceId);
+    final key = _cardKeys[resourceId];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 280),
+        alignment: 0.1,
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  GlobalKey _keyFor(String id) => _cardKeys.putIfAbsent(id, GlobalKey.new);
 
   Future<void> _open(Uri uri) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -250,7 +348,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             suggestConnection: true,
           );
         }
-        if (result.resources.isEmpty) {
+        // An empty *town* lookup is a problem view (plain message + retry).
+        // An empty *device* lookup still gets the results chrome — origin
+        // chip, categories, and its own gentle near-you sentence.
+        if (result.resources.isEmpty && result.origin == null) {
           return _buildProblem(
             result.message ?? kNearbyMemberLoadFailed,
             suggestConnection: result.status == NearbySourceStatus.unavailable,
@@ -270,7 +371,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Finding places near ${_query.town}…',
+          _devicePending
+              ? 'Finding your location…'
+              : 'Finding places near ${_query.town}…',
           textAlign: TextAlign.center,
           style: const TextStyle(color: CwcColors.sub),
         ),
@@ -319,40 +422,98 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           fromSavedCopy: result.status == NearbySourceStatus.cache,
         ),
         const SizedBox(height: 16),
-        Chip(
-          avatar: const Icon(Icons.location_city, size: 18),
-          label: Text(_query.town),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Chip(
+              avatar: Icon(
+                _deviceMode ? Icons.my_location : Icons.location_city,
+                size: 18,
+              ),
+              label: Text(_deviceMode ? 'Using your location' : _query.town),
+            ),
+            if (_canUseDeviceLocation && !_deviceMode)
+              TextButton.icon(
+                key: const ValueKey('nearby-use-my-location'),
+                onPressed: _reloadQueued ? null : _useMyLocation,
+                icon: const Icon(Icons.my_location, size: 18),
+                label: const Text('Use my location'),
+              ),
+          ],
         ),
+        if (_infoLine != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _infoLine!,
+            style: const TextStyle(color: CwcColors.sub, fontSize: 18),
+          ),
+        ],
         const SizedBox(height: 12),
         _CategoryChips(
           categories: _categories,
           selected: _category,
-          onSelected: (category) => setState(() => _category = category),
+          onSelected: (category) => setState(() {
+            _category = category;
+            _selectedResourceId = null;
+          }),
         ),
         const SizedBox(height: 8),
+        _MapToggle(
+          key: const ValueKey('nearby-map-toggle'),
+          value: _showMap,
+          subtitle: _showMap
+              ? 'Showing places from this list'
+              : 'Optional map — uses your connection for tiles',
+          onChanged: (value) => setState(() => _showMap = value),
+        ),
+        if (_showMap) ...[
+          NearbyMapView(
+            key: const ValueKey('nearby-map-view'),
+            resources: rows,
+            preferGoogleMaps: widget.config.preferGoogleMaps,
+            origin: result.origin,
+            selectedId: _selectedResourceId,
+            onMarkerTap: _onMarkerTap,
+          ),
+          const SizedBox(height: 12),
+        ],
         if (rows.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
-              'No ${_category.toLowerCase()} places found near ${_query.town}.',
+              _deviceMode
+                  ? (result.message ?? kNearbyNoPlacesNearYou)
+                  : 'No ${_category.toLowerCase()} places found near '
+                        '${_query.town}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: CwcColors.sub, height: 1.4),
             ),
           ),
         for (final resource in rows) ...[
-          _PlaceCard(
-            name: resource.name,
-            hours: NearbyHoursControl(
-              key: ValueKey(resource.id),
-              view: parseOpeningHours(
-                resource.openingHoursRaw,
-                (widget.clock ?? DateTime.now)(),
+          KeyedSubtree(
+            key: _keyFor(resource.id),
+            child: _PlaceCard(
+              name: resource.name,
+              selected: resource.id == _selectedResourceId,
+              hours: NearbyHoursControl(
+                key: ValueKey(resource.id),
+                view: parseOpeningHours(
+                  resource.openingHoursRaw,
+                  (widget.clock ?? DateTime.now)(),
+                ),
               ),
+              badges: [
+                resource.category,
+                if (result.origin != null) ...[
+                  '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
+                ],
+              ],
+              address: resource.address,
+              description: resource.phone == null ? 'Phone not listed' : null,
+              actions: _actionsFor(resource),
             ),
-            badges: [resource.category],
-            address: resource.address,
-            description: resource.phone == null ? 'Phone not listed' : null,
-            actions: _actionsFor(resource),
           ),
           const SizedBox(height: 12),
         ],
@@ -423,6 +584,7 @@ class _CategoryChips extends StatelessWidget {
 
 class _MapToggle extends StatelessWidget {
   const _MapToggle({
+    super.key,
     required this.value,
     required this.subtitle,
     required this.onChanged,
@@ -439,7 +601,7 @@ class _MapToggle extends StatelessWidget {
       title: const Text('See these on a map'),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(color: CwcColors.sub, fontSize: 13),
+        style: const TextStyle(color: CwcColors.sub, fontSize: 14),
       ),
       value: value,
       activeThumbColor: CwcColors.primary,
@@ -480,6 +642,7 @@ class _PlaceCard extends StatelessWidget {
     required this.address,
     required this.actions,
     this.description,
+    this.selected = false,
   });
 
   final String name;
@@ -488,10 +651,18 @@ class _PlaceCard extends StatelessWidget {
   final String address;
   final List<Widget> actions;
   final String? description;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: selected ? 2 : null,
+      shape: selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: CwcColors.primary, width: 2),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

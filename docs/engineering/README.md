@@ -39,4 +39,4 @@ Flutter pin: **3.44.7** (stable).
 - Device/emulator `flutter drive` on Android
 - Screenshot / golden tests
 
-Nearby live-data Tasks 1–6 are on `main`. My Health interactive + encrypted store: [`../superpowers/plans/2026-09-03-my-health.md`](../superpowers/plans/2026-09-03-my-health.md). Next Nearby product plan: FIND-4 OSM map view. See [`nearby-live-data.md`](nearby-live-data.md).
+Nearby live-data Tasks 1–6, device-location proximity, and FIND-4 overhead map are on this branch. My Health interactive + encrypted store: [`../superpowers/plans/2026-09-03-my-health.md`](../superpowers/plans/2026-09-03-my-health.md). See [`nearby-live-data.md`](nearby-live-data.md).

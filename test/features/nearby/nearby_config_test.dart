@@ -7,10 +7,21 @@ import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 
 void main() {
   group('NearbyConfig', () {
-    test('fromEnvironment defaults live off and empty key', () {
+    test('fromEnvironment defaults live off and empty keys', () {
       final config = NearbyConfig.fromEnvironment();
       expect(config.liveNearby, isFalse);
       expect(config.googlePlacesApiKey, isEmpty);
+      expect(config.googleMapsApiKey, isEmpty);
+      expect(config.preferGoogleMaps, isFalse);
+    });
+
+    test('preferGoogleMaps is true only when Maps key is non-empty', () {
+      const withKey = NearbyConfig(
+        liveNearby: true,
+        googlePlacesApiKey: '',
+        googleMapsApiKey: 'test-maps-key',
+      );
+      expect(withKey.preferGoogleMaps, isTrue);
     });
   });
 

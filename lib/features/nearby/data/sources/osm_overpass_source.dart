@@ -67,12 +67,35 @@ class OsmOverpassSource {
   final Duration requestTimeout;
 
   /// Tries each mirror in turn, retrying only when the server asks us to wait.
-  Future<List<NearbyResource>> fetch(
+  Future<List<NearbyResource>> fetch(GeoPoint area, {DateTime? fetchedAt}) {
+    return _fetch(area, fetchedAt: fetchedAt, applyRegionGuard: true);
+  }
+
+  /// Same lookup forced to a circle around [origin] (device location path).
+  ///
+  /// Never uses the town bounding box, and can skip the New Jersey guardrail —
+  /// a member can travel out of state.
+  Future<List<NearbyResource>> fetchAround(
+    GeoPoint origin, {
+    DateTime? fetchedAt,
+    bool applyRegionGuard = true,
+  }) {
+    return _fetch(
+      origin,
+      fetchedAt: fetchedAt,
+      applyRegionGuard: applyRegionGuard,
+      forceAround: true,
+    );
+  }
+
+  Future<List<NearbyResource>> _fetch(
     GeoPoint area, {
+    required bool applyRegionGuard,
+    bool forceAround = false,
     DateTime? fetchedAt,
   }) async {
     final when = fetchedAt ?? DateTime.now().toUtc();
-    final query = _buildQuery(area);
+    final query = _buildQuery(area, forceAround: forceAround);
 
     Object? lastFailure;
     for (final endpoint in endpoints) {
@@ -80,6 +103,7 @@ class OsmOverpassSource {
         String body;
         try {
           body = await _post(endpoint, query);
+          return _parse(body, when, applyRegionGuard);
         } on OsmOverpassException catch (failure) {
           lastFailure = failure;
           if (failure.retryable && attempt < attemptsPerEndpoint) {
@@ -91,7 +115,6 @@ class OsmOverpassSource {
           lastFailure = failure;
           break;
         }
-        return _parse(body, when);
       }
     }
 
@@ -122,7 +145,11 @@ class OsmOverpassSource {
     );
   }
 
-  List<NearbyResource> _parse(String body, DateTime when) {
+  List<NearbyResource> _parse(
+    String body,
+    DateTime when,
+    bool applyRegionGuard,
+  ) {
     final decoded = jsonDecode(body);
     if (decoded is! Map<String, dynamic>) {
       throw OsmOverpassException('Unexpected Overpass payload shape');
@@ -138,13 +165,15 @@ class OsmOverpassSource {
       if (element is! Map<String, dynamic>) continue;
       final resource = _mapElement(element, when);
       if (resource == null) continue;
-      if (!_inNewJersey(resource.lat, resource.lng)) continue;
+      if (applyRegionGuard && !_inNewJersey(resource.lat, resource.lng)) {
+        continue;
+      }
       results.add(resource);
     }
     return results;
   }
 
-  String _buildQuery(GeoPoint area) {
+  String _buildQuery(GeoPoint area, {bool forceAround = false}) {
     final filter = '''
   node["amenity"="pharmacy"](AREA);
   way["amenity"="pharmacy"](AREA);
@@ -156,7 +185,7 @@ class OsmOverpassSource {
   way["healthcare"="urgent_care"](AREA);
 ''';
 
-    if (area.hasBbox) {
+    if (area.hasBbox && !forceAround) {
       final s = area.bboxSouth!;
       final n = area.bboxNorth!;
       final w = area.bboxWest!;

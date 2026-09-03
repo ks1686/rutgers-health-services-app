@@ -23,7 +23,7 @@
 
 ## Locked decisions (do not reopen without Karim)
 
-1. **Compile-time default stays static.** `liveNearby` defaults **off**. A build without the flag still shows the New Brunswick fake list. **Local engineering review uses live-on** (`--dart-define=LIVE_NEARBY=true` in Chrome). [TEAM 2026-08-14]
+1. **Compile-time default stays static.** `liveNearby` defaults **off**. A build without the flag still shows the New Brunswick fake list. **Local engineering review uses live-on** (`--dart-define=LIVE_NEARBY=true` on Android). [TEAM 2026-08-14]
 2. **Live path:** Google Places HTTP (optional) → **soft-fail** → **OSM Overpass** (supported path).
 3. **No Google Cloud billing** for the study build. Empty / denied key is expected; OSM must work alone.
 4. **No curated CWC overlay** in this spike (no bundled wellness/CWC merge JSON).
@@ -37,14 +37,14 @@ Spec **FIND-1** (curated directory) and **TECH-6** (no commercial map API costs)
 ## Flags (in the app)
 
 ```bash
-# Local engineering demo (Chrome). Flutter's debug web-server does not boot in Safari.
-flutter run -d chrome --dart-define=LIVE_NEARBY=true
+# Local engineering demo (Android emulator or device)
+flutter run -d android --dart-define=LIVE_NEARBY=true
 
 # Flag-off static list (compile default — meeting APKs / tests that assert demo rows)
-flutter run -d chrome
+flutter run -d android
 
 # Optional Google attempt only if someone later enables a key + billing (not study default)
-flutter run -d chrome --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
+flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
 ```
 
 Never commit API keys. Never add billing setup scripts to this repo for the study build.
@@ -63,19 +63,19 @@ Never commit API keys. Never add billing setup scripts to this repo for the stud
 
 ## Split work
 
-This spike is closed. Next engineering (separate plans): FIND-4 OSM map view. Readable hours on live cards is implemented on the hours-expand branch.
+This spike is closed. FIND-4 overhead map and device-location proximity are implemented (see below). Readable hours on live cards is on `main`.
 
-## As-built (Chrome web, 2026-08-14, ks1686)
+## As-built (2026-08-14, ks1686)
 
-Verified on latest `main` with `LIVE_NEARBY=true` (release web bundle). Matches kholaif's 2026-08-12 live-run: real New Brunswick-area places, unvetted disclaimer, no demo names.
+Verified on then-`main` with `LIVE_NEARBY=true` (historical Chrome web bundle; web is no longer a ship target). Matches kholaif's 2026-08-12 live-run: real New Brunswick-area places, unvetted disclaimer, no demo names.
 
 | What | As built |
 |------|----------|
 | Disclaimer | “These places come from public maps data. They are not checked by our team.” + “Updated as of …” |
 | Sample rows | University Pharmacy and Surgical (New Brunswick); Walgreens (Edison — bbox overshoot reproduced) |
 | Hours | Live cards: **Open now** / **Closed** (tap to expand Mon–Sun). Unparseable or missing OSM tags: **Hours not listed**. |
-| Map toggle | Hidden on the live list until FIND-4. Demo list still has the placeholder switch. |
-| GPS | Live mode has no “Use my location?” (town is fixed to New Brunswick) |
+| Map toggle | Opt-in FIND-4 overhead map on the live list (Google when keyed; OSM `flutter_map` study default). Demo list still has the placeholder switch. |
+| GPS | Live tab asks for a one-shot coarse fix on load; sorts nearest-first; town is fallback only |
 | Call / Text | Hidden when OSM has no phone; Directions always shown |
 | Categories | Live chips: All / Pharmacy / Clinic / Urgent care. No CWC or Wellness rows |
 
@@ -127,7 +127,7 @@ Follow-up to finding 2 above. `OsmOverpassSource` now takes a list of mirrors in
 | Live data end to end | Real New Brunswick pharmacies and clinics returned from the live repository |
 | Demo default | Unchanged; full suite green with the flag off |
 | Category chips | Now derived from `NearbyCategory.values`, with a test asserting every source category has a chip |
-| Chrome web live (2026-08-14) | Real listings + disclaimer; Flutter `web-server` + Safari does **not** boot the debug app — use `-d chrome` |
+| Historical web live (2026-08-14) | Real listings + disclaimer were verified on Chrome before web was dropped as a ship target. Current demo is Android. |
 
 **Not verified — needs someone with the hardware:**
 
@@ -149,8 +149,32 @@ Separate plans — do not fold into the closed Tasks 1–7:
 
 1. **Readable hours on live cards** — **Done.** Weekday `off` and `24:00` now parse; bare `PH off` stays unknown.
 2. **Persistent on-device cache** — **Done** in study-build hardening (`PrefsNearbyCache`).
-3. **FIND-4 map view** [TEAM 2026-08-14] — **next.** Optional OSM tiles. Live map toggle is hidden until then.
+3. **FIND-4 map view** [TEAM 2026-09-03] — **done on `nearby-proximity`.** Overhead map; Google when keyed, OSM soft-fail; shared category chips; no pan-to-refetch.
 4. Physical Android Call/Text/Directions tap; iOS smoke.
+
+## FIND-4 overhead map (2026-09-03, nearby-proximity)
+
+Design: [`../superpowers/specs/2026-09-03-nearby-map-design.md`](../superpowers/specs/2026-09-03-nearby-map-design.md).  
+Plan: [`../superpowers/plans/2026-09-03-nearby-map.md`](../superpowers/plans/2026-09-03-nearby-map.md).
+
+**Implemented** on this branch: opt-in map on live Nearby; Google Maps when `GOOGLE_MAPS_API_KEY` works on native; OSM `flutter_map` soft-fail (study default on Android when no Maps key); pins for the current filtered list; shared category chips; no pan-to-refetch.
+
+## Device location + proximity (2026-09-03, nearby-proximity)
+
+Live Nearby asks for a one-shot device fix on load (Android / iOS),
+sorts results nearest-first, and is not limited to New Brunswick. Town remains
+the honest fallback when location is denied, off, or unavailable — never shown
+as if it were device-based. Coordinates stay in memory only (never cached).
+
+| Decision | As built |
+|---|---|
+| Plugin | `geolocator` ^14.0.3, one-shot `getCurrentPosition`, low accuracy, 12 s cap |
+| Permissions | Android `ACCESS_COARSE_LOCATION` only (no fine/GPS); iOS `NSLocationWhenInUseUsageDescription` with plain-language copy |
+| Origin | Coordinates stay in memory for one search; `NearbyFetchResult.origin` is never persisted and device results are never written to `PrefsNearbyCache` |
+| Search shape | Overpass forced to an `around:` circle from the device point (`fetchAround`) — never the town bbox; NJ guardrail skipped because members travel |
+| Sort | Device results ordered nearest-first (straight-line meters) |
+| Distances | "~N min walk" badges computed on-device (~80 m/min straight-line), shown only when a device origin exists |
+| Failure honesty | Denied / services-off / timeout all fall back to the town lookup with a plain-language reason line; "Use my location" stays available to retry |
 
 ## Meeting follow-ons (not this plan)
 

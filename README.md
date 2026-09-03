@@ -43,7 +43,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 | Tab / screen | Demo behavior |
 |--------------|---------------|
-| Nearby | Live OSM pharmacies/clinics/urgent care (New Brunswick bbox) behind `LIVE_NEARBY`; unvetted disclaimer; live map toggle hidden until FIND-4; Open now / Closed expands weekday hours when OSM tags parse |
+| Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; live tab asks for one-shot location on load and sorts by proximity; town list is fallback only |
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
 | Learn | Six topics → short articles with source labels |
 | More | List to placeholder pages; Erase clears My Health |
@@ -70,7 +70,27 @@ flutter run -d android --dart-define=LIVE_NEARBY=true
 | `LIVE_NEARBY` | `false` | `true` replaces the Nearby tab's sample listings with real places and shows the "not checked by our team" disclaimer |
 | `HELP_NOW_LIVE` | `false` | `true` turns 988 / 911 / Poison Control into `tel:`/`sms:` launches. Warmline and CWC stay sample. Meeting APKs stay off. |
 | `GOOGLE_PLACES_API_KEY` | empty | Optional. Empty, unauthorized, or unbilled keys soft-fail silently to OpenStreetMap. Never commit keys. |
+| `GOOGLE_MAPS_API_KEY` | empty | Optional FIND-4 map. Empty → OSM `flutter_map` (study default on Android). Non-empty on Android/iOS → Google Maps (also set `-PGOOGLE_MAPS_API_KEY=` / iOS `GMSApiKey`). |
+
+**Never commit API keys.** Pass them per native build with `--dart-define` only if needed. Empty key is the correct study default.
 
 #### How live mode behaves
 
-The town is fixed to New Brunswick, NJ for v1 (GPS may be a separate Nearby plan). The app geocodes the town name through Nominatim, then queries Overpass for pharmacies, clinics, and urgent care. Results are deduplicated, cached on-device (last-success list + town point only; no identity), and stamped with the time they were fetched. When every source fails, the tab shows a plain message and a Try again button; **it never falls back to the demo listings**. Directions use `geo:` on Android/iOS, not Google Maps.
+The live tab asks for a **coarse, one-shot location fix** on load (`geolocator`, `LocationAccuracy.low`) on Android and iOS: no background updates, no fine/GPS permission on Android (`ACCESS_COARSE_LOCATION` only), iOS uses while-using with plain-language copy. Coordinates live in memory for that single search: Overpass runs an `around:` circle from the device point, the NJ-only guardrail is skipped (usable anywhere), results are **sorted nearest-first**, and **nothing is written to the cache** — an origin never touches storage. Each card gains a "~N min walk" badge (~80 m/min, straight-line). If the member declines, location services are off, or the fix times out, the tab falls back to the New Brunswick town list with a plain-language reason line and a *Use my location* retry — it never shows the town list as if it were device-based.
+
+**Overhead map (FIND-4).** *See these on a map* loads tiles only when toggled on. Pins match the **category-filtered** list (same chips). Google Maps is used when `GOOGLE_MAPS_API_KEY` is set on a native build; otherwise OSM/Carto tiles via `flutter_map` (study default on Android). Panning does not refetch places. Tap a pin to highlight the matching card.
+
+Overpass rate limits per IP and a room of phones on shared Wi-Fi counts as one IP, so the app tries three mirrors in order with a short retry. If you add a mirror, first confirm it serves planet-wide data — regional instances answer HTTP 200 with zero results, which would tell a member there is no pharmacy near them. See `kOverpassEndpoints`.
+
+#### Platform notes
+
+Live mode needs the `INTERNET` permission and Android 11+ package-visibility `<queries>` entries for the Call, Text, and Directions buttons; both are declared in `android/app/src/main/AndroidManifest.xml`. Directions use `geo:` on Android/iOS, not Google Maps. **macOS is not a supported target** — `macos/Runner/Release.entitlements` lacks `com.apple.security.network.client`, so live requests would fail there until someone adds it and tests on a Mac.
+
+## Feedback questions this prototype supports
+
+- Can you find Nearby vs My Health?
+- Is Help Now always one tap away?
+- Does More feel like a visible list (not a hidden menu)?
+- Does scarlet branding feel supportive or alarming?
+
+Draft for co-design — nothing is final until the community says so.

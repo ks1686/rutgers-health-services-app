@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
+import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
+import 'package:cwc_health_app/features/nearby/data/sources/geo_point.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/google_places_source.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/nominatim_geocode.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/osm_overpass_source.dart';
@@ -21,10 +23,17 @@ const _demoConfig = NearbyConfig(liveNearby: false, googlePlacesApiKey: '');
 const _liveConfig = NearbyConfig(liveNearby: true, googlePlacesApiKey: '');
 
 class _StubRepository implements NearbyRepository {
-  _StubRepository(this.result);
+  _StubRepository(this.result, {this.deviceLocation, this.nearDeviceResult});
 
   final NearbyFetchResult result;
+
+  /// Response for [fetchNearDevice]; defaults to [result].
+  final NearbyFetchResult? nearDeviceResult;
   int calls = 0;
+  int nearDeviceCalls = 0;
+
+  @override
+  final DeviceLocationSource? deviceLocation;
 
   @override
   NearbyConfig get config => _liveConfig;
@@ -46,6 +55,21 @@ class _StubRepository implements NearbyRepository {
     calls++;
     return result;
   }
+
+  @override
+  Future<NearbyFetchResult> fetchNearDevice(NearbyQuery query) async {
+    nearDeviceCalls++;
+    return nearDeviceResult ?? result;
+  }
+}
+
+class _ScriptedDeviceLocation implements DeviceLocationSource {
+  _ScriptedDeviceLocation(this.outcome);
+
+  final DeviceLocationOutcome outcome;
+
+  @override
+  Future<DeviceLocationOutcome> getCurrent() async => outcome;
 }
 
 class _DelayedStubRepository extends _StubRepository {
@@ -87,12 +111,14 @@ NearbyFetchResult _result({
   required List<NearbyResource> resources,
   NearbySourceStatus status = NearbySourceStatus.osm,
   String? message,
+  GeoPoint? origin,
 }) {
   return NearbyFetchResult(
     resources: resources,
     status: status,
     fetchedAt: DateTime(2026, 8, 12, 21, 5),
     message: message,
+    origin: origin,
   );
 }
 
@@ -415,9 +441,21 @@ void main() {
       }
     });
 
-    testWidgets('live map toggle is hidden', (tester) async {
+    testWidgets('live map toggle shows OSM map for current list pins', (
+      tester,
+    ) async {
       final repository = _StubRepository(
-        _result(resources: [_resource(name: 'Highland Pharmacy')]),
+        _result(
+          resources: [
+            _resource(name: 'Highland Pharmacy'),
+            _resource(
+              name: 'Central Clinic',
+              category: 'Clinic',
+              lat: 40.49,
+              lng: -74.45,
+            ),
+          ],
+        ),
       );
 
       await pumpScreen(
@@ -429,8 +467,20 @@ void main() {
         ),
       );
 
-      expect(find.text('See these on a map'), findsNothing);
-      expect(find.text('Map view is not ready yet'), findsNothing);
+      expect(find.text('See these on a map'), findsOneWidget);
+      expect(find.byKey(const ValueKey('nearby-map-view')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('nearby-map-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('nearby-map-view')), findsOneWidget);
+      expect(find.textContaining('Map data'), findsOneWidget);
+
+      // Shared chips still filter the list (and therefore map pins).
+      await tester.tap(find.widgetWithText(FilterChip, 'Clinic'));
+      await tester.pumpAndSettle();
+      expect(find.text('Central Clinic'), findsOneWidget);
+      expect(find.text('Highland Pharmacy'), findsNothing);
     });
 
     testWidgets(
@@ -566,6 +616,144 @@ void main() {
 
       expect(find.text('Hours not listed'), findsOneWidget);
       expect(find.text('Open now'), findsNothing);
+    });
+  });
+
+  group('device location mode', () {
+    NearbyScreen screen(_StubRepository repository) {
+      return NearbyScreen(
+        config: _liveConfig,
+        repository: repository,
+        clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+      );
+    }
+
+    testWidgets('button hidden when no device source is wired', (tester) async {
+      await pumpScreen(
+        tester,
+        screen(
+          _StubRepository(
+            _result(resources: [_resource(name: 'Highland Pharmacy')]),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsNothing,
+      );
+      expect(find.text('New Brunswick'), findsOneWidget);
+    });
+
+    testWidgets('with a device source, live tab asks for location on load and '
+        'shows walk times + origin chip', (tester) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Town Pharmacy')]),
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationOk(const GeoPoint(lat: 40.4874, lng: -74.4518)),
+        ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Corner Pharmacy')],
+          // ~134 m from the default resource coords → ~2 min at 80 m/min.
+          origin: const GeoPoint(lat: 40.4874, lng: -74.4518),
+        ),
+      );
+
+      await pumpScreen(tester, screen(repository));
+
+      expect(repository.nearDeviceCalls, 1);
+      expect(repository.calls, 0);
+      expect(find.text('Using your location'), findsOneWidget);
+      expect(find.text('~2 min walk'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('denied permission falls back to town list and says why', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(
+          resources: [_resource(name: 'Town Pharmacy')],
+          message: kNearbyLocationDenied,
+        ),
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationSoftFail(DeviceLocationFailure.permissionDenied),
+        ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Town Pharmacy')],
+          message: kNearbyLocationDenied,
+        ),
+      );
+
+      await pumpScreen(tester, screen(repository));
+
+      // Back on the town list — honestly labeled. No second tap needed.
+      expect(repository.nearDeviceCalls, 1);
+      expect(find.text(kNearbyLocationDenied), findsOneWidget);
+      expect(find.text('New Brunswick'), findsOneWidget);
+      expect(find.text('Using your location'), findsNothing);
+      expect(find.textContaining('min walk'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('location off falls back with its own sentence', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Town Pharmacy')]),
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationSoftFail(DeviceLocationFailure.serviceDisabled),
+        ),
+        nearDeviceResult: _result(
+          resources: [_resource(name: 'Town Pharmacy')],
+          message: kNearbyLocationOff,
+        ),
+      );
+
+      await pumpScreen(tester, screen(repository));
+
+      expect(find.text(kNearbyLocationOff), findsOneWidget);
+      expect(find.text('Using your location'), findsNothing);
+    });
+
+    testWidgets('empty device result uses the near-you sentence', (
+      tester,
+    ) async {
+      final repository = _StubRepository(
+        _result(resources: [_resource(name: 'Town Pharmacy')]),
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationOk(const GeoPoint(lat: 40.5, lng: -74.45)),
+        ),
+        nearDeviceResult: _result(
+          resources: const [],
+          status: NearbySourceStatus.osm,
+          message: kNearbyNoPlacesNearYou,
+          origin: const GeoPoint(lat: 40.5, lng: -74.45),
+        ),
+      );
+
+      await pumpScreen(tester, screen(repository));
+
+      expect(find.text(kNearbyNoPlacesNearYou), findsOneWidget);
+      expect(find.text('Using your location'), findsOneWidget);
+      expect(find.text('Try again'), findsNothing);
+    });
+
+    testWidgets('town list never shows walk-time badges', (tester) async {
+      await pumpScreen(
+        tester,
+        screen(
+          _StubRepository(_result(resources: [_resource(name: 'Highland')])),
+        ),
+      );
+
+      expect(find.textContaining('min walk'), findsNothing);
     });
   });
 

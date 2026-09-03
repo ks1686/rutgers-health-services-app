@@ -32,6 +32,10 @@
 		<string>http</string>
 		<string>https</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location helps us find health services close to you. It stays on your phone and is never saved or shared.</string>
+	<key>GMSApiKey</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

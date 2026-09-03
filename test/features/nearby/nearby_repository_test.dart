@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
+import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
@@ -73,6 +74,8 @@ class _FakeOverpass implements OsmOverpassSource {
   final List<NearbyResource>? result;
   final Object? error;
   int calls = 0;
+  int aroundCalls = 0;
+  bool? lastAroundGuard;
 
   @override
   String get userAgent => 'fake';
@@ -95,6 +98,18 @@ class _FakeOverpass implements OsmOverpassSource {
     DateTime? fetchedAt,
   }) async {
     calls++;
+    if (error != null) throw error!;
+    return result!;
+  }
+
+  @override
+  Future<List<NearbyResource>> fetchAround(
+    GeoPoint origin, {
+    DateTime? fetchedAt,
+    bool applyRegionGuard = true,
+  }) async {
+    aroundCalls++;
+    lastAroundGuard = applyRegionGuard;
     if (error != null) throw error!;
     return result!;
   }
@@ -133,6 +148,7 @@ void main() {
     required _FakeGeocode geocode,
     required _FakeGoogle google,
     required _FakeOverpass overpass,
+    DeviceLocationSource? deviceLocation,
     NearbyCache? cache,
   }) {
     return NearbyRepository(
@@ -140,6 +156,7 @@ void main() {
       geocoder: geocode,
       googlePlaces: google,
       overpass: overpass,
+      deviceLocation: deviceLocation,
       cache: cache,
       clock: () => now,
     );
@@ -421,4 +438,172 @@ void main() {
     expect(await cache.read(const NearbyQuery(town: 'New Brunswick')), isNull);
     expect(await cache.read(const NearbyQuery(town: 'trenton')), isNotNull);
   });
+
+  test('device fix centers an around-search and skips the NJ guard', () async {
+    const devicePoint = GeoPoint(lat: 40.52, lng: -74.47);
+    final overpass = _FakeOverpass(
+      result: [_resource(id: 'o1', name: 'Corner Pharmacy')],
+    );
+    final repo = build(
+      geocode: _FakeGeocode(result: area),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: overpass,
+      deviceLocation: _ScriptedLocation(DeviceLocationOk(devicePoint)),
+    );
+
+    final result = await repo.fetchNearDevice(query);
+
+    expect(overpass.calls, 0);
+    expect(overpass.aroundCalls, 1);
+    // A member can travel out of state; the device path must not drop rows.
+    expect(overpass.lastAroundGuard, isFalse);
+    expect(result.status, NearbySourceStatus.osm);
+    expect(result.resources.single.name, 'Corner Pharmacy');
+    expect(result.origin, devicePoint);
+  });
+
+  test(
+    'device results are sorted nearest-first by straight-line distance',
+    () async {
+      const devicePoint = GeoPoint(lat: 40.4862, lng: -74.4518);
+      final overpass = _FakeOverpass(
+        result: [
+          _resource(id: 'far', name: 'Far Clinic', lat: 40.52, lng: -74.47),
+          _resource(
+            id: 'near',
+            name: 'Near Pharmacy',
+            lat: 40.4870,
+            lng: -74.4518,
+          ),
+          _resource(
+            id: 'mid',
+            name: 'Mid Urgent Care',
+            lat: 40.50,
+            lng: -74.46,
+          ),
+        ],
+      );
+      final repo = build(
+        geocode: _FakeGeocode(result: area),
+        google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+        overpass: overpass,
+        deviceLocation: _ScriptedLocation(DeviceLocationOk(devicePoint)),
+      );
+
+      final result = await repo.fetchNearDevice(query);
+
+      expect(result.resources.map((r) => r.name).toList(), [
+        'Near Pharmacy',
+        'Mid Urgent Care',
+        'Far Clinic',
+      ]);
+    },
+  );
+
+  test('device lookup never writes coordinates or results to cache', () async {
+    final cache = InMemoryNearbyCache();
+    final repo = build(
+      geocode: _FakeGeocode(result: area, error: null),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: _FakeOverpass(
+        result: [_resource(id: 'o1', name: 'Corner Pharmacy')],
+      ),
+      deviceLocation: _ScriptedLocation(
+        DeviceLocationOk(const GeoPoint(lat: 40.52, lng: -74.47)),
+      ),
+      cache: cache,
+    );
+
+    await repo.fetchNearDevice(query);
+
+    expect(await cache.read(query), isNull);
+    expect(await cache.readPoint(query), isNull);
+  });
+
+  test('permission denial falls back to the town list with a reason', () async {
+    final geocode = _FakeGeocode(result: area);
+    final overpass = _FakeOverpass(
+      result: [_resource(id: 'o1', name: 'Town Pharmacy')],
+    );
+    final repo = build(
+      geocode: geocode,
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: overpass,
+      deviceLocation: _ScriptedLocation(
+        DeviceLocationSoftFail(DeviceLocationFailure.permissionDenied),
+      ),
+    );
+
+    final result = await repo.fetchNearDevice(query);
+
+    expect(overpass.aroundCalls, 0);
+    expect(geocode.calls, 1);
+    expect(result.status, NearbySourceStatus.osm);
+    expect(result.resources.single.name, 'Town Pharmacy');
+    expect(result.message, kNearbyLocationDenied);
+    expect(result.origin, isNull);
+  });
+
+  test('service disabled falls back with the location-off sentence', () async {
+    final repo = build(
+      geocode: _FakeGeocode(result: area),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: _FakeOverpass(
+        result: [_resource(id: 'o1', name: 'Town Pharmacy')],
+      ),
+      deviceLocation: _ScriptedLocation(
+        DeviceLocationSoftFail(DeviceLocationFailure.serviceDisabled),
+      ),
+    );
+
+    final result = await repo.fetchNearDevice(query);
+
+    expect(result.status, NearbySourceStatus.osm);
+    expect(result.message, kNearbyLocationOff);
+  });
+
+  test('location timeout falls back instead of erroring the tab', () async {
+    final repo = build(
+      geocode: _FakeGeocode(result: area),
+      google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+      overpass: _FakeOverpass(
+        result: [_resource(id: 'o1', name: 'Town Pharmacy')],
+      ),
+      deviceLocation: _ScriptedLocation(
+        DeviceLocationSoftFail(DeviceLocationFailure.unavailable),
+      ),
+    );
+
+    final result = await repo.fetchNearDevice(query);
+
+    expect(result.status, NearbySourceStatus.osm);
+    expect(result.message, kNearbyLocationUnavailable);
+  });
+
+  test(
+    'no injected device source returns unavailable without crashing',
+    () async {
+      final repo = build(
+        geocode: _FakeGeocode(result: area),
+        google: _FakeGoogle(GooglePlacesSoftFail('missing_key')),
+        overpass: _FakeOverpass(result: const []),
+        deviceLocation: null,
+      );
+
+      final result = await repo.fetchNearDevice(query);
+
+      expect(result.status, NearbySourceStatus.unavailable);
+      expect(result.resources, isEmpty);
+    },
+  );
+}
+
+/// Minimal scripted device-location source for repository tests.
+class _ScriptedLocation implements DeviceLocationSource {
+  _ScriptedLocation(this.outcome);
+
+  final DeviceLocationOutcome outcome;
+
+  @override
+  Future<DeviceLocationOutcome> getCurrent() async => outcome;
 }

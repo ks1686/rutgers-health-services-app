@@ -3,10 +3,20 @@
          The debug and profile manifests declare this for the Flutter tool, so
          release builds are the only ones that would go out without it. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Nearby "use my location": one-shot fix, kept in memory only.
+         Coarse location is enough for a multi-kilometer place search, so no
+         fine/GPS permission is requested. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="CWC Health App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Google Maps SDK (FIND-4). Empty placeholder → OSM soft-fail in Dart.
+             Pass the same value as dart-define GOOGLE_MAPS_API_KEY via
+             -PGOOGLE_MAPS_API_KEY=... or the GOOGLE_MAPS_API_KEY env var. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
