@@ -30,8 +30,8 @@ NearbyScreen (live)
   ├─ category chips (shared) ──► filtered resources
   ├─ map toggle
   │     └─ NearbyMapView
-  │           ├─ google_maps_flutter  (key + non-web)
-  │           └─ flutter_map OSM      (soft-fail / web / empty key)
+  │           ├─ google_maps_flutter  (key on native)
+  │           └─ flutter_map OSM      (soft-fail / empty key; study default)
   └─ place cards (same filtered list)
 ```
 
@@ -49,13 +49,13 @@ Pins are a view over the in-memory `NearbyFetchResult.resources` — no new Over
 | `GOOGLE_MAPS_API_KEY` | empty | Dart chooses Google vs OSM; native Android/iOS must receive the same key for the SDK |
 | `GOOGLE_PLACES_API_KEY` | empty | Unchanged (Places HTTP soft-fail) |
 
-Never commit keys. Do not pass a real Maps key on Flutter **web** (embeds in JS) — web uses OSM.
+Never commit keys. Empty key is the study default (OSM on Android).
 
 ## Failure policy
 
 | Condition | Behavior |
 |-----------|----------|
-| Empty Maps key / web | OSM `flutter_map` |
+| Empty Maps key | OSM `flutter_map` (study default on Android) |
 | Google SDK init / blank failure | Soft-fail to OSM when detectable; otherwise OSM path preferred for study demos |
 | Offline tiles | List still works; map shows plain “Map needs a connection right now.” |
 
