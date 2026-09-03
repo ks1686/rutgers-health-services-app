@@ -130,7 +130,7 @@ void main() {
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('Protected by your PIN'), findsNothing);
-    expect(find.textContaining('stays on this phone'), findsOneWidget);
+    expect(find.textContaining('encrypted on this phone'), findsOneWidget);
     expect(find.text('Set PIN'), findsOneWidget);
   });
 

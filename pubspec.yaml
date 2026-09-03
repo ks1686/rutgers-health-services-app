@@ -34,6 +34,8 @@ dependencies:
   http: ^1.2.2
   url_launcher: ^6.3.1
   shared_preferences: ^2.5.5
+  # 11.x requires compileSdk 37; Flutter 3.44.7 / AGP 9.0.1 stay on 36.
+  flutter_secure_storage: ^10.0.0
 
 dev_dependencies:
   flutter_test:

@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now and **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off). Local engineering demo is Chrome with the flag **on**. Next Nearby work: FIND-4 map (separate plan).
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now, **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off), and **interactive My Health** (on-device encrypted store). Local engineering demo is **Android** with live Nearby on. Next Nearby work: FIND-4 map (separate plan). Flutter **web is not a ship target**.
 
 ## 2. Formal identity
 
@@ -120,7 +120,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 ## 11. Engineering track — Nearby (Aug 2026)
 
-**Priority:** Nearby / locator. **Local demo = live-on Chrome.** Compile-time `LIVE_NEARBY` still defaults off so meeting APKs stay on the fake list.
+**Priority:** Nearby / locator. **Local demo = live-on Android.** Compile-time `LIVE_NEARBY` still defaults off so meeting APKs stay on the fake list.
 
 **Shared docs (start here):**
 
@@ -136,25 +136,25 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Next (separate plans, not this spike):** FIND-4 OSM map view.
 
-**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, `flutter build web`, debug APK, and unsigned release APK.
+**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, and unsigned release APK. **No web job** (web is not a ship target).
 
-**Run (local):** `flutter run -d chrome --dart-define=LIVE_NEARBY=true` — not Safari; Flutter debug web-server does not boot there.
+**Run (local):** `flutter run -d android --dart-define=LIVE_NEARBY=true`
 
 ---
 
 ## Learned User Preferences
 
-- Prefer Cursor’s Simple Browser / agent embedded browser for local Flutter web preview. Flutter debug `web-server` does not boot in Safari. System Chrome is a fallback, not the default for agent review.
+- Prefer Cursor’s Simple Browser only if a temporary web spike exists; **study-build demos are Android** (`flutter run -d android`). Flutter web is not a ship target.
 - Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
-- Nearby is the current engineering priority. Local review uses **live Nearby** (`LIVE_NEARBY=true`); the flag-off static list is not the working demo.
-- Prefer GitHub Actions CI that covers format, analyze, unit/widget/integration tests, and web/Android compile—not format/lint alone.
+- Nearby is the current engineering priority. Local review uses **live Nearby** (`LIVE_NEARBY=true`) on Android; the flag-off static list is not the working demo.
+- Prefer GitHub Actions CI that covers format, analyze, unit/widget/integration tests, and Android compile—not format/lint alone.
 - Prefer Nearby feature work in a git worktree under `/Users/ks1686/Documents/Worktrees/` rather than dirtying the main checkout.
 
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Other tabs still use static demo data and “Demo only” snackbars.
+- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off); My Health CRUD + Keystore/Keychain encryption + optional PIN + Erase.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
-- No local Android AVD is currently configured (former `VM_Phone` was deleted); Flutter web / Chrome is the usual local demo path.
+- Flutter web is **not** a ship or CI target (`web/` removed). Use Android emulator/device for local demos.
 - GitHub remote `origin` is the private repo `ks1686/rutgers-health-services-app`.
 - Flutter CI is `.github/workflows/flutter-ci.yml`.

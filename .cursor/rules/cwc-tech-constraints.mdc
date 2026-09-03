@@ -10,6 +10,7 @@ This repo is the **Flutter** cross-platform (Android + iOS) build under Dr. Hagh
 ## Platform
 
 - **Android-first:** optimize for budget / government-program devices; include a low-RAM (~2GB) device in the test matrix; Android 8+ era baseline.
+- **Ship platforms: Android + iOS only.** Do not add or revive Flutter web for this study build (not in CI; `web/` removed).
 - Installed size target **&lt; ~40MB**; no mandatory large first-run downloads.
 - Videos and map tiles: Wi‑Fi or explicit user action only.
 - Prefer open-source / low-cost dependencies (TECH-8).
@@ -20,11 +21,11 @@ Every MVP feature except optional map tiles and external links must work **with 
 
 ## Privacy & security (study build)
 
-- Personal health data **local-only**; encrypt at rest (platform keystore).
+- Personal health data **local-only**; encrypt at rest (platform Keystore / Keychain via secure storage).
 - No ads, no third-party analytics SDKs, no location tracking.
 - If user opts into GPS for Nearby: use coordinates **transiently on-device** for distance; never store/transmit.
 - PIN/biometric may protect My Health only—never Nearby, Learn, tutorials, or Help Now.
-- One-tap erase personal data; hide PIN-locked content from app-switcher previews.
+- One-tap erase personal data; hide My Health from app-switcher previews while that tab is open (Android `FLAG_SECURE`).
 - Usability instrumentation only behind a research build flag + consent disclosure.
 
 ## Accessibility

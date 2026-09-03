@@ -4,6 +4,7 @@ import '../features/learn/learn_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/my_health/my_health_screen.dart';
 import '../features/nearby/nearby_screen.dart';
+import '../platform/preview_protection.dart';
 import '../widgets/help_now_button.dart';
 import '../widgets/link_launcher.dart';
 
@@ -20,6 +21,20 @@ class _AppShellState extends State<AppShell> {
   int _tabIndex = 0;
 
   static const _titles = ['Nearby', 'My Health', 'Learn', 'More'];
+  static const _myHealthTab = 1;
+
+  @override
+  void dispose() {
+    PreviewProtection.setSecure(false);
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    setState(() => _tabIndex = index);
+    // PRIV-4: hide My Health (and pushed wallet/forms on this tab) from
+    // app-switcher / screenshots while that tab is active.
+    PreviewProtection.setSecure(index == _myHealthTab);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +55,7 @@ class _AppShellState extends State<AppShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
-        onDestinationSelected: (index) {
-          setState(() => _tabIndex = index);
-        },
+        onDestinationSelected: _selectTab,
         destinations: const [
           NavigationDestination(
             key: ValueKey('tab-nearby'),
