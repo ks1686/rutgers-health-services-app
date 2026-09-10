@@ -35,7 +35,7 @@ dependencies:
   url_launcher: ^6.3.1
   shared_preferences: ^2.5.5
   # 11.x requires compileSdk 37; Flutter 3.44.7 / AGP 9.0.1 stay on 36.
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^11.0.0
   # One-shot device location for Nearby "use my location" (opt-in).
   geolocator: ^14.0.3
   # FIND-4 overhead map: Google when keyed; OSM flutter_map soft-fail.
