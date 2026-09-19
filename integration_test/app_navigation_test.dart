@@ -1,4 +1,5 @@
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -12,7 +13,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('full tab circuit and Help Now', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -20,7 +21,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('tab-nearby')), findsOneWidget);
-    expect(find.text('Main Street Pharmacy'), findsOneWidget);
+    expect(find.text('Appointments'), findsOneWidget);
     expect(find.text('Help Now'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('tab-my-health')));
@@ -39,7 +40,7 @@ void main() {
     await tester.tap(find.text('Help Now'));
     await tester.pumpAndSettle();
     expect(find.text("You're not alone"), findsOneWidget);
-    expect(find.text('988 Suicide & Crisis Lifeline'), findsOneWidget);
+    expect(find.text('911 Emergency'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();

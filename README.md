@@ -10,7 +10,7 @@ Local review is **Android with live Nearby** (emulator or device).
 
 ```bash
 flutter pub get
-flutter run -d android --dart-define=LIVE_NEARBY=true
+flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true
 ```
 
 `LIVE_NEARBY` still **defaults off** at compile time, so a meeting APK without the flag keeps the fake New Brunswick list. Do not use the flag-off list as the working engineering demo.
@@ -47,7 +47,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
 | Learn | Six topics → short articles with source labels |
 | More | List to placeholder pages; Erase clears My Health |
-| Help Now | Full-screen support actions (demo only unless `HELP_NOW_LIVE`); emergency-card toggle UI |
+| Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; emergency-card toggle at the top (real My Health wallet) |
 
 ## Project docs
 
@@ -62,13 +62,13 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 **Default compile stays on static Nearby data** so a meeting build cannot accidentally show live listings. Local engineering uses the flag **on**. There is no runtime switch.
 
 ```bash
-flutter run -d android --dart-define=LIVE_NEARBY=true
+flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true
 ```
 
 | Flag | Default | Effect |
 |------|---------|--------|
 | `LIVE_NEARBY` | `false` | `true` replaces the Nearby tab's sample listings with real places and shows the "not checked by our team" disclaimer |
-| `HELP_NOW_LIVE` | `false` | `true` turns 988 / 911 / Poison Control into `tel:`/`sms:` launches. Warmline and CWC stay sample. Meeting APKs stay off. |
+| `HELP_NOW_LIVE` | `false` | `true` turns 911 / 988 / Poison Control / ReachNJ / Clearinghouse into `tel:`/`sms:` launches (user still places the call). Warmline and CWC stay sample. Meeting APKs stay off. |
 | `GOOGLE_PLACES_API_KEY` | empty | Optional. Empty, unauthorized, or unbilled keys soft-fail silently to OpenStreetMap. Never commit keys. |
 | `GOOGLE_MAPS_API_KEY` | empty | Optional FIND-4 map. Empty → OSM `flutter_map` (study default on Android). Non-empty on Android/iOS → Google Maps (also set `-PGOOGLE_MAPS_API_KEY=` / iOS `GMSApiKey`). |
 

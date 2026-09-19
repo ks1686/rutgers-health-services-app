@@ -45,14 +45,14 @@ CAB meets monthly; they shape recruitment, analysis, features, training, dissemi
 
 Authoritative detail + evidence tags: feature spec v0.4. Working names subject to CAB/[PENDING FG].
 
-**IA:** Bottom tabs **Nearby | My Health | Learn | More** (no hamburger/drawer). Persistent **Help Now** in every header. Max two taps from a tab root to a core task. **Nearby** is default landing.
+**IA:** Bottom tabs **Nearby | My Health | Learn | More** (no hamburger/drawer). Persistent **Help Now** in every header. Max two taps from a tab root to a core task. **My Health** is the default landing tab (P1 CWC feedback). First launch shows a one-time 911 / professional-care disclaimer.
 
 | Area | MVP |
 |------|-----|
 | **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map) |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Six domains; ~6th-grade; source-labeled; offline; **no AI answers** in study build |
-| **Help Now** | One tap, never PIN-blocked, offline: 988 call+text, 911, Poison Control, member’s CWC, NJ peer warmline; optional emergency card (off by default) |
+| **Help Now** | One tap, never PIN-blocked, offline: **911 first** (high-contrast), then 988, Poison Control, ReachNJ, NJ Self-Help Group Clearinghouse, member’s CWC, NJ peer warmline; optional emergency card at the top (off by default, reads the real wallet) |
 | **More** | Tutorials + ≤90s Wi‑Fi-downloadable videos, Ask a Peer, PSS Helper Mode (demo data), settings, plain-language privacy, one-tap erase |
 
 **Tech:** Flutter (this repo); Android 8+ era / low-RAM test device; &lt;~40MB; offline-first; remote-config/hosted JSON for directory + Learn + Help Now numbers; WCAG 2.1 AA, ≥48dp targets, 18pt+ body + OS scaling, TalkBack/VoiceOver; open-source/low-cost stack.
@@ -137,7 +137,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, and unsigned release APK. **No web job** (web is not a ship target).
 
-**Run (local):** `flutter run -d android --dart-define=LIVE_NEARBY=true`
+**Run (local):** `flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true`
 
 ---
 
@@ -153,7 +153,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Study build on `main`: four tabs + Help Now; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off); My Health CRUD + Keystore/Keychain encryption + optional PIN + Erase. Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Other tabs still use static demo data and “Demo only” snackbars.
+- Study build on `main`: four tabs + Help Now; default landing is My Health; first-launch disclaimer once; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off); My Health CRUD + Keystore/Keychain encryption + optional PIN + Erase. Help Now: 911 first, ReachNJ + Clearinghouse listed, live national/verified NJ dialers behind `HELP_NOW_LIVE` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Warmline/CWC/Ask a Peer still sample.
 - Live Nearby device path: one-shot coarse GPS on load (coordinates transient / not cached); list sorted by proximity; town picker is the fallback when location is denied or unavailable; NJ region guardrail is skipped on the device-location path so travel out of state still works.
 - Live Nearby map (FIND-4): opt-in overhead map; Google Maps when `GOOGLE_MAPS_API_KEY` is set on native, else OSM/`flutter_map` (study default on Android); pins follow the shared category filter; no pan-to-refetch.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.

@@ -101,7 +101,7 @@ class NearbyRepository {
         await overpass.fetch(area, fetchedAt: when),
         when,
       );
-      return _store(
+      return await _store(
         query,
         NearbyFetchResult(
           resources: osmRows,

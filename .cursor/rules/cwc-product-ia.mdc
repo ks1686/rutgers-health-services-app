@@ -10,7 +10,7 @@ Authoritative requirements: `CWC_Health_App/01_CWC_Health_App_Feature_Specificat
 ## Navigation (non-negotiable)
 
 - Bottom tabs only: **Nearby | My Health | Learn | More** — icon + label, ≥48dp. **No hamburger / drawer.**
-- **Nearby** is the default landing tab.
+- **My Health** is the default landing tab (P1 CWC feedback). Nearby stays a tab.
 - Persistent **Help Now** control in every screen header; never gated by PIN.
 - Max **two taps** from any tab root to a core task.
 - **More** is a plain large-type list (tutorials, Ask a Peer, Helper Mode, Settings, privacy, erase)—not a drawer.

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/my_health/data/health_controller.dart';
 import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/health_scope.dart';
+import 'features/onboarding/disclaimer_prefs.dart';
+import 'features/onboarding/disclaimer_screen.dart';
 import 'shell/app_shell.dart';
 import 'theme/cwc_theme.dart';
 import 'widgets/link_launcher.dart';
@@ -22,6 +25,7 @@ class _CwcAppState extends State<CwcApp> {
   HealthController? _owned;
   HealthController? _health;
   bool _booting = true;
+  bool _disclaimerAck = false;
   String? _bootError;
 
   @override
@@ -32,6 +36,8 @@ class _CwcAppState extends State<CwcApp> {
 
   Future<void> _bootstrap() async {
     final injected = widget.healthController;
+    final prefs = await SharedPreferences.getInstance();
+    _disclaimerAck = prefs.getBool(disclaimerAckPref) ?? false;
     if (injected != null) {
       _health = injected;
       if (!_health!.ready) await _health!.load();
@@ -94,7 +100,18 @@ class _CwcAppState extends State<CwcApp> {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: AppShell(linkLauncher: widget.linkLauncher),
+      home: _disclaimerAck
+          ? AppShell(linkLauncher: widget.linkLauncher)
+          : DisclaimerScreen(
+              launcher: widget.linkLauncher,
+              onAcknowledged: _acknowledgeDisclaimer,
+            ),
     );
+  }
+
+  Future<void> _acknowledgeDisclaimer() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(disclaimerAckPref, true);
+    if (mounted) setState(() => _disclaimerAck = true);
   }
 }

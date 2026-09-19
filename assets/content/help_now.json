@@ -1,9 +1,29 @@
 {
   "demo": [
     {
+      "label": "911 Emergency",
+      "detail": "Police, fire, or medical emergency",
+      "style": "emergencyFilled"
+    },
+    {
       "label": "988 Suicide & Crisis Lifeline",
       "detail": "Call or text 988 — 24/7",
       "style": "primaryFilled"
+    },
+    {
+      "label": "Poison Control",
+      "detail": "Swallowed something harmful, or not sure? Call this line. Call 911 if they cannot breathe or are unconscious.",
+      "style": "neutralOutline"
+    },
+    {
+      "label": "ReachNJ",
+      "detail": "NJ 24/7 addiction helpline — 1-844-732-2465",
+      "style": "primaryFilled"
+    },
+    {
+      "label": "NJ Self-Help Group Clearinghouse",
+      "detail": "Find support groups — 800-367-6274 · njgroups.org",
+      "style": "neutralOutline"
     },
     {
       "label": "NJ Peer Warmline",
@@ -14,16 +34,6 @@
       "label": "My Wellness Center",
       "detail": "New Brunswick Wellness Center · (732) 555-0177",
       "style": "primaryFilled"
-    },
-    {
-      "label": "911 Emergency",
-      "detail": "Police, fire, or medical emergency",
-      "style": "blackOutline"
-    },
-    {
-      "label": "Poison Control",
-      "detail": "1-800-222-1222",
-      "style": "neutralOutline"
     }
   ]
 }
