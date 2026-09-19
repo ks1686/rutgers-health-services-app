@@ -41,7 +41,7 @@ dependencies:
   # FIND-4 overhead map: Google when keyed; OSM flutter_map soft-fail.
   google_maps_flutter: ^2.12.3
   flutter_map: ^8.1.1
-  latlong2: ^0.9.1
+  latlong2: ^0.10.1
 
 dev_dependencies:
   flutter_test:
