@@ -1,6 +1,7 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
+import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,8 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<void> pumpApp(WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    Map<String, Object> prefs = const {disclaimerAckPref: true},
+  }) async {
+    SharedPreferences.setMockInitialValues(Map<String, Object>.from(prefs));
     final health = HealthController(InMemoryHealthStore());
     await health.load();
     await tester.binding.setSurfaceSize(const Size(400, 1400));
@@ -18,12 +22,43 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('cold start lands on My Health after disclaimer', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.text('Appointments'), findsOneWidget);
+    expect(find.text('Help Now'), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      1,
+    );
+
+    await tester.tap(find.text('Nearby').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Main Street Pharmacy'), findsOneWidget);
+  });
+
+  testWidgets('first launch shows disclaimer until acknowledged', (
+    tester,
+  ) async {
+    await pumpApp(tester, prefs: const {});
+
+    expect(find.text('Before you continue'), findsOneWidget);
+    expect(find.textContaining('call 911'), findsOneWidget);
+    expect(find.textContaining('not a substitute'), findsOneWidget);
+    expect(find.textContaining('healthcare providers'), findsOneWidget);
+    expect(find.text('Appointments'), findsNothing);
+
+    await tester.tap(find.text('I understand'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appointments'), findsOneWidget);
+  });
+
   testWidgets('shell shows Nearby and Help Now', (tester) async {
     await pumpApp(tester);
 
     expect(find.text('Nearby'), findsWidgets);
     expect(find.text('Help Now'), findsOneWidget);
-    expect(find.text('Main Street Pharmacy'), findsOneWidget);
+    expect(find.text('Appointments'), findsOneWidget);
 
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
@@ -40,7 +75,7 @@ void main() {
     await tester.tap(find.text('Help Now'));
     await tester.pumpAndSettle();
     expect(find.text("You're not alone"), findsOneWidget);
-    expect(find.text('988 Suicide & Crisis Lifeline'), findsOneWidget);
+    expect(find.text('911 Emergency'), findsOneWidget);
   });
 
   testWidgets('Learn article and wallet card open', (tester) async {
@@ -80,6 +115,8 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
+    await tester.tap(find.text('Nearby').last);
+    await tester.pumpAndSettle();
 
     expect(find.text('New Brunswick ▾'), findsOneWidget);
     expect(find.text('Use my location?'), findsOneWidget);

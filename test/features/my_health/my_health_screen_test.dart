@@ -1,6 +1,7 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
+import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,7 @@ void main() {
     required HealthController health,
     Future<bool> Function(Uri uri)? launcher,
   }) async {
+    SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
     await tester.binding.setSurfaceSize(const Size(400, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -109,7 +111,6 @@ void main() {
   });
 
   testWidgets('Erase from More clears My Health', (tester) async {
-    SharedPreferences.setMockInitialValues({});
     final health = await readyController();
     await pumpHealthApp(tester, health: health);
 

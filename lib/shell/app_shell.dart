@@ -18,10 +18,16 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _tabIndex = 0;
+  int _tabIndex = _myHealthTab;
 
   static const _titles = ['Nearby', 'My Health', 'Learn', 'More'];
   static const _myHealthTab = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    PreviewProtection.setSecure(true);
+  }
 
   @override
   void dispose() {
