@@ -5,6 +5,7 @@ Shared, committed plans and handoffs for humans and agents.
 | Path | Purpose |
 |------|---------|
 | [`nearby-live-data.md`](nearby-live-data.md) | Nearby live-data collaborator handoff (**implemented**; local demo is live-on Android) |
+| [`learn-content.md`](learn-content.md) | Learn bundled JSON + CAB content update path (#32) |
 | [`../superpowers/specs/`](../superpowers/specs/) | Design specs |
 | [`../superpowers/plans/`](../superpowers/plans/) | Task-by-task implementation plans |
 

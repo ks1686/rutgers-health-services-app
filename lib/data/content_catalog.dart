@@ -1,9 +1,15 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+
 import 'demo_health.dart';
 import 'demo_help_now.dart';
 import 'demo_learn.dart';
 import 'demo_resources.dart';
+
+const kLearnAssetPath = 'assets/content/learn.json';
+
+List<DemoLearnTopic>? _cachedLearnTopics;
 
 List<DemoLearnTopic> parseLearnTopics(String json) {
   final decoded = jsonDecode(json);
@@ -21,6 +27,23 @@ List<DemoLearnTopic> parseLearnTopics(String json) {
           source: row['source'] as String,
         ),
   ];
+}
+
+/// Offline-first Learn catalog from the bundled asset.
+///
+/// Parsed topics are cached after the first successful [rootBundle] read so
+/// repeated pumps in widget tests do not re-enter a hanging asset load.
+Future<List<DemoLearnTopic>> loadLearnTopics({AssetBundle? bundle}) async {
+  if (bundle != null) {
+    final raw = await bundle.loadString(kLearnAssetPath);
+    return parseLearnTopics(raw);
+  }
+  final cached = _cachedLearnTopics;
+  if (cached != null) {
+    return cached;
+  }
+  final raw = await rootBundle.loadString(kLearnAssetPath);
+  return _cachedLearnTopics = parseLearnTopics(raw);
 }
 
 List<DemoHelpAction> parseHelpNowActions(String json) {
