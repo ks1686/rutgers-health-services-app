@@ -1,14 +1,16 @@
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_models.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
+import 'package:cwc_health_app/features/my_health/data/local_reminder_scheduler.dart';
 import 'package:cwc_health_app/features/my_health/data/reminder_plan.dart';
 import 'package:cwc_health_app/features/my_health/data/reminder_scheduler.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final now = DateTime(2026, 9, 24, 9);
 
-  test('medication reminder uses the saved name and schedule', () {
+  test('medication reminder body stays generic', () {
     const med = HealthMedication(
       id: 'm1',
       name: 'Metformin',
@@ -25,11 +27,11 @@ void main() {
     expect(planned, hasLength(2));
     expect(planned.every((r) => r.title == medicationReminderTitle), isTrue);
     expect(
-      planned.every(
-        (r) => r.body == 'Metformin. 1 tablet morning and evening with food',
-      ),
+      planned.every((r) => r.body == 'Time for a medication reminder'),
       isTrue,
     );
+    expect(planned.every((r) => r.body.contains('Metformin')), isFalse);
+    expect(planned.every((r) => r.body.contains(med.schedule)), isFalse);
     expect(planned.every((r) => r.repeatsDaily), isTrue);
     expect(planned.map((r) => r.fireAt).toSet(), {
       DateTime(2026, 9, 24, 20),
@@ -74,7 +76,7 @@ void main() {
     expect(off, isEmpty);
   });
 
-  test('appointment reminder uses the saved visit and skips the past', () {
+  test('appointment reminder body stays generic and skips the past', () {
     final upcoming = HealthAppointment(
       id: 'a1',
       provider: 'Dr. Rivera',
@@ -97,8 +99,10 @@ void main() {
 
     expect(planned, hasLength(1));
     expect(planned.single.title, appointmentReminderTitle);
-    expect(planned.single.body, contains('Dr. Rivera'));
-    expect(planned.single.body, contains('Community Health Clinic'));
+    expect(planned.single.body, 'Appointment reminder');
+    expect(planned.single.body.contains('Dr. Rivera'), isFalse);
+    expect(planned.single.body.contains('Community Health Clinic'), isFalse);
+    expect(planned.single.body.contains('10:30'), isFalse);
     expect(planned.single.repeatsDaily, isFalse);
     expect(planned.single.fireAt, DateTime(2026, 9, 30, 10, 30));
   });
@@ -119,8 +123,9 @@ void main() {
       now: now,
     );
     expect(planned.single.fireAt, DateTime(2026, 9, 30, 8));
-    expect(planned.single.body, contains('Dr. Lee'));
-    expect(planned.single.body, contains('10:30 AM'));
+    expect(planned.single.body, 'Appointment reminder');
+    expect(planned.single.body.contains('Dr. Lee'), isFalse);
+    expect(planned.single.body.contains('10:30'), isFalse);
   });
 
   test('schedule words and clock times become reminder minutes', () {
@@ -173,6 +178,23 @@ void main() {
     expect(loaded.appointments.single.remindAt, DateTime(2026, 9, 30, 8));
     expect(loaded.medications.single.remindMinutes, [8 * 60]);
     expect(loaded.medications.single.name, 'Aspirin');
+  });
+
+  test('lock screen hides reminder text where the plugin allows it', () {
+    final details = reminderNotificationDetails();
+    expect(details.android?.visibility, NotificationVisibility.private);
+    expect(details.iOS?.categoryIdentifier, reminderDarwinCategoryId);
+    expect(details.macOS?.categoryIdentifier, reminderDarwinCategoryId);
+    expect(
+      reminderDarwinCategory.options,
+      isNot(contains(DarwinNotificationCategoryOption.hiddenPreviewShowTitle)),
+    );
+    expect(
+      reminderDarwinCategory.options,
+      isNot(
+        contains(DarwinNotificationCategoryOption.hiddenPreviewShowSubtitle),
+      ),
+    );
   });
 
   test('ids stay stable for the same saved record', () {
@@ -241,7 +263,14 @@ void schedulerTests() {
         const HealthSnapshot(medications: [med], initialized: true),
       );
       expect(poster.scheduled.length, 1);
-      expect(poster.scheduled.values.single.body, contains('Metformin'));
+      expect(
+        poster.scheduled.values.single.body,
+        'Time for a medication reminder',
+      );
+      expect(
+        poster.scheduled.values.single.body.contains('Metformin'),
+        isFalse,
+      );
 
       await scheduler.sync(
         HealthSnapshot(
@@ -312,12 +341,113 @@ void schedulerTests() {
       );
       await controller.upsertMedication(med);
       expect(controller.medications, hasLength(1));
-      expect(poster.scheduled.values.single.body, contains('Metformin'));
-      expect(poster.scheduled.values.single.body, contains(med.schedule));
+      expect(
+        poster.scheduled.values.single.body,
+        'Time for a medication reminder',
+      );
+      expect(
+        poster.scheduled.values.single.body.contains('Metformin'),
+        isFalse,
+      );
+      expect(
+        poster.scheduled.values.single.body.contains(med.schedule),
+        isFalse,
+      );
 
       await controller.upsertMedication(med.copyWith(remind: false));
       expect(poster.scheduled, isEmpty);
       expect(controller.medications.single.name, 'Metformin');
     },
   );
+
+  test(
+    'helper mode cancels pending alerts and restores generic ones',
+    () async {
+      final poster = _MemoryPoster();
+      final scheduler = SyncingReminderScheduler(
+        poster,
+        clock: () => DateTime(2026, 9, 24, 9),
+      );
+      const med = HealthMedication(
+        id: 'm1',
+        name: 'Metformin',
+        purpose: 'Blood sugar',
+        schedule: '1 tablet each morning',
+        remind: true,
+        remindMinutes: [8 * 60],
+      );
+      final appt = HealthAppointment(
+        id: 'a1',
+        provider: 'Dr. Rivera',
+        whenLabel: 'Wed, Sep 30, 2026 · 10:30 AM',
+        location: 'Community Health Clinic',
+        phone: '555',
+        remind: true,
+        when: DateTime(2026, 9, 30, 10, 30),
+      );
+      final snap = HealthSnapshot(
+        medications: [med],
+        appointments: [appt],
+        initialized: true,
+      );
+
+      await scheduler.sync(snap);
+      expect(poster.scheduled, hasLength(2));
+
+      await scheduler.sync(snap, suppress: true);
+      expect(poster.scheduled, isEmpty);
+
+      await scheduler.sync(snap);
+      expect(poster.scheduled, hasLength(2));
+      expect(poster.scheduled.values.map((r) => r.body).toSet(), {
+        'Time for a medication reminder',
+        'Appointment reminder',
+      });
+      for (final request in poster.scheduled.values) {
+        expect(request.body.contains('Metformin'), isFalse);
+        expect(request.body.contains(med.schedule), isFalse);
+        expect(request.body.contains('Dr. Rivera'), isFalse);
+        expect(request.body.contains('Community Health Clinic'), isFalse);
+        expect(request.body.contains('10:30'), isFalse);
+      }
+    },
+  );
+
+  test('controller keeps alerts cancelled until helper mode is off', () async {
+    final poster = _MemoryPoster();
+    final scheduler = SyncingReminderScheduler(
+      poster,
+      clock: () => DateTime(2026, 9, 24, 9),
+    );
+    final controller = HealthController(
+      InMemoryHealthStore(),
+      reminders: scheduler,
+    );
+    await controller.load();
+    await controller.eraseAll();
+    const med = HealthMedication(
+      id: 'm1',
+      name: 'Metformin',
+      purpose: 'Blood sugar',
+      schedule: '1 tablet each morning',
+      remind: true,
+      remindMinutes: [8 * 60],
+    );
+    await controller.upsertMedication(med);
+    expect(poster.scheduled, hasLength(1));
+
+    await controller.setRemindersSuppressed(true);
+    expect(poster.scheduled, isEmpty);
+
+    await controller.upsertMedication(med.copyWith(remindMinutes: [21 * 60]));
+    expect(poster.scheduled, isEmpty);
+
+    await controller.setRemindersSuppressed(false);
+    expect(poster.scheduled, hasLength(1));
+    expect(
+      poster.scheduled.values.single.body,
+      'Time for a medication reminder',
+    );
+    expect(poster.scheduled.values.single.fireAt, DateTime(2026, 9, 24, 21));
+  });
 }

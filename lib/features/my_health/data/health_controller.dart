@@ -18,6 +18,7 @@ class HealthController extends ChangeNotifier {
   HealthSnapshot _snapshot = const HealthSnapshot();
   bool _ready = false;
   bool _unlocked = false;
+  bool _suppressReminders = false;
   String? _error;
 
   HealthSnapshot get snapshot => _snapshot;
@@ -122,9 +123,17 @@ class HealthController extends ChangeNotifier {
     await _syncReminders();
   }
 
+  /// Cancels pending My Health alerts while Helper Mode is on, then restores
+  /// them from the saved records when it is turned off.
+  Future<void> setRemindersSuppressed(bool value) async {
+    if (_suppressReminders == value) return;
+    _suppressReminders = value;
+    if (_ready) await _syncReminders();
+  }
+
   Future<void> _syncReminders() async {
     try {
-      await _reminders.sync(_snapshot);
+      await _reminders.sync(_snapshot, suppress: _suppressReminders);
     } catch (_) {
       // The saved record stays. The next launch tries the phone alert again.
     }

@@ -12,15 +12,45 @@ class LocalReminderScheduler extends SyncingReminderScheduler {
   LocalReminderScheduler() : super(_PluginNotificationPoster());
 }
 
+const reminderChannelId = 'cwc_my_health_reminders';
+const reminderChannelName = 'My Health reminders';
+const reminderChannelDescription =
+    'Medication and appointment reminders saved on this phone.';
+
+/// iOS masks the preview when the person hides notification previews.
+/// This category does not set hiddenPreviewShowTitle or
+/// hiddenPreviewShowSubtitle, which would reveal the text anyway.
+const reminderDarwinCategoryId = 'cwc_my_health_reminders';
+
+const reminderDarwinCategory = DarwinNotificationCategory(
+  reminderDarwinCategoryId,
+);
+
+/// Android [NotificationVisibility.private] hides the body on a secure lock
+/// screen. iOS has no equivalent force-hide flag in this plugin.
+NotificationDetails reminderNotificationDetails() {
+  return const NotificationDetails(
+    android: AndroidNotificationDetails(
+      reminderChannelId,
+      reminderChannelName,
+      channelDescription: reminderChannelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      visibility: NotificationVisibility.private,
+    ),
+    iOS: DarwinNotificationDetails(
+      categoryIdentifier: reminderDarwinCategoryId,
+    ),
+    macOS: DarwinNotificationDetails(
+      categoryIdentifier: reminderDarwinCategoryId,
+    ),
+  );
+}
+
 class _PluginNotificationPoster implements NotificationPoster {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   var _tzReady = false;
-
-  static const _channelId = 'cwc_my_health_reminders';
-  static const _channelName = 'My Health reminders';
-  static const _channelDescription =
-      'Medication and appointment reminders saved on this phone.';
 
   @override
   Future<void> init() async {
@@ -29,6 +59,7 @@ class _PluginNotificationPoster implements NotificationPoster {
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
+      notificationCategories: [reminderDarwinCategory],
     );
     await _plugin.initialize(
       settings: const InitializationSettings(
@@ -145,17 +176,7 @@ class _PluginNotificationPoster implements NotificationPoster {
 
   @override
   Future<void> schedule(ReminderRequest request) async {
-    final details = NotificationDetails(
-      android: const AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      iOS: const DarwinNotificationDetails(),
-      macOS: const DarwinNotificationDetails(),
-    );
+    final details = reminderNotificationDetails();
     final when = tz.TZDateTime.from(request.fireAt.toLocal(), tz.local);
     final mode = await _androidMode();
     try {

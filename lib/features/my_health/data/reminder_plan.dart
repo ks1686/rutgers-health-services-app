@@ -8,6 +8,10 @@ const reminderPayloadPrefix = 'cwc-reminder:';
 const medicationReminderTitle = 'Take your medication';
 const appointmentReminderTitle = 'You have an appointment today';
 
+/// Lock-screen and shade text. Detail stays in My Health.
+const medicationReminderBody = 'Time for a medication reminder';
+const appointmentReminderBody = 'Appointment reminder';
+
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const _months = [
   'Jan',
@@ -153,7 +157,7 @@ List<ReminderRequest> planReminders(
         ReminderRequest(
           id: reminderNotificationId(key),
           title: medicationReminderTitle,
-          body: '${med.name}. ${med.schedule}',
+          body: medicationReminderBody,
           fireAt: _nextDaily(minute, now),
           repeatsDaily: true,
           payload: '$reminderPayloadPrefix$key',
@@ -167,16 +171,11 @@ List<ReminderRequest> planReminders(
         appt.remindAt ?? appt.when ?? parseAppointmentWhen(appt.whenLabel);
     if (fireAt == null || !fireAt.isAfter(now)) continue;
     final key = 'appt:${appt.id}';
-    final parts = <String>[
-      appt.provider,
-      if (appt.whenLabel.trim().isNotEmpty) appt.whenLabel.trim(),
-      if (appt.location.trim().isNotEmpty) appt.location.trim(),
-    ];
     planned.add(
       ReminderRequest(
         id: reminderNotificationId(key),
         title: appointmentReminderTitle,
-        body: parts.join('. '),
+        body: appointmentReminderBody,
         fireAt: fireAt,
         repeatsDaily: false,
         payload: '$reminderPayloadPrefix$key',

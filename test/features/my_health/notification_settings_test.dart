@@ -11,10 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _RecordingScheduler implements ReminderScheduler {
   HealthSnapshot? last;
+  bool lastSuppress = false;
 
   @override
-  Future<void> sync(HealthSnapshot snapshot) async {
+  Future<void> sync(HealthSnapshot snapshot, {bool suppress = false}) async {
     last = snapshot;
+    lastSuppress = suppress;
   }
 
   @override
@@ -78,12 +80,16 @@ void main() {
       now: DateTime(2026, 9, 24, 9),
     );
     expect(planned, hasLength(2));
-    expect(planned.every((r) => r.body.contains('Metformin')), isTrue);
+    expect(
+      planned.every((r) => r.body == 'Time for a medication reminder'),
+      isTrue,
+    );
+    expect(planned.every((r) => r.body.contains('Metformin')), isFalse);
     expect(
       planned.every(
         (r) => r.body.contains('1 tablet morning and evening with food'),
       ),
-      isTrue,
+      isFalse,
     );
   });
 
@@ -124,7 +130,11 @@ void main() {
       scheduler.last!,
       now: DateTime(2026, 9, 24, 9),
     );
-    expect(planned.every((r) => r.body.contains('Metformin')), isTrue);
+    expect(
+      planned.every((r) => r.body == 'Time for a medication reminder'),
+      isTrue,
+    );
+    expect(planned.every((r) => r.body.contains('Metformin')), isFalse);
   });
 
   testWidgets('turning an appointment reminder off keeps the visit', (
@@ -161,5 +171,67 @@ void main() {
     expect(saved.whenLabel, appt.whenLabel);
     expect(saved.location, appt.location);
     expect(health.appointments, hasLength(2));
+  });
+
+  testWidgets('helper mode hides notification names and pauses alerts', (
+    tester,
+  ) async {
+    final scheduler = _RecordingScheduler();
+    final health = HealthController(
+      InMemoryHealthStore(),
+      reminders: scheduler,
+    );
+    await health.load();
+    await pump(tester, health);
+
+    Future<void> openMore() async {
+      await tester.tap(find.byKey(const ValueKey('tab-more')));
+      await tester.pumpAndSettle();
+    }
+
+    await openMore();
+    await tester.scrollUntilVisible(find.text('Helper Mode'), 300);
+    await tester.tap(find.text('Helper Mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('helper-hide-switch')),
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(scheduler.lastSuppress, isTrue);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Notifications'), 300);
+    await tester.tap(find.text('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Metformin'), findsNothing);
+    expect(find.text('Dr. Rivera'), findsNothing);
+    expect(
+      find.textContaining('Hidden while someone is helping you.'),
+      findsWidgets,
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Helper Mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('helper-hide-switch')),
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(scheduler.lastSuppress, isFalse);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Metformin'), findsOneWidget);
+    expect(find.text('Dr. Rivera'), findsWidgets);
   });
 }

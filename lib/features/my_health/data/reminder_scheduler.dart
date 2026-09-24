@@ -3,7 +3,8 @@ import 'reminder_plan.dart';
 
 /// Schedules on-device alerts from the My Health snapshot. No network.
 abstract class ReminderScheduler {
-  Future<void> sync(HealthSnapshot snapshot);
+  /// [suppress] cancels pending My Health alerts and does not schedule new ones.
+  Future<void> sync(HealthSnapshot snapshot, {bool suppress = false});
 
   /// Asks the phone to show alerts. [precise] also asks Android for exact alarms.
   Future<bool> requestPermission({bool precise = false});
@@ -16,7 +17,7 @@ class NoopReminderScheduler implements ReminderScheduler {
   const NoopReminderScheduler();
 
   @override
-  Future<void> sync(HealthSnapshot snapshot) async {}
+  Future<void> sync(HealthSnapshot snapshot, {bool suppress = false}) async {}
 
   @override
   Future<bool> requestPermission({bool precise = false}) async => true;
@@ -63,9 +64,11 @@ class SyncingReminderScheduler implements ReminderScheduler {
   }
 
   @override
-  Future<void> sync(HealthSnapshot snapshot) async {
+  Future<void> sync(HealthSnapshot snapshot, {bool suppress = false}) async {
     await _ensure();
-    final planned = planReminders(snapshot, now: _clock());
+    final planned = suppress
+        ? const <ReminderRequest>[]
+        : planReminders(snapshot, now: _clock());
     final pending = await _poster.pending();
     final wanted = {for (final request in planned) request.id};
     for (final old in pending) {
