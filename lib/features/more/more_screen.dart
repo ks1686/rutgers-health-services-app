@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
 import '../my_health/health_scope.dart';
+import 'about_this_app_page.dart';
 import 'placeholder_page.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -106,12 +107,24 @@ class MoreScreen extends StatelessWidget {
               ),
               const Divider(height: 1),
               _MoreTile(
+                icon: Icons.info_outline,
+                title: 'About this app',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AboutThisAppPage(),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              _MoreTile(
                 icon: Icons.settings_outlined,
                 title: 'Settings',
                 onTap: () => _open(
                   context,
                   'Settings',
-                  'Text size and town preference will go here. '
+                  'Text size will go here. Choose a town on the Nearby tab. '
                       'Optional My Health PIN is set from the My Health tab.',
                 ),
               ),

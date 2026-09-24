@@ -43,7 +43,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 | Tab / screen | Demo behavior |
 |--------------|---------------|
-| Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; live tab asks for one-shot location on load and sorts by proximity; town list is fallback only |
+| Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer plus a plain insurance and walk-in warning; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; remembered North/Central/South town; one-shot location is an optional shortcut and sorts by proximity |
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
 | Learn | Topics from bundled `assets/content/learn.json` (offline); source labels on each article |
 | More | List to placeholder pages; Erase clears My Health |
@@ -77,7 +77,7 @@ flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIV
 
 #### How live mode behaves
 
-The live tab asks for a **coarse, one-shot location fix** on load (`geolocator`, `LocationAccuracy.low`) on Android and iOS: no background updates, no fine/GPS permission on Android (`ACCESS_COARSE_LOCATION` only), iOS uses while-using with plain-language copy. Coordinates live in memory for that single search: Overpass runs an `around:` circle from the device point, the NJ-only guardrail is skipped (usable anywhere), results are **sorted nearest-first**, and **nothing is written to the cache** — an origin never touches storage. Each card gains a "~N min walk" badge (~80 m/min, straight-line). If the member declines, location services are off, or the fix times out, the tab falls back to the New Brunswick town list with a plain-language reason line and a *Use my location* retry — it never shows the town list as if it were device-based.
+The live tab looks up the **remembered town** (North, Central, or South, then a town; default New Brunswick). That choice is stored on the phone. **Use my location** is an optional one-shot shortcut (`geolocator`, `LocationAccuracy.low`) on Android and iOS: no background updates, no fine/GPS permission on Android (`ACCESS_COARSE_LOCATION` only), iOS uses while-using with plain-language copy. Coordinates live in memory for that single search: Overpass runs an `around:` circle from the device point, the NJ-only guardrail is skipped (usable anywhere), results are **sorted nearest-first**, and **nothing is written to the cache** — an origin never touches storage. Each card gains a "~N min walk" badge (~80 m/min, straight-line). If the member declines, location services are off, or the fix times out, the tab falls back to the remembered town with a plain-language reason line and a *Use my location* retry — it never shows the town list as if it were device-based.
 
 **Overhead map (FIND-4).** *See these on a map* loads tiles only when toggled on. Pins match the **category-filtered** list (same chips). Google Maps is used when `GOOGLE_MAPS_API_KEY` is set on a native build; otherwise OSM/Carto tiles via `flutter_map` (study default on Android). Panning does not refetch places. Tap a pin to highlight the matching card.
 

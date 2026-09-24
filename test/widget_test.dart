@@ -1,7 +1,9 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/data/content_catalog.dart';
+import 'package:cwc_health_app/features/learn/learn_screen.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
+import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,6 +145,39 @@ void main() {
     await tester.tap(find.text('Call').first);
     await tester.pumpAndSettle();
     expect(find.textContaining('Demo only'), findsOneWidget);
+  });
+
+  testWidgets('disclaimers stay on Learn, More, and Nearby', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.text(kLearnDoctorDisclaimer), findsNothing);
+    expect(find.text(kNearbyCoverageWarning), findsNothing);
+    expect(find.text('About this app'), findsNothing);
+
+    await tester.tap(find.text('Learn').last);
+    await tester.pumpAndSettle();
+    expect(find.text(kLearnDoctorDisclaimer), findsOneWidget);
+    expect(find.text(kNearbyCoverageWarning), findsNothing);
+
+    await tester.tap(find.text('Nearby').last);
+    await tester.pumpAndSettle();
+    expect(find.text(kNearbyCoverageWarning), findsOneWidget);
+    expect(find.text(kLearnDoctorDisclaimer), findsNothing);
+
+    await tester.tap(find.text('More').last);
+    await tester.pumpAndSettle();
+    expect(find.text('About this app'), findsOneWidget);
+    expect(find.text(kNearbyCoverageWarning), findsNothing);
+
+    await tester.tap(find.text('About this app'));
+    await tester.pumpAndSettle();
+    expect(find.text(kLearnDoctorDisclaimer), findsNothing);
+    expect(
+      find.textContaining('does not replace professional care'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('stays on this phone'), findsOneWidget);
+    expect(find.textContaining('public maps'), findsOneWidget);
   });
 
   testWidgets('Help Now stays reachable from every tab', (tester) async {
