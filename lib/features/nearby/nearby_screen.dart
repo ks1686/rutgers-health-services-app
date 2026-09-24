@@ -13,14 +13,18 @@ import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
+import 'data/nearby_place_preference.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
+import 'data/nj_places.dart';
 import 'data/prefs_nearby_cache.dart';
 import 'data/opening_hours.dart';
+import 'widgets/nearby_coverage_notice.dart';
 import 'widgets/nearby_hours_control.dart';
 import 'widgets/nearby_live_disclaimer.dart';
 import 'widgets/nearby_map_view.dart';
+import 'widgets/nearby_town_picker.dart';
 
 typedef NearbyLinkLauncher = Future<bool> Function(Uri uri);
 
@@ -32,30 +36,35 @@ class NearbyScreen extends StatelessWidget {
     this.repository,
     this.launcher,
     this.clock,
+    this.placePreference,
   });
 
   final NearbyConfig? config;
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
+  final NearbyPlacePreferenceStore? placePreference;
 
   @override
   Widget build(BuildContext context) {
     final resolved = config ?? NearbyConfig.fromEnvironment();
     if (!resolved.liveNearby) {
-      return const _NearbyDemoView();
+      return _NearbyDemoView(placePreference: placePreference);
     }
     return _NearbyLiveView(
       config: resolved,
       repository: repository,
       launcher: launcher,
       clock: clock,
+      placePreference: placePreference,
     );
   }
 }
 
 class _NearbyDemoView extends StatefulWidget {
-  const _NearbyDemoView();
+  const _NearbyDemoView({this.placePreference});
+
+  final NearbyPlacePreferenceStore? placePreference;
 
   @override
   State<_NearbyDemoView> createState() => _NearbyDemoViewState();
@@ -64,10 +73,41 @@ class _NearbyDemoView extends StatefulWidget {
 class _NearbyDemoViewState extends State<_NearbyDemoView> {
   String _category = 'All';
   bool _showMapPlaceholder = false;
+  NearbyPlacePreference _place = NearbyPlacePreference.fallback;
+  NearbyPlacePreferenceStore? _placeStore;
 
   List<DemoResource> get _filtered {
+    if (_place.town != demoTown) return const [];
     if (_category == 'All') return demoResources;
     return demoResources.where((r) => r.category == _category).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlace();
+  }
+
+  Future<void> _loadPlace() async {
+    final store = await nearbyPlacePreferenceStore(
+      injected: widget.placePreference,
+    );
+    final place = await store.read();
+    if (!mounted) return;
+    setState(() {
+      _placeStore = store;
+      _place = place;
+    });
+  }
+
+  Future<void> _pickTown() async {
+    final store = _placeStore;
+    if (store == null) return;
+    final picked = await showNearbyTownPicker(context, current: _place);
+    if (picked == null || !mounted) return;
+    await store.save(picked);
+    if (!mounted) return;
+    setState(() => _place = picked);
   }
 
   @override
@@ -76,6 +116,8 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const DemoBanner(),
+        const SizedBox(height: 12),
+        const NearbyCoverageNotice(),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -83,9 +125,10 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             ActionChip(
+              key: const ValueKey('nearby-town-chip'),
               avatar: const Icon(Icons.location_city, size: 18),
-              label: const Text('$demoTown ▾'),
-              onPressed: () => showDemoOnlySnackBar(context, 'town picker'),
+              label: Text('${_place.town} ▾'),
+              onPressed: _placeStore == null ? null : _pickTown,
             ),
             TextButton(
               onPressed: () => showDemoOnlySnackBar(context, 'use my location'),
@@ -93,6 +136,14 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
             ),
           ],
         ),
+        if (_place.town != demoTown) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'This sample list is only for New Brunswick. '
+            'Your town is saved on this phone.',
+            style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.35),
+          ),
+        ],
         const SizedBox(height: 12),
         _CategoryChips(
           categories: demoCategories,
@@ -147,19 +198,23 @@ class _NearbyLiveView extends StatefulWidget {
     this.repository,
     this.launcher,
     this.clock,
+    this.placePreference,
   });
 
   final NearbyConfig config;
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
+  final NearbyPlacePreferenceStore? placePreference;
 
   @override
   State<_NearbyLiveView> createState() => _NearbyLiveViewState();
 }
 
 class _NearbyLiveViewState extends State<_NearbyLiveView> {
-  static const _query = NearbyQuery();
+  NearbyQuery _query = const NearbyQuery();
+  NearbyPlacePreference _place = NearbyPlacePreference.fallback;
+  NearbyPlacePreferenceStore? _placeStore;
 
   /// Derived from the source enum so a renamed category cannot silently stop
   /// matching the chip that filters it.
@@ -199,18 +254,35 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   @override
   void initState() {
     super.initState();
+    _pending = _start();
+  }
+
+  /// Remembered town is the lookup. Device location stays an optional shortcut.
+  Future<NearbyFetchResult> _start() async {
+    await _loadPlace();
     final injected = widget.repository;
     if (injected != null) {
       _repository = injected;
       _repositoryReady = true;
-      _pending = _initialLookup();
-    } else {
-      // Default stack always wires a device-location source (incl. web).
-      _pending = _boot();
+      return _lookupTown();
     }
+    return _boot();
   }
 
-  /// Prefer a one-shot device fix when a source is wired; otherwise town.
+  Future<void> _loadPlace() async {
+    final store = await nearbyPlacePreferenceStore(
+      injected: widget.placePreference,
+    );
+    final place = await store.read();
+    if (!mounted) return;
+    setState(() {
+      _placeStore = store;
+      _place = place;
+      _query = NearbyQuery(town: place.town);
+    });
+  }
+
+  /// One-shot device fix is available when a source is wired.
   /// Declining / failing never blocks — [fetchNearDevice] falls back to town.
   bool get _canUseDeviceLocation =>
       _repositoryReady && (_repository.deviceLocation != null);
@@ -231,17 +303,36 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       cache: PrefsNearbyCache(prefs),
     );
     _repositoryReady = true;
-    return _initialLookup();
+    return _lookupTown();
   }
 
-  /// Live tab asks for location first so the list is proximity-based anywhere,
-  /// not locked to the default town. Town remains the honest fallback.
-  Future<NearbyFetchResult> _initialLookup() {
-    if (_canUseDeviceLocation) {
-      _devicePending = true;
-      return _trackDeviceLookup(_repository.fetchNearDevice(_query));
-    }
+  Future<NearbyFetchResult> _lookupTown() {
+    _devicePending = false;
     return _repository.fetch(_query);
+  }
+
+  Future<void> _pickTown() async {
+    final store = _placeStore;
+    if (store == null || !_repositoryReady || _reloadQueued) return;
+    final picked = await showNearbyTownPicker(context, current: _place);
+    if (picked == null || !mounted) return;
+    await store.save(picked);
+    if (!mounted || _reloadQueued) return;
+    _reloadQueued = true;
+    setState(() {
+      _place = picked;
+      _query = NearbyQuery(town: picked.town);
+      _deviceMode = false;
+      _devicePending = false;
+      _infoLine = null;
+      _selectedResourceId = null;
+      _pending = _repository.fetch(_query).whenComplete(() {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _reloadQueued = false);
+        });
+      });
+    });
   }
 
   void _reload() {
@@ -381,10 +472,40 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     );
   }
 
+  Widget _placeControls() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ActionChip(
+          key: const ValueKey('nearby-town-chip'),
+          avatar: Icon(
+            _deviceMode ? Icons.my_location : Icons.location_city,
+            size: 18,
+          ),
+          label: Text(_deviceMode ? 'Using your location' : '${_query.town} ▾'),
+          onPressed: _reloadQueued ? null : _pickTown,
+        ),
+        if (_canUseDeviceLocation && !_deviceMode)
+          TextButton.icon(
+            key: const ValueKey('nearby-use-my-location'),
+            onPressed: _reloadQueued ? null : _useMyLocation,
+            icon: const Icon(Icons.my_location, size: 18),
+            label: const Text('Use my location'),
+          ),
+      ],
+    );
+  }
+
   Widget _buildProblem(String message, {required bool suggestConnection}) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
+        _placeControls(),
+        const SizedBox(height: 12),
+        const NearbyCoverageNotice(),
+        const SizedBox(height: 24),
         Text(
           message,
           textAlign: TextAlign.center,
@@ -421,28 +542,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
           fetchedAt: result.fetchedAt,
           fromSavedCopy: result.status == NearbySourceStatus.cache,
         ),
+        const SizedBox(height: 12),
+        const NearbyCoverageNotice(),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Chip(
-              avatar: Icon(
-                _deviceMode ? Icons.my_location : Icons.location_city,
-                size: 18,
-              ),
-              label: Text(_deviceMode ? 'Using your location' : _query.town),
-            ),
-            if (_canUseDeviceLocation && !_deviceMode)
-              TextButton.icon(
-                key: const ValueKey('nearby-use-my-location'),
-                onPressed: _reloadQueued ? null : _useMyLocation,
-                icon: const Icon(Icons.my_location, size: 18),
-                label: const Text('Use my location'),
-              ),
-          ],
-        ),
+        _placeControls(),
         if (_infoLine != null) ...[
           const SizedBox(height: 8),
           Text(

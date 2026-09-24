@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
 import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_place_preference.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
+import 'package:cwc_health_app/features/nearby/data/nj_places.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/geo_point.dart';
@@ -16,6 +19,7 @@ import 'package:cwc_health_app/features/nearby/data/sources/google_places_source
 import 'package:cwc_health_app/features/nearby/data/sources/nominatim_geocode.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/osm_overpass_source.dart';
 import 'package:cwc_health_app/features/nearby/nearby_screen.dart';
+import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 
@@ -72,6 +76,20 @@ class _ScriptedDeviceLocation implements DeviceLocationSource {
   Future<DeviceLocationOutcome> getCurrent() async => outcome;
 }
 
+class _TownFollowingRepository extends _StubRepository {
+  _TownFollowingRepository({super.deviceLocation})
+    : super(_result(resources: [_resource(name: 'unused')]));
+
+  final List<NearbyQuery> queries = [];
+
+  @override
+  Future<NearbyFetchResult> fetch(NearbyQuery query) async {
+    calls++;
+    queries.add(query);
+    return _result(resources: [_resource(name: '${query.town} Pharmacy')]);
+  }
+}
+
 class _DelayedStubRepository extends _StubRepository {
   _DelayedStubRepository(this.first, NearbyFetchResult later) : super(later);
 
@@ -123,6 +141,12 @@ NearbyFetchResult _result({
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   Future<void> pumpScreen(WidgetTester tester, Widget screen) async {
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -142,6 +166,7 @@ void main() {
       expect(find.text('Main Street Pharmacy'), findsOneWidget);
       expect(find.textContaining('Draft for co-design'), findsOneWidget);
       expect(find.text('Use my location?'), findsOneWidget);
+      expect(find.text(kNearbyCoverageWarning), findsOneWidget);
       expect(find.byType(NearbyLiveDisclaimer), findsNothing);
     });
 
@@ -162,6 +187,39 @@ void main() {
       expect(find.text('Open until 7pm'), findsOneWidget);
       expect(find.text('Open now'), findsNothing);
       expect(find.text('Hours not listed'), findsNothing);
+    });
+
+    testWidgets('town picker saves a town and drops the sample list', (
+      tester,
+    ) async {
+      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
+
+      await tester.tap(find.byKey(const ValueKey('nearby-town-chip')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-region-south')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-town-Camden')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Camden ▾'), findsOneWidget);
+      expect(find.text('Main Street Pharmacy'), findsNothing);
+      expect(
+        find.textContaining('sample list is only for New Brunswick'),
+        findsOneWidget,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+        prefs.getString(PrefsNearbyPlacePreferenceStore.townPref),
+        'Camden',
+      );
+      expect(
+        prefs.getString(PrefsNearbyPlacePreferenceStore.regionPref),
+        NjRegion.south.name,
+      );
+
+      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
+      expect(find.text('Camden ▾'), findsOneWidget);
+      expect(find.text('Main Street Pharmacy'), findsNothing);
     });
   });
 
@@ -189,6 +247,7 @@ void main() {
 
       expect(repository.calls, 1);
       expect(find.byType(NearbyLiveDisclaimer), findsOneWidget);
+      expect(find.text(kNearbyCoverageWarning), findsOneWidget);
       expect(
         find.textContaining('They are not checked by our team.'),
         findsOneWidget,
@@ -617,6 +676,61 @@ void main() {
       expect(find.text('Hours not listed'), findsOneWidget);
       expect(find.text('Open now'), findsNothing);
     });
+
+    testWidgets('selected town is remembered and drives the next lookup', (
+      tester,
+    ) async {
+      final first = _TownFollowingRepository(
+        deviceLocation: _ScriptedDeviceLocation(
+          DeviceLocationOk(const GeoPoint(lat: 40.49, lng: -74.45)),
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          key: const ValueKey('nearby-first'),
+          config: _liveConfig,
+          repository: first,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(first.nearDeviceCalls, 0);
+      expect(first.queries.single.town, 'New Brunswick');
+      expect(find.text('New Brunswick Pharmacy'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('nearby-town-chip')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-region-south')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-town-Camden')));
+      await tester.pumpAndSettle();
+
+      expect(first.queries.last.town, 'Camden');
+      expect(find.text('Camden Pharmacy'), findsOneWidget);
+      expect(find.text('New Brunswick Pharmacy'), findsNothing);
+      expect(first.nearDeviceCalls, 0);
+
+      final second = _TownFollowingRepository();
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          key: const ValueKey('nearby-second'),
+          config: _liveConfig,
+          repository: second,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(second.queries.single.town, 'Camden');
+      expect(find.text('Camden Pharmacy'), findsOneWidget);
+      expect(second.nearDeviceCalls, 0);
+    });
   });
 
   group('device location mode', () {
@@ -642,11 +756,12 @@ void main() {
         find.byKey(const ValueKey('nearby-use-my-location')),
         findsNothing,
       );
-      expect(find.text('New Brunswick'), findsOneWidget);
+      expect(find.text('New Brunswick ▾'), findsOneWidget);
     });
 
-    testWidgets('with a device source, live tab asks for location on load and '
-        'shows walk times + origin chip', (tester) async {
+    testWidgets('Use my location is optional, then shows walk times', (
+      tester,
+    ) async {
       final repository = _StubRepository(
         _result(resources: [_resource(name: 'Town Pharmacy')]),
         deviceLocation: _ScriptedDeviceLocation(
@@ -661,8 +776,18 @@ void main() {
 
       await pumpScreen(tester, screen(repository));
 
+      expect(repository.nearDeviceCalls, 0);
+      expect(repository.calls, 1);
+      expect(find.text('Using your location'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('nearby-use-my-location')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
+      await tester.pumpAndSettle();
+
       expect(repository.nearDeviceCalls, 1);
-      expect(repository.calls, 0);
       expect(find.text('Using your location'), findsOneWidget);
       expect(find.text('~2 min walk'), findsOneWidget);
       expect(
@@ -689,11 +814,16 @@ void main() {
       );
 
       await pumpScreen(tester, screen(repository));
+      expect(repository.nearDeviceCalls, 0);
+      expect(find.text(kNearbyLocationDenied), findsNothing);
 
-      // Back on the town list — honestly labeled. No second tap needed.
+      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
+      await tester.pumpAndSettle();
+
+      // Back on the town list — honestly labeled.
       expect(repository.nearDeviceCalls, 1);
       expect(find.text(kNearbyLocationDenied), findsOneWidget);
-      expect(find.text('New Brunswick'), findsOneWidget);
+      expect(find.text('New Brunswick ▾'), findsOneWidget);
       expect(find.text('Using your location'), findsNothing);
       expect(find.textContaining('min walk'), findsNothing);
       expect(
@@ -717,6 +847,8 @@ void main() {
       );
 
       await pumpScreen(tester, screen(repository));
+      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
+      await tester.pumpAndSettle();
 
       expect(find.text(kNearbyLocationOff), findsOneWidget);
       expect(find.text('Using your location'), findsNothing);
@@ -739,6 +871,8 @@ void main() {
       );
 
       await pumpScreen(tester, screen(repository));
+      await tester.tap(find.byKey(const ValueKey('nearby-use-my-location')));
+      await tester.pumpAndSettle();
 
       expect(find.text(kNearbyNoPlacesNearYou), findsOneWidget);
       expect(find.text('Using your location'), findsOneWidget);

@@ -49,7 +49,7 @@ Authoritative detail + evidence tags: feature spec v0.4. Working names subject t
 
 | Area | MVP |
 |------|-----|
-| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map) |
+| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; remembered North/Central/South town; optional one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map) |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Survey domains plus **Sleep as its own area** (#29). Stress stays inside Physical Health (#30), not its own card. ~6th-grade; source-labeled; offline from `assets/content/learn.json`; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: **911 first** (high-contrast), then 988, Poison Control, ReachNJ, NJ Self-Help Group Clearinghouse, member’s CWC, NJ peer warmline; optional emergency card at the top (off by default, reads the real wallet) |
@@ -154,7 +154,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
 - Study build on `main`: four tabs + Help Now; default landing is My Health; first-launch disclaimer once; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off); My Health CRUD + Keystore/Keychain encryption + optional PIN + Erase. Learn loads topics from bundled `assets/content/learn.json`. Help Now: 911 first, ReachNJ + Clearinghouse listed, live national/verified NJ dialers behind `HELP_NOW_LIVE` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Warmline/CWC/Ask a Peer still sample.
-- Live Nearby device path: one-shot coarse GPS on load (coordinates transient / not cached); list sorted by proximity; town picker is the fallback when location is denied or unavailable; NJ region guardrail is skipped on the device-location path so travel out of state still works.
+- Live Nearby place choice: remembered North/Central/South town is the lookup (default New Brunswick). One-shot coarse GPS is an optional shortcut (coordinates transient / not cached); that list is sorted by proximity. If location is denied or unavailable, the tab returns to the remembered town. NJ region guardrail is skipped on the device-location path so travel out of state still works.
 - Live Nearby map (FIND-4): opt-in overhead map; Google Maps when `GOOGLE_MAPS_API_KEY` is set on native, else OSM/`flutter_map` (study default on Android); pins follow the shared category filter; no pan-to-refetch.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
 - Flutter web is **not** a ship or CI target (`web/` removed). Use Android emulator/device for local demos.

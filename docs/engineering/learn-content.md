@@ -3,7 +3,7 @@
 **Issue:** #32  
 **Asset:** `assets/content/learn.json`  
 **Loader:** `loadLearnTopics()` in `lib/data/content_catalog.dart`  
-**UI:** `LearnScreen` reads the asset at runtime (offline-first).
+**UI:** `LearnScreen` reads the asset at runtime (offline-first). The screen opens with “This does not replace seeing a doctor.”
 
 ## Shape
 

@@ -161,10 +161,12 @@ Plan: [`../superpowers/plans/2026-09-03-nearby-map.md`](../superpowers/plans/202
 
 ## Device location + proximity (2026-09-03, nearby-proximity)
 
-Live Nearby asks for a one-shot device fix on load (Android / iOS),
-sorts results nearest-first, and is not limited to New Brunswick. Town remains
-the honest fallback when location is denied, off, or unavailable — never shown
-as if it were device-based. Coordinates stay in memory only (never cached).
+Live Nearby looks up a remembered North/Central/South town (default New
+Brunswick) and keeps that choice on the phone. Use my location is an optional
+one-shot device fix (Android / iOS), sorts those results nearest-first, and is
+not limited to New Brunswick. Town remains the honest fallback when location is
+denied, off, or unavailable — never shown as if it were device-based.
+Coordinates stay in memory only (never cached).
 
 | Decision | As built |
 |---|---|

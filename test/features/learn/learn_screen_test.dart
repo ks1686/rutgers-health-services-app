@@ -42,6 +42,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+    expect(find.text(kLearnDoctorDisclaimer), findsOneWidget);
     expect(find.text('Physical Health'), findsOneWidget);
   });
 
@@ -65,7 +66,9 @@ void main() {
       ),
     );
     expect(find.text('Loading topics…'), findsOneWidget);
+    expect(find.text(kLearnDoctorDisclaimer), findsOneWidget);
     await tester.pumpAndSettle();
+    expect(find.text(kLearnDoctorDisclaimer), findsOneWidget);
     expect(find.text('Nutrition'), findsOneWidget);
     expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
   });
