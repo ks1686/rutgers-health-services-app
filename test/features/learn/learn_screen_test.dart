@@ -67,5 +67,48 @@ void main() {
     expect(find.text('Loading topics…'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.text('Nutrition'), findsOneWidget);
+    expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
+  });
+
+  testWidgets('Sleep is its own area and stress stays inside Physical Health', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: const Scaffold(body: LearnScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
+    expect(find.text('Sleep'), findsOneWidget);
+    expect(find.text('Stress management'), findsNothing);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+    expect(find.text('Everyday sleep tips'), findsOneWidget);
+    expect(find.text('Sleep apnea'), findsOneWidget);
+    expect(find.text('Stress management'), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Physical Health'));
+    await tester.pumpAndSettle();
+    expect(find.text('From: CDC'), findsOneWidget);
+    expect(find.text('Stress management'), findsOneWidget);
+    expect(find.text('Sleep apnea'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Everyday ways to ease stress'),
+      200,
+    );
+    await tester.tap(find.text('Everyday ways to ease stress'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('do not have to track'), findsOneWidget);
+    expect(find.text('Read more on MedlinePlus'), findsOneWidget);
   });
 }

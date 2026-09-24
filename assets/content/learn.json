@@ -3,8 +3,27 @@
     "title": "Physical Health",
     "iconLabel": "body",
     "summary": "Everyday care for your body.",
-    "body": "Check in with how you feel. Sleep, movement, and regular checkups help you stay well. Ask a peer or clinic if something feels off.",
-    "source": "CDC"
+    "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off.",
+    "source": "CDC",
+    "articlesHeading": "Stress management",
+    "articles": [
+      {
+        "title": "Everyday ways to ease stress",
+        "summary": "Small steps can take the edge off.",
+        "body": "Stress is a normal body response. A few slow breaths, a short walk, or talking with someone you trust can help. You do not have to track this or hit a goal. If stress gets in the way of daily life, talk with a doctor, counselor, or peer.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/stress.html"
+      },
+      {
+        "title": "When stress feels like too much",
+        "summary": "Ask for help if it will not let up.",
+        "body": "Feeling tense, worried, or worn out for many days is a reason to reach out. A clinic, counselor, or peer can help you sort next steps. If you might hurt yourself, open Help Now. This note does not replace a doctor.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/stress.html"
+      }
+    ]
   },
   {
     "title": "Mental Health",
@@ -40,5 +59,30 @@
     "summary": "Screenings and shots that help.",
     "body": "Vaccines and checkups can catch problems early. Ask your clinic which ones are right for you this year.",
     "source": "CDC"
+  },
+  {
+    "title": "Sleep",
+    "iconLabel": "sleep",
+    "summary": "Rest, on its own.",
+    "body": "Sleep stands on its own here. These short notes stay the same for a long time.",
+    "source": "",
+    "articles": [
+      {
+        "title": "Everyday sleep tips",
+        "summary": "A cool, dark room can help.",
+        "body": "Try to go to bed and wake up around the same time. A cooler, darker, quiet room can make sleep easier. Skip big meals, caffeine, and bright screens close to bedtime when you can. If sleep stays hard, talk with a doctor.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/ency/patientinstructions/000757.htm"
+      },
+      {
+        "title": "Sleep apnea",
+        "summary": "Breathing can pause during sleep.",
+        "body": "Sleep apnea means breathing stops and starts while you sleep. Loud snoring, gasping, or feeling very tired in the day can be signs. A doctor can check it. This short note is not a diagnosis.",
+        "source": "NHLBI",
+        "linkLabel": "Read more on NHLBI",
+        "linkUrl": "https://www.nhlbi.nih.gov/health/sleep-apnea"
+      }
+    ]
   }
 ]
