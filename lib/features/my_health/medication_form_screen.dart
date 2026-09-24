@@ -4,7 +4,9 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import 'data/health_controller.dart';
 import 'data/health_models.dart';
+import 'data/reminder_plan.dart';
 import 'health_scope.dart';
+import 'reminder_pickers.dart';
 
 class MedicationFormScreen extends StatefulWidget {
   const MedicationFormScreen({super.key, this.existing});
@@ -21,6 +23,7 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
   late final TextEditingController _purpose;
   late final TextEditingController _schedule;
   late bool _remind;
+  late List<int> _remindMinutes;
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
     _purpose = TextEditingController(text: e?.purpose ?? '');
     _schedule = TextEditingController(text: e?.schedule ?? '');
     _remind = e?.remind ?? false;
+    _remindMinutes = List<int>.of(e?.remindMinutes ?? const []);
   }
 
   @override
@@ -43,6 +47,23 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final controller = HealthScope.of(context);
+    final minutes = _remindMinutes.isEmpty
+        ? inferReminderMinutes(_schedule.text)
+        : normalizeReminderMinutes(_remindMinutes);
+    if (_remind) {
+      final allowed = await controller.requestReminderPermission();
+      if (!allowed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Reminder saved. Allow notifications in More so this phone can alert you.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+    if (!mounted) return;
     final id = widget.existing?.id ?? HealthController.newId();
     await controller.upsertMedication(
       HealthMedication(
@@ -51,9 +72,30 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
         purpose: _purpose.text.trim(),
         schedule: _schedule.text.trim(),
         remind: _remind,
+        remindMinutes: minutes,
       ),
     );
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _changeMinute(int minute) async {
+    final picked = await pickMinuteOfDay(context, initial: minute);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _remindMinutes = normalizeReminderMinutes([
+        for (final existing in _remindMinutes)
+          if (existing != minute) existing,
+        picked,
+      ]);
+    });
+  }
+
+  Future<void> _addMinute() async {
+    final picked = await pickMinuteOfDay(context, initial: 8 * 60);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _remindMinutes = normalizeReminderMinutes([..._remindMinutes, picked]);
+    });
   }
 
   Future<void> _delete() async {
@@ -137,12 +179,53 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Remind me on this phone'),
               subtitle: const Text(
-                'Saved for later — phone alerts are not turned on in this build.',
+                'Uses this medication. The alert stays on this phone and works offline.',
                 style: TextStyle(color: CwcColors.sub, fontSize: 14),
               ),
               value: _remind,
-              onChanged: (v) => setState(() => _remind = v),
+              onChanged: (v) => setState(() {
+                _remind = v;
+                if (v && _remindMinutes.isEmpty) {
+                  _remindMinutes = inferReminderMinutes(_schedule.text);
+                }
+              }),
             ),
+            if (_remind) ...[
+              for (final minute in _remindMinutes)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Remind me at ${formatMinuteOfDay(minute)}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Change time',
+                        onPressed: () => _changeMinute(minute),
+                        icon: const Icon(Icons.schedule),
+                      ),
+                      if (_remindMinutes.length > 1)
+                        IconButton(
+                          tooltip: 'Remove time',
+                          onPressed: () => setState(() {
+                            _remindMinutes = [
+                              for (final existing in _remindMinutes)
+                                if (existing != minute) existing,
+                            ];
+                          }),
+                          icon: const Icon(Icons.close),
+                        ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _addMinute,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add another time'),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             FilledButton(onPressed: _save, child: const Text('Save')),
             if (editing) ...[

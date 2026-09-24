@@ -10,6 +10,8 @@ class HealthAppointment {
     required this.phone,
     this.note,
     this.remind = false,
+    this.when,
+    this.remindAt,
   });
 
   final String id;
@@ -19,8 +21,15 @@ class HealthAppointment {
   final String phone;
   final String? note;
 
-  /// Stored preference only — OS notifications are out of scope this award.
+  /// When true, this phone schedules an on-device alert for this visit.
   final bool remind;
+
+  /// Appointment instant, local time. The display string stays in [whenLabel].
+  final DateTime? when;
+
+  /// When the alert fires. Defaults to [when] when the person has not picked
+  /// a different time. Null means "use the appointment time."
+  final DateTime? remindAt;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -30,6 +39,8 @@ class HealthAppointment {
     'phone': phone,
     if (note != null) 'note': note,
     'remind': remind,
+    if (when != null) 'when': when!.toIso8601String(),
+    if (remindAt != null) 'remindAt': remindAt!.toIso8601String(),
   };
 
   factory HealthAppointment.fromJson(Map<String, dynamic> json) {
@@ -41,6 +52,8 @@ class HealthAppointment {
       phone: json['phone'] as String,
       note: json['note'] as String?,
       remind: json['remind'] as bool? ?? false,
+      when: _parseIso(json['when']),
+      remindAt: _parseIso(json['remindAt']),
     );
   }
 
@@ -52,6 +65,8 @@ class HealthAppointment {
     String? phone,
     String? note,
     bool? remind,
+    DateTime? when,
+    DateTime? remindAt,
     bool clearNote = false,
   }) {
     return HealthAppointment(
@@ -62,6 +77,8 @@ class HealthAppointment {
       phone: phone ?? this.phone,
       note: clearNote ? null : (note ?? this.note),
       remind: remind ?? this.remind,
+      when: when ?? this.when,
+      remindAt: remindAt ?? this.remindAt,
     );
   }
 }
@@ -73,13 +90,19 @@ class HealthMedication {
     required this.purpose,
     required this.schedule,
     this.remind = false,
+    this.remindMinutes = const [],
   });
 
   final String id;
   final String name;
   final String purpose;
   final String schedule;
+
+  /// When true, this phone schedules a daily on-device alert for this medicine.
   final bool remind;
+
+  /// Local minutes from midnight. The saved [name] and [schedule] are the alert.
+  final List<int> remindMinutes;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -87,6 +110,7 @@ class HealthMedication {
     'purpose': purpose,
     'schedule': schedule,
     'remind': remind,
+    if (remindMinutes.isNotEmpty) 'remindMinutes': remindMinutes,
   };
 
   factory HealthMedication.fromJson(Map<String, dynamic> json) {
@@ -96,6 +120,10 @@ class HealthMedication {
       purpose: json['purpose'] as String,
       schedule: json['schedule'] as String,
       remind: json['remind'] as bool? ?? false,
+      remindMinutes: [
+        for (final row in (json['remindMinutes'] as List? ?? const []))
+          if (row is num) row.toInt(),
+      ],
     );
   }
 
@@ -105,6 +133,7 @@ class HealthMedication {
     String? purpose,
     String? schedule,
     bool? remind,
+    List<int>? remindMinutes,
   }) {
     return HealthMedication(
       id: id ?? this.id,
@@ -112,8 +141,14 @@ class HealthMedication {
       purpose: purpose ?? this.purpose,
       schedule: schedule ?? this.schedule,
       remind: remind ?? this.remind,
+      remindMinutes: remindMinutes ?? this.remindMinutes,
     );
   }
+}
+
+DateTime? _parseIso(Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value)?.toLocal();
 }
 
 class HealthProvider {

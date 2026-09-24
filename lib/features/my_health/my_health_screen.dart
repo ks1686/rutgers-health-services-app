@@ -202,6 +202,12 @@ class MyHealthScreen extends StatelessWidget {
                         '${appt.note != null ? '\n${appt.note}' : ''}',
                       ),
                       isThreeLine: true,
+                      trailing: appt.remind
+                          ? const Tooltip(
+                              message: 'Reminder on',
+                              child: Icon(Icons.notifications_active_outlined),
+                            )
+                          : null,
                       onTap: () => _openForm(
                         context,
                         AppointmentFormScreen(existing: appt),
@@ -225,6 +231,12 @@ class MyHealthScreen extends StatelessWidget {
                       title: Text(med.name),
                       subtitle: Text('${med.purpose}\n${med.schedule}'),
                       isThreeLine: true,
+                      trailing: med.remind
+                          ? const Tooltip(
+                              message: 'Reminder on',
+                              child: Icon(Icons.notifications_active_outlined),
+                            )
+                          : null,
                       onTap: () => _openForm(
                         context,
                         MedicationFormScreen(existing: med),

@@ -71,7 +71,7 @@ class _NearbyDemoView extends StatefulWidget {
   State<_NearbyDemoView> createState() => _NearbyDemoViewState();
 }
 
-Future<void> publishRememberedTown(
+Future<void> _publishRememberedTown(
   BuildContext context,
   NearbyPlacePreference picked,
 ) async {
@@ -134,7 +134,7 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
     await store.save(picked);
     if (!mounted) return;
     setState(() => _place = picked);
-    await publishRememberedTown(context, picked);
+    await _publishRememberedTown(context, picked);
   }
 
   @override
@@ -375,7 +375,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         });
       });
     });
-    await publishRememberedTown(context, picked);
+    await _publishRememberedTown(context, picked);
   }
 
   void _reload() {

@@ -5,16 +5,20 @@ import 'package:flutter/foundation.dart';
 import '../../../data/demo_health.dart';
 import 'health_models.dart';
 import 'health_store.dart';
+import 'reminder_scheduler.dart';
 
-/// Owns My Health state for the shell. Local-only; never syncs.
+/// Owns My Health state for the shell. Local-only; never syncs to a server.
 class HealthController extends ChangeNotifier {
-  HealthController(this._store);
+  HealthController(this._store, {ReminderScheduler? reminders})
+    : _reminders = reminders ?? const NoopReminderScheduler();
 
   final HealthStore _store;
+  final ReminderScheduler _reminders;
 
   HealthSnapshot _snapshot = const HealthSnapshot();
   bool _ready = false;
   bool _unlocked = false;
+  bool _suppressReminders = false;
   String? _error;
 
   HealthSnapshot get snapshot => _snapshot;
@@ -59,6 +63,9 @@ class HealthController extends ChangeNotifier {
       _snapshot = snap;
       _unlocked = !snap.hasPin;
       _ready = true;
+      notifyListeners();
+      await _syncReminders();
+      return;
     } catch (e) {
       _error = 'Could not load My Health.';
       _ready = true;
@@ -113,6 +120,40 @@ class HealthController extends ChangeNotifier {
     _snapshot = next;
     await _store.write(next);
     notifyListeners();
+    await _syncReminders();
+  }
+
+  /// Cancels pending My Health alerts while Helper Mode is on, then restores
+  /// them from the saved records when it is turned off.
+  Future<void> setRemindersSuppressed(bool value) async {
+    if (_suppressReminders == value) return;
+    _suppressReminders = value;
+    if (_ready) await _syncReminders();
+  }
+
+  Future<void> _syncReminders() async {
+    try {
+      await _reminders.sync(_snapshot, suppress: _suppressReminders);
+    } catch (_) {
+      // The saved record stays. The next launch tries the phone alert again.
+    }
+  }
+
+  /// Asks this phone for permission to show My Health alerts.
+  Future<bool> requestReminderPermission({bool precise = false}) async {
+    try {
+      return await _reminders.requestPermission(precise: precise);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> remindersAllowed() async {
+    try {
+      return await _reminders.notificationsAllowed();
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> upsertAppointment(HealthAppointment appointment) async {
@@ -250,6 +291,7 @@ class HealthController extends ChangeNotifier {
     _snapshot = const HealthSnapshot(initialized: true);
     _unlocked = true;
     notifyListeners();
+    await _syncReminders();
   }
 
   static bool _validPin(String pin) {
