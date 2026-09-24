@@ -4,6 +4,7 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
 import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
+import '../my_health/notification_settings_screen.dart';
 import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
@@ -33,7 +34,7 @@ class MoreScreen extends StatelessWidget {
         title: const Text('Erase my information?'),
         content: const Text(
           'This deletes appointments, medications, providers, wallet details, '
-          'and your My Health PIN from this phone. It cannot be undone.',
+          'reminders, and your My Health PIN from this phone. It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -117,6 +118,18 @@ class MoreScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const AboutThisAppPage(),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              _MoreTile(
+                icon: Icons.notifications_outlined,
+                title: 'Notifications',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NotificationSettingsScreen(),
                     ),
                   );
                 },

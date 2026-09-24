@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/my_health/data/health_controller.dart';
 import 'features/my_health/data/health_store_factory.dart';
+import 'features/my_health/data/local_reminder_scheduler.dart';
 import 'features/my_health/health_scope.dart';
 import 'features/onboarding/disclaimer_prefs.dart';
 import 'features/onboarding/disclaimer_screen.dart';
@@ -50,7 +51,7 @@ class _CwcAppState extends State<CwcApp> {
     }
     try {
       final store = await HealthStoreFactory.openSecure();
-      _owned = HealthController(store);
+      _owned = HealthController(store, reminders: LocalReminderScheduler());
       _health = _owned;
       await _health!.load();
     } catch (e) {

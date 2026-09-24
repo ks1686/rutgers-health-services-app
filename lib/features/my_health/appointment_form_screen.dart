@@ -5,7 +5,9 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import 'data/health_controller.dart';
 import 'data/health_models.dart';
+import 'data/reminder_plan.dart';
 import 'health_scope.dart';
+import 'reminder_pickers.dart';
 
 class AppointmentFormScreen extends StatefulWidget {
   const AppointmentFormScreen({super.key, this.existing});
@@ -24,6 +26,9 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   late final TextEditingController _phone;
   late final TextEditingController _note;
   late bool _remind;
+  DateTime? _whenAt;
+  DateTime? _remindAt;
+  bool _remindTimeCustom = false;
 
   @override
   void initState() {
@@ -35,6 +40,12 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
     _phone = TextEditingController(text: e?.phone ?? '');
     _note = TextEditingController(text: e?.note ?? '');
     _remind = e?.remind ?? false;
+    if (e != null) {
+      _whenAt = e.when ?? parseAppointmentWhen(e.whenLabel);
+      _remindAt = e.remindAt ?? _whenAt;
+      _remindTimeCustom =
+          e.remindAt != null && (e.when == null || e.remindAt != e.when);
+    }
   }
 
   @override
@@ -48,54 +59,62 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   }
 
   Future<void> _pickWhen() async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 5),
+    final picked = await pickLocalDateTime(
+      context,
+      initial: _whenAt ?? DateTime.now(),
     );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(now),
-    );
-    if (time == null || !mounted) return;
-    final dt = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    if (picked == null || !mounted) return;
     setState(() {
-      _when.text =
-          '${weekdays[dt.weekday - 1]}, ${months[dt.month - 1]} ${dt.day} · '
-          '$hour:$minute $period';
+      final previous = _whenAt;
+      _whenAt = picked;
+      _when.text = formatAppointmentWhen(picked);
+      if (!_remindTimeCustom || _remindAt == null || _remindAt == previous) {
+        _remindAt = picked;
+      }
+    });
+  }
+
+  Future<void> _pickRemindAt() async {
+    final picked = await pickLocalDateTime(
+      context,
+      initial:
+          _remindAt ?? _whenAt ?? DateTime.now().add(const Duration(hours: 1)),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _remindAt = picked;
+      _remindTimeCustom = true;
     });
   }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final controller = HealthScope.of(context);
+    final whenAt = parseAppointmentWhen(_when.text.trim()) ?? _whenAt;
+    var remindAt = _remindAt ?? whenAt;
+    if (_remind && remindAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Choose when this reminder should fire.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_remind) {
+      final allowed = await controller.requestReminderPermission();
+      if (!allowed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Reminder saved. Allow notifications in More so this phone can alert you.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+    if (!mounted) return;
     final id = widget.existing?.id ?? HealthController.newId();
     await controller.upsertAppointment(
       HealthAppointment(
@@ -106,6 +125,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         phone: _phone.text.trim(),
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         remind: _remind,
+        when: whenAt,
+        remindAt: remindAt,
       ),
     );
     if (mounted) Navigator.of(context).pop();
@@ -212,12 +233,39 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Remind me on this phone'),
               subtitle: const Text(
-                'Saved for later — phone alerts are not turned on in this build.',
+                'Uses this appointment. The alert stays on this phone and works offline.',
                 style: TextStyle(color: CwcColors.sub, fontSize: 14),
               ),
               value: _remind,
-              onChanged: (v) => setState(() => _remind = v),
+              onChanged: (v) => setState(() {
+                _remind = v;
+                if (v && _remindAt == null) {
+                  _remindAt =
+                      parseAppointmentWhen(_when.text.trim()) ?? _whenAt;
+                }
+              }),
             ),
+            if (_remind)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                onTap: _pickRemindAt,
+                title: Text(
+                  _remindAt == null
+                      ? 'Choose when to remind you'
+                      : 'Reminder: ${formatAppointmentWhen(_remindAt!)}',
+                ),
+                subtitle: Text(
+                  _remindAt != null && !_remindAt!.isAfter(DateTime.now())
+                      ? 'That time has already passed, so this phone will not alert.'
+                      : 'You do not type this appointment again.',
+                  style: const TextStyle(color: CwcColors.sub, fontSize: 14),
+                ),
+                trailing: IconButton(
+                  tooltip: 'Change reminder time',
+                  onPressed: _pickRemindAt,
+                  icon: const Icon(Icons.schedule),
+                ),
+              ),
             const SizedBox(height: 16),
             FilledButton(onPressed: _save, child: const Text('Save')),
             if (editing) ...[
