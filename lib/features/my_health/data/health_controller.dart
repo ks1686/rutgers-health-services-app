@@ -26,7 +26,9 @@ class HealthController extends ChangeNotifier {
   List<HealthAppointment> get appointments => _snapshot.appointments;
   List<HealthMedication> get medications => _snapshot.medications;
   List<HealthProvider> get providers => _snapshot.providers;
+  List<HealthDocument> get documents => _snapshot.documents;
   HealthWallet get wallet => _snapshot.wallet;
+  EmergencyCardChoices get emergencyCard => _snapshot.emergencyCard;
 
   /// App-local salt — not a secret; slows casual plaintext prefs snooping.
   static const _pinSalt = 'cwc-health-pin-v1';
@@ -179,8 +181,34 @@ class HealthController extends ChangeNotifier {
     );
   }
 
+  Future<void> upsertDocument(HealthDocument document) async {
+    final list = [..._snapshot.documents];
+    final i = list.indexWhere((d) => d.id == document.id);
+    if (i >= 0) {
+      list[i] = document;
+    } else {
+      list.add(document);
+    }
+    await _persist(_snapshot.copyWith(documents: list));
+  }
+
+  Future<void> deleteDocument(String id) async {
+    await _persist(
+      _snapshot.copyWith(
+        documents: [
+          for (final d in _snapshot.documents)
+            if (d.id != id) d,
+        ],
+      ),
+    );
+  }
+
   Future<void> updateWallet(HealthWallet wallet) async {
     await _persist(_snapshot.copyWith(wallet: wallet));
+  }
+
+  Future<void> updateEmergencyCard(EmergencyCardChoices choices) async {
+    await _persist(_snapshot.copyWith(emergencyCard: choices));
   }
 
   /// Sets or replaces the optional My Health PIN (ONB-3). Digits only, 4–8.

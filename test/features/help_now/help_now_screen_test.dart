@@ -152,6 +152,12 @@ void main() {
         conditions: 'Asthma',
       ),
     );
+    await health.updateEmergencyCard(
+      const EmergencyCardChoices(
+        showEmergencyContact: true,
+        showConditions: true,
+      ),
+    );
 
     await tester.binding.setSurfaceSize(const Size(400, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -170,10 +176,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Jordan P.'), findsOneWidget);
     expect(find.textContaining('Asthma'), findsOneWidget);
+    expect(find.textContaining('Sertraline'), findsNothing);
+    expect(find.textContaining('Metformin'), findsNothing);
     expect(
       find.textContaining('Emergency card preview (sample)'),
       findsNothing,
     );
     expect(find.textContaining('Alex M.'), findsNothing);
+  });
+
+  testWidgets('turning the card on shares nothing until a field is chosen', (
+    tester,
+  ) async {
+    final health = HealthController(InMemoryHealthStore());
+    await health.load();
+    await health.setPin('1234');
+    health.lock();
+
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: HealthScope(
+          controller: health,
+          child: const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    expect(health.isUnlocked, isFalse);
+    expect(find.textContaining('Nothing from My Health'), findsOneWidget);
+    expect(find.textContaining('Sertraline'), findsNothing);
+    expect(find.textContaining('Alex M.'), findsNothing);
+    expect(find.textContaining('Diabetes'), findsNothing);
   });
 }

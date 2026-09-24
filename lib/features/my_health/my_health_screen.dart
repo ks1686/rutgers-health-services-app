@@ -8,6 +8,7 @@ import 'appointment_form_screen.dart';
 import 'data/health_controller.dart';
 import 'data/health_launchers.dart';
 import 'data/health_models.dart';
+import 'document_form_screen.dart';
 import 'health_scope.dart';
 import 'medication_form_screen.dart';
 import 'provider_form_screen.dart';
@@ -245,6 +246,38 @@ class MyHealthScreen extends StatelessWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Personal papers',
+              onAdd: () => _openForm(context, const DocumentFormScreen()),
+              addButtonKey: const ValueKey('add-personal-paper'),
+              children: [
+                const Text(
+                  'Only on this phone. A psychiatric advance directive, '
+                  'living will, service or support animal note, RAT plan, '
+                  'or Charge It workbook.',
+                  style: TextStyle(color: CwcColors.sub),
+                ),
+                const SizedBox(height: 8),
+                if (health.documents.isEmpty)
+                  const _EmptyHint('No personal papers yet. Tap Add.'),
+                for (final paper in health.documents)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(paper.title),
+                    subtitle: Text(
+                      paper.hasFile
+                          ? '${paper.kind.label}\n${paper.fileName}'
+                          : paper.kind.label,
+                    ),
+                    isThreeLine: paper.hasFile,
+                    onTap: () =>
+                        _openForm(context, DocumentFormScreen(existing: paper)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _EmergencyCardChoices(health: health),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: () {
@@ -300,6 +333,99 @@ class _PinLockView extends StatelessWidget {
           FilledButton(onPressed: onUnlock, child: const Text('Enter PIN')),
         ],
       ),
+    );
+  }
+}
+
+class _EmergencyCardChoices extends StatelessWidget {
+  const _EmergencyCardChoices({required this.health});
+
+  final HealthController health;
+
+  Future<void> _set(
+    EmergencyCardChoices Function(EmergencyCardChoices current) change,
+  ) {
+    return health.updateEmergencyCard(change(health.emergencyCard));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final choices = health.emergencyCard;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Emergency card',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Everything here starts off. Help Now can show only what you '
+              'turn on, without opening the rest of My Health. Anyone with '
+              'this phone can see those items. The rest stays behind your PIN.',
+              style: TextStyle(color: CwcColors.sub, height: 1.35),
+            ),
+            _ChoiceSwitch(
+              label: 'Emergency contact',
+              value: choices.showEmergencyContact,
+              onChanged: (on) =>
+                  _set((c) => c.copyWith(showEmergencyContact: on)),
+            ),
+            _ChoiceSwitch(
+              label: 'Conditions',
+              value: choices.showConditions,
+              onChanged: (on) => _set((c) => c.copyWith(showConditions: on)),
+            ),
+            _ChoiceSwitch(
+              label: 'Medications',
+              value: choices.showMedications,
+              onChanged: (on) => _set((c) => c.copyWith(showMedications: on)),
+            ),
+            _ChoiceSwitch(
+              label: 'Providers',
+              value: choices.showProviders,
+              onChanged: (on) => _set((c) => c.copyWith(showProviders: on)),
+            ),
+            _ChoiceSwitch(
+              label: 'Appointment notes',
+              value: choices.showAppointmentNotes,
+              onChanged: (on) =>
+                  _set((c) => c.copyWith(showAppointmentNotes: on)),
+            ),
+            _ChoiceSwitch(
+              label: 'Psychiatric advance directive',
+              value: choices.showPsychiatricAdvanceDirective,
+              onChanged: (on) =>
+                  _set((c) => c.copyWith(showPsychiatricAdvanceDirective: on)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceSwitch extends StatelessWidget {
+  const _ChoiceSwitch({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label),
+      value: value,
+      onChanged: onChanged,
     );
   }
 }
@@ -431,11 +557,13 @@ class _SectionCard extends StatelessWidget {
     required this.title,
     required this.onAdd,
     required this.children,
+    this.addButtonKey,
   });
 
   final String title;
   final VoidCallback onAdd;
   final List<Widget> children;
+  final Key? addButtonKey;
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +585,7 @@ class _SectionCard extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
+                  key: addButtonKey,
                   onPressed: onAdd,
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Add'),
