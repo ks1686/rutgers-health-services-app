@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
+import '../settings/app_preferences.dart';
 import 'data/health_launchers.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
@@ -77,6 +78,7 @@ class WalletCardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final health = HealthScope.of(context);
+    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
     return ListenableBuilder(
       listenable: health,
       builder: (context, _) {
@@ -87,11 +89,12 @@ class WalletCardScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Wallet Card'),
             actions: [
-              IconButton(
-                tooltip: 'Edit wallet details',
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _editWallet(context),
-              ),
+              if (!hiding)
+                IconButton(
+                  tooltip: 'Edit wallet details',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _editWallet(context),
+                ),
               const HelpNowButton(),
             ],
           ),
@@ -115,63 +118,67 @@ class WalletCardScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+                        const Text(
                           'Works offline · on this phone only',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 18),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Medications',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        if (meds.isEmpty)
-                          const Text('None saved yet')
-                        else
-                          for (final med in meds)
-                            Text('• ${med.name} — ${med.purpose}'),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Providers',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        if (providers.isEmpty)
-                          const Text('None saved yet')
-                        else
-                          for (final provider in providers)
-                            Text('• ${provider.name} (${provider.phone})'),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Emergency contact',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          wallet.emergencyContact.isEmpty
-                              ? 'None saved yet'
-                              : wallet.emergencyContact,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Conditions (optional)',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          wallet.conditions.isEmpty
-                              ? 'None saved yet'
-                              : wallet.conditions,
-                        ),
+                        if (hiding)
+                          const Text(
+                            'Hidden while someone is helping you. Your own information is still saved on this phone.',
+                            style: TextStyle(fontSize: 18, height: 1.4),
+                          )
+                        else ...[
+                          const Text(
+                            'Medications',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          if (meds.isEmpty)
+                            const Text('None saved yet')
+                          else
+                            for (final med in meds)
+                              Text('• ${med.name} — ${med.purpose}'),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Providers',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          if (providers.isEmpty)
+                            const Text('None saved yet')
+                          else
+                            for (final provider in providers)
+                              Text('• ${provider.name} (${provider.phone})'),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Emergency contact',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            wallet.emergencyContact.isEmpty
+                                ? 'None saved yet'
+                                : wallet.emergencyContact,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Conditions (optional)',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            wallet.conditions.isEmpty
+                                ? 'None saved yet'
+                                : wallet.conditions,
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
-              if (providers.isNotEmpty) ...[
+              if (!hiding && providers.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 const Text(
                   'Quick call',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                 ),
                 for (final provider in providers)
                   ListTile(

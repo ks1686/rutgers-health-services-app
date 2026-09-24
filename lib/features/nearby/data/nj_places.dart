@@ -60,6 +60,16 @@ const kNjTowns = <NjRegion, List<String>>{
   ],
 };
 
+/// Region that lists [town], when the town is one of the picker choices.
+NjRegion? regionForTown(String town) {
+  final trimmed = town.trim();
+  if (trimmed.isEmpty) return null;
+  for (final entry in kNjTowns.entries) {
+    if (entry.value.contains(trimmed)) return entry.key;
+  }
+  return null;
+}
+
 class NearbyPlacePreference {
   const NearbyPlacePreference({required this.region, required this.town});
 

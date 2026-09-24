@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
+import '../settings/app_preferences.dart';
 import 'appointment_form_screen.dart';
 import 'data/health_controller.dart';
 import 'data/health_launchers.dart';
@@ -136,9 +137,23 @@ class MyHealthScreen extends StatelessWidget {
     );
   }
 
+  List<Widget> _visibleRecords({
+    required bool hiding,
+    required bool isEmpty,
+    required String emptyHint,
+    required List<Widget> records,
+  }) {
+    if (hiding) {
+      return const [_EmptyHint('Hidden while someone is helping you.')];
+    }
+    if (isEmpty) return [_EmptyHint(emptyHint)];
+    return records;
+  }
+
   @override
   Widget build(BuildContext context) {
     final health = HealthScope.of(context);
+    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
     return ListenableBuilder(
       listenable: health,
       builder: (context, _) {
@@ -173,78 +188,89 @@ class MyHealthScreen extends StatelessWidget {
             _SectionCard(
               title: 'Appointments',
               onAdd: () => _openForm(context, const AppointmentFormScreen()),
-              children: [
-                if (health.appointments.isEmpty)
-                  const _EmptyHint('No appointments yet. Tap Add.'),
-                for (final appt in health.appointments)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(appt.provider),
-                    subtitle: Text(
-                      '${appt.whenLabel}\n${appt.location}'
-                      '${appt.note != null ? '\n${appt.note}' : ''}',
+              children: _visibleRecords(
+                hiding: hiding,
+                isEmpty: health.appointments.isEmpty,
+                emptyHint: 'No appointments yet. Tap Add.',
+                records: [
+                  for (final appt in health.appointments)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(appt.provider),
+                      subtitle: Text(
+                        '${appt.whenLabel}\n${appt.location}'
+                        '${appt.note != null ? '\n${appt.note}' : ''}',
+                      ),
+                      isThreeLine: true,
+                      onTap: () => _openForm(
+                        context,
+                        AppointmentFormScreen(existing: appt),
+                      ),
                     ),
-                    isThreeLine: true,
-                    onTap: () => _openForm(
-                      context,
-                      AppointmentFormScreen(existing: appt),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Medications',
               onAdd: () => _openForm(context, const MedicationFormScreen()),
-              children: [
-                if (health.medications.isEmpty)
-                  const _EmptyHint('No medications yet. Tap Add.'),
-                for (final med in health.medications)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(med.name),
-                    subtitle: Text('${med.purpose}\n${med.schedule}'),
-                    isThreeLine: true,
-                    onTap: () =>
-                        _openForm(context, MedicationFormScreen(existing: med)),
-                  ),
-              ],
+              children: _visibleRecords(
+                hiding: hiding,
+                isEmpty: health.medications.isEmpty,
+                emptyHint: 'No medications yet. Tap Add.',
+                records: [
+                  for (final med in health.medications)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(med.name),
+                      subtitle: Text('${med.purpose}\n${med.schedule}'),
+                      isThreeLine: true,
+                      onTap: () => _openForm(
+                        context,
+                        MedicationFormScreen(existing: med),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Providers & Portals',
               onAdd: () => _openForm(context, const ProviderFormScreen()),
-              children: [
-                if (health.providers.isEmpty)
-                  const _EmptyHint('No providers yet. Tap Add.'),
-                for (final provider in health.providers)
-                  _ProviderTile(
-                    provider: provider,
-                    onEdit: () => _openForm(
-                      context,
-                      ProviderFormScreen(existing: provider),
-                    ),
-                    onCall: () => _launch(healthTelUri(provider.phone)),
-                    onText: () => _launch(healthSmsUri(provider.phone)),
-                    onPortal: provider.portalUrl == null
-                        ? null
-                        : () {
-                            final uri = healthPortalUri(provider.portalUrl);
-                            if (uri == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'That portal address does not look right.',
+              children: _visibleRecords(
+                hiding: hiding,
+                isEmpty: health.providers.isEmpty,
+                emptyHint: 'No providers yet. Tap Add.',
+                records: [
+                  for (final provider in health.providers)
+                    _ProviderTile(
+                      provider: provider,
+                      onEdit: () => _openForm(
+                        context,
+                        ProviderFormScreen(existing: provider),
+                      ),
+                      onCall: () => _launch(healthTelUri(provider.phone)),
+                      onText: () => _launch(healthSmsUri(provider.phone)),
+                      onPortal: provider.portalUrl == null
+                          ? null
+                          : () {
+                              final uri = healthPortalUri(provider.portalUrl);
+                              if (uri == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'That portal address does not look right.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
                                   ),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                              return;
-                            }
-                            _launch(uri);
-                          },
-                  ),
-              ],
+                                );
+                                return;
+                              }
+                              _launch(uri);
+                            },
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             _SectionCard(
@@ -459,7 +485,7 @@ class _PrivacyBanner extends StatelessWidget {
             hasPin
                 ? 'Protected by your PIN — stored encrypted on this phone.'
                 : 'Your info stays encrypted on this phone. You can add an optional PIN.',
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -579,7 +605,7 @@ class _SectionCard extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/demo_resources.dart';
 import '../../theme/cwc_theme.dart';
+import '../settings/app_preferences.dart';
 import '../../widgets/demo_banner.dart';
 import '../../widgets/demo_snackbar.dart';
 import 'data/nearby_config.dart';
@@ -70,6 +71,15 @@ class _NearbyDemoView extends StatefulWidget {
   State<_NearbyDemoView> createState() => _NearbyDemoViewState();
 }
 
+Future<void> publishRememberedTown(
+  BuildContext context,
+  NearbyPlacePreference picked,
+) async {
+  final prefs = AppPreferencesScope.maybeOf(context);
+  if (prefs == null || prefs.rememberedTown == picked.town) return;
+  await prefs.setRememberedTown(picked.town);
+}
+
 class _NearbyDemoViewState extends State<_NearbyDemoView> {
   String _category = 'All';
   bool _showMapPlaceholder = false;
@@ -80,6 +90,22 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
     if (_place.town != demoTown) return const [];
     if (_category == 'All') return demoResources;
     return demoResources.where((r) => r.category == _category).toList();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final remembered = AppPreferencesScope.maybeOf(context)?.rememberedTown;
+    if (remembered == null) return;
+    final town = nearbyTownFromPreference(remembered);
+    if (town == _place.town) return;
+    final listed = regionForTown(town);
+    setState(() {
+      _place = NearbyPlacePreference(
+        region: listed ?? _place.region,
+        town: town,
+      );
+    });
   }
 
   @override
@@ -108,6 +134,7 @@ class _NearbyDemoViewState extends State<_NearbyDemoView> {
     await store.save(picked);
     if (!mounted) return;
     setState(() => _place = picked);
+    await publishRememberedTown(context, picked);
   }
 
   @override
@@ -252,6 +279,21 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   final Map<String, GlobalKey> _cardKeys = {};
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final remembered = AppPreferencesScope.maybeOf(context)?.rememberedTown;
+    if (remembered == null) return;
+    final town = nearbyTownFromPreference(remembered);
+    if (town == _query.town && town == _place.town) return;
+    final listed = regionForTown(town);
+    _place = NearbyPlacePreference(region: listed ?? _place.region, town: town);
+    _query = NearbyQuery(town: town);
+    if (_repositoryReady && !_deviceMode && !_reloadQueued) {
+      _reload();
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
     _pending = _start();
@@ -333,6 +375,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         });
       });
     });
+    await publishRememberedTown(context, picked);
   }
 
   void _reload() {

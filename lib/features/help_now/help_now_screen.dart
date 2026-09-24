@@ -9,6 +9,7 @@ import '../../widgets/link_launcher.dart';
 import '../my_health/data/emergency_card.dart';
 import '../my_health/data/health_models.dart';
 import '../my_health/health_scope.dart';
+import '../settings/app_preferences.dart';
 import 'help_now_config.dart';
 
 const helpNowEmergencyCardPref = 'cwc_help_now_show_emergency_card';
@@ -91,6 +92,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
         if (action.section == HelpNowSection.additional) action,
     ];
     final health = HealthScope.maybeOf(context);
+    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -127,6 +129,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
             _EmergencyCardBlock(
               showCard: _showEmergencyCard,
               onChanged: _setShowCard,
+              detailsHidden: hiding,
               preview: emergencyCardPreview(
                 health?.snapshot ?? const HealthSnapshot(),
               ),
@@ -173,7 +176,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
         color: CwcColors.ink,
       ),
@@ -186,11 +189,13 @@ class _EmergencyCardBlock extends StatelessWidget {
     required this.showCard,
     required this.onChanged,
     required this.preview,
+    this.detailsHidden = false,
   });
 
   final bool showCard;
   final ValueChanged<bool> onChanged;
   final String preview;
+  final bool detailsHidden;
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +214,7 @@ class _EmergencyCardBlock extends StatelessWidget {
                 : 'Off by default. Nothing from My Health shows until you choose it.',
             style: const TextStyle(
               color: CwcColors.sub,
-              fontSize: 16,
+              fontSize: 18,
               height: 1.35,
             ),
           ),
@@ -228,7 +233,7 @@ class _EmergencyCardBlock extends StatelessWidget {
               border: Border.all(color: CwcColors.line),
             ),
             child: Text(
-              preview,
+              detailsHidden ? 'Hidden while someone is helping you.' : preview,
               style: const TextStyle(height: 1.4, fontSize: 18),
             ),
           ),
@@ -263,7 +268,7 @@ class _HelpActionButton extends StatelessWidget {
             action.detail,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w400,
               height: 1.3,
               color: _detailColor(action.style),
@@ -324,7 +329,7 @@ class _HelpActionButton extends StatelessWidget {
     switch (style) {
       case DemoHelpStyle.emergencyFilled:
       case DemoHelpStyle.primaryFilled:
-        return Colors.white.withValues(alpha: 0.92);
+        return Colors.white;
       case DemoHelpStyle.blackOutline:
       case DemoHelpStyle.neutralOutline:
         return CwcColors.sub;

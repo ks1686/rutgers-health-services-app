@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
+import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
+import '../settings/settings_screen.dart';
+import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
+import 'helper_privacy_screen.dart';
 import 'placeholder_page.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -15,6 +19,10 @@ class MoreScreen extends StatelessWidget {
         builder: (_) => PlaceholderPage(title: title, body: body),
       ),
     );
+  }
+
+  void _push(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   Future<void> _erase(BuildContext context) async {
@@ -76,12 +84,7 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.school_outlined,
                 title: 'How to Use This App',
-                onTap: () => _open(
-                  context,
-                  'How to Use This App',
-                  'Tutorials and short videos will live here. '
-                      'This demo only shows navigation.',
-                ),
+                onTap: () => _push(context, const HowToScreen()),
               ),
               const Divider(height: 1),
               _MoreTile(
@@ -96,14 +99,15 @@ class MoreScreen extends StatelessWidget {
               ),
               const Divider(height: 1),
               _MoreTile(
+                icon: Icons.flag_outlined,
+                title: 'Wellness goals',
+                onTap: () => _push(context, const WellnessGoalsScreen()),
+              ),
+              const Divider(height: 1),
+              _MoreTile(
                 icon: Icons.handshake_outlined,
                 title: 'Helper Mode',
-                onTap: () => _open(
-                  context,
-                  'Helper Mode',
-                  'Peer support specialists will use sample data here '
-                      'for training — not wired in this navigation demo.',
-                ),
+                onTap: () => _push(context, const HelperPrivacyScreen()),
               ),
               const Divider(height: 1),
               _MoreTile(
@@ -121,12 +125,7 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.settings_outlined,
                 title: 'Settings',
-                onTap: () => _open(
-                  context,
-                  'Settings',
-                  'Text size will go here. Choose a town on the Nearby tab. '
-                      'Optional My Health PIN is set from the My Health tab.',
-                ),
+                onTap: () => _push(context, const SettingsScreen()),
               ),
               const Divider(height: 1),
               _MoreTile(
@@ -180,7 +179,7 @@ class _MoreTile extends StatelessWidget {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
           color: titleColor ?? CwcColors.ink,
         ),
