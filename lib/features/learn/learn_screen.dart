@@ -5,6 +5,9 @@ import '../../data/demo_learn.dart';
 import '../../theme/cwc_theme.dart';
 import 'learn_article_screen.dart';
 
+/// First line on Learn (#29, pointing at #31). Not a banner on other tabs.
+const kLearnNotADoctorLine = 'This does not replace seeing a doctor.';
+
 class LearnScreen extends StatefulWidget {
   const LearnScreen({super.key, this.topics, this.topicsLoader});
 
@@ -91,6 +94,15 @@ class _LearnScreenState extends State<LearnScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
+            const Text(
+              kLearnNotADoctorLine,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 8),
             const Text(
               'Short, plain-language topics from trusted sources.',
               style: TextStyle(color: CwcColors.sub, height: 1.35),
