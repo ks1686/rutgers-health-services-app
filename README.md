@@ -45,7 +45,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 |--------------|---------------|
 | Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; live tab asks for one-shot location on load and sorts by proximity; town list is fallback only |
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
-| Learn | Six topics → short articles with source labels |
+| Learn | Topics from bundled `assets/content/learn.json` (offline); source labels on each article |
 | More | List to placeholder pages; Erase clears My Health |
 | Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; emergency-card toggle at the top (real My Health wallet) |
 
@@ -55,6 +55,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 - [`CWC_Health_App/`](CWC_Health_App/) — requirements + design reference
 - [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) — **Nearby live-data** collaborator handoff
 - [`docs/superpowers/plans/2026-09-03-my-health.md`](docs/superpowers/plans/2026-09-03-my-health.md) — My Health interactive plan
+- [`docs/engineering/learn-content.md`](docs/engineering/learn-content.md) — Learn JSON + CAB update path
 - Figma: https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
 
 ### Nearby live data
