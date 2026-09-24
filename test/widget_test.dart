@@ -1,4 +1,5 @@
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/data/content_catalog.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
@@ -8,6 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    await loadLearnTopics();
+  });
 
   Future<void> pumpApp(
     WidgetTester tester, {
