@@ -39,7 +39,7 @@ dependencies:
   # One-shot device location for Nearby "use my location" (opt-in).
   geolocator: ^14.0.3
   # FIND-4 overhead map: Google when keyed; OSM flutter_map soft-fail.
-  google_maps_flutter: ^2.12.3
+  google_maps_flutter: ^2.18.1
   flutter_map: ^8.1.1
   latlong2: ^0.10.1
 
