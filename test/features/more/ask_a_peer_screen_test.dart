@@ -1,8 +1,10 @@
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/features/more/peer_contact.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_launchers.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
+import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,5 +118,60 @@ void main() {
 
     expect(find.textContaining('Add a name'), findsOneWidget);
     expect(find.text('Add a contact'), findsOneWidget);
+  });
+
+  testWidgets('Erase my information also clears saved Ask a Peer contacts', (
+    tester,
+  ) async {
+    await pumpApp(tester, launched: []);
+    await openAsk(tester);
+
+    await tester.tap(find.byKey(const ValueKey('add-peer-contact')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('peer-name')), 'Sam');
+    await tester.enterText(
+      find.byKey(const ValueKey('peer-phone')),
+      '(732) 555-0100',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-peer-contact')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sam'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Erase My Information'), 300);
+    await tester.tap(find.text('Erase My Information'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('Ask a Peer'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Erase'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Your information was erased from this phone'),
+      findsOneWidget,
+    );
+
+    final stored = await SharedPreferences.getInstance();
+    expect(
+      peerContactsFromStored(stored.getString(kPeerContactsPref)),
+      isEmpty,
+    );
+
+    await tester.tap(find.text('Ask a Peer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sam'), findsNothing);
+    expect(
+      find.textContaining('No one is saved on this phone yet.'),
+      findsOneWidget,
+    );
   });
 }

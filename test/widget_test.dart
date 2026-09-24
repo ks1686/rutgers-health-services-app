@@ -220,8 +220,18 @@ void main() {
     await tester.tap(find.text('Erase My Information'));
     await tester.pumpAndSettle();
     expect(find.textContaining('cannot be undone'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('Ask a Peer'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Erase'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('was erased'), findsOneWidget);
+    expect(
+      find.textContaining('Your information was erased from this phone'),
+      findsOneWidget,
+    );
   });
 }

@@ -6,6 +6,7 @@ import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
+import '../settings/app_preferences.dart';
 import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
@@ -32,13 +33,15 @@ class MoreScreen extends StatelessWidget {
 
   Future<void> _erase(BuildContext context) async {
     final health = HealthScope.maybeOf(context);
+    final prefs = AppPreferencesScope.maybeOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Erase my information?'),
         content: const Text(
           'This deletes appointments, medications, providers, wallet details, '
-          'reminders, and your My Health PIN from this phone. It cannot be undone.',
+          'reminders, your My Health PIN, and people you saved under Ask a Peer '
+          'from this phone. It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -66,10 +69,11 @@ class MoreScreen extends StatelessWidget {
       return;
     }
     await health.eraseAll();
+    await prefs?.setPeerContacts([]);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Your My Health information was erased from this phone.'),
+        content: Text('Your information was erased from this phone.'),
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 3),
       ),
