@@ -6,6 +6,8 @@ import '../../data/demo_help_now.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_snackbar.dart';
 import '../../widgets/link_launcher.dart';
+import '../my_health/data/emergency_card.dart';
+import '../my_health/data/health_models.dart';
 import '../my_health/health_scope.dart';
 import 'help_now_config.dart';
 
@@ -125,11 +127,9 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
             _EmergencyCardBlock(
               showCard: _showEmergencyCard,
               onChanged: _setShowCard,
-              contact: health?.wallet.emergencyContact ?? '',
-              conditions: health?.wallet.conditions ?? '',
-              medications: [
-                for (final med in health?.medications ?? const []) med.name,
-              ],
+              preview: emergencyCardPreview(
+                health?.snapshot ?? const HealthSnapshot(),
+              ),
             ),
           const SizedBox(height: 20),
           const _SectionLabel('Emergency'),
@@ -185,16 +185,12 @@ class _EmergencyCardBlock extends StatelessWidget {
   const _EmergencyCardBlock({
     required this.showCard,
     required this.onChanged,
-    required this.contact,
-    required this.conditions,
-    required this.medications,
+    required this.preview,
   });
 
   final bool showCard;
   final ValueChanged<bool> onChanged;
-  final String contact;
-  final String conditions;
-  final List<String> medications;
+  final String preview;
 
   @override
   Widget build(BuildContext context) {
@@ -209,8 +205,8 @@ class _EmergencyCardBlock extends StatelessWidget {
           ),
           subtitle: Text(
             showCard
-                ? 'Wallet details from My Health are visible on this unlocked screen.'
-                : 'Off by default — turning this on shares health info on an unlocked screen.',
+                ? 'Only what you chose in My Health is visible on this unlocked screen.'
+                : 'Off by default. Nothing from My Health shows until you choose it.',
             style: const TextStyle(
               color: CwcColors.sub,
               fontSize: 16,
@@ -232,28 +228,12 @@ class _EmergencyCardBlock extends StatelessWidget {
               border: Border.all(color: CwcColors.line),
             ),
             child: Text(
-              _previewCopy(contact, conditions, medications),
+              preview,
               style: const TextStyle(height: 1.4, fontSize: 18),
             ),
           ),
       ],
     );
-  }
-
-  static String _previewCopy(
-    String contact,
-    String conditions,
-    List<String> medications,
-  ) {
-    final contactLine = contact.isEmpty ? 'None saved yet' : contact;
-    final conditionLine = conditions.isEmpty ? 'None saved yet' : conditions;
-    final medsLine = medications.isEmpty
-        ? 'None saved yet'
-        : medications.join(', ');
-    return 'Emergency card\n'
-        'Contact: $contactLine\n'
-        'Conditions: $conditionLine\n'
-        'Medications: $medsLine';
   }
 }
 

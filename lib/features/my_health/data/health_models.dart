@@ -176,6 +176,103 @@ class HealthProvider {
   }
 }
 
+/// A paper the person keeps in My Health, on this phone only.
+enum HealthDocumentKind {
+  pad,
+  livingWill,
+  serviceAnimal,
+  ratPlan,
+  chargeIt,
+  otherPaper,
+}
+
+extension HealthDocumentKindLabel on HealthDocumentKind {
+  String get label => switch (this) {
+    HealthDocumentKind.pad => 'Psychiatric advance directive',
+    HealthDocumentKind.livingWill => 'Living will',
+    HealthDocumentKind.serviceAnimal => 'Service or support animal',
+    HealthDocumentKind.ratPlan => 'RAT plan',
+    HealthDocumentKind.chargeIt => 'Charge It workbook',
+    HealthDocumentKind.otherPaper => 'Other personal paper',
+  };
+
+  static HealthDocumentKind parse(String? raw) {
+    for (final kind in HealthDocumentKind.values) {
+      if (kind.name == raw) return kind;
+    }
+    return HealthDocumentKind.otherPaper;
+  }
+}
+
+class HealthDocument {
+  const HealthDocument({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.body,
+    this.fileName,
+    this.fileBase64,
+  });
+
+  /// Files live inside the same encrypted My Health record. Keep each one
+  /// small enough for that record.
+  static const maxFileBytes = 512 * 1024;
+
+  final String id;
+  final HealthDocumentKind kind;
+  final String title;
+  final String body;
+  final String? fileName;
+
+  /// Base64 file bytes. Null when the paper is words only.
+  final String? fileBase64;
+
+  bool get hasFile =>
+      fileName != null &&
+      fileName!.isNotEmpty &&
+      fileBase64 != null &&
+      fileBase64!.isNotEmpty;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'kind': kind.name,
+    'title': title,
+    'body': body,
+    if (fileName != null) 'fileName': fileName,
+    if (fileBase64 != null) 'fileBase64': fileBase64,
+  };
+
+  factory HealthDocument.fromJson(Map<String, dynamic> json) {
+    return HealthDocument(
+      id: json['id'] as String,
+      kind: HealthDocumentKindLabel.parse(json['kind'] as String?),
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      fileName: json['fileName'] as String?,
+      fileBase64: json['fileBase64'] as String?,
+    );
+  }
+
+  HealthDocument copyWith({
+    String? id,
+    HealthDocumentKind? kind,
+    String? title,
+    String? body,
+    String? fileName,
+    String? fileBase64,
+    bool clearFile = false,
+  }) {
+    return HealthDocument(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      fileName: clearFile ? null : (fileName ?? this.fileName),
+      fileBase64: clearFile ? null : (fileBase64 ?? this.fileBase64),
+    );
+  }
+}
+
 class HealthWallet {
   const HealthWallet({this.emergencyContact = '', this.conditions = ''});
 
@@ -203,12 +300,84 @@ class HealthWallet {
   }
 }
 
+/// What Help Now may show without opening the rest of My Health.
+/// Every flag starts off so a new or older save discloses nothing.
+class EmergencyCardChoices {
+  const EmergencyCardChoices({
+    this.showEmergencyContact = false,
+    this.showConditions = false,
+    this.showMedications = false,
+    this.showProviders = false,
+    this.showAppointmentNotes = false,
+    this.showPsychiatricAdvanceDirective = false,
+  });
+
+  final bool showEmergencyContact;
+  final bool showConditions;
+  final bool showMedications;
+  final bool showProviders;
+  final bool showAppointmentNotes;
+  final bool showPsychiatricAdvanceDirective;
+
+  bool get sharesAnything =>
+      showEmergencyContact ||
+      showConditions ||
+      showMedications ||
+      showProviders ||
+      showAppointmentNotes ||
+      showPsychiatricAdvanceDirective;
+
+  Map<String, dynamic> toJson() => {
+    'showEmergencyContact': showEmergencyContact,
+    'showConditions': showConditions,
+    'showMedications': showMedications,
+    'showProviders': showProviders,
+    'showAppointmentNotes': showAppointmentNotes,
+    'showPsychiatricAdvanceDirective': showPsychiatricAdvanceDirective,
+  };
+
+  factory EmergencyCardChoices.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const EmergencyCardChoices();
+    bool flag(String key) => json[key] == true;
+    return EmergencyCardChoices(
+      showEmergencyContact: flag('showEmergencyContact'),
+      showConditions: flag('showConditions'),
+      showMedications: flag('showMedications'),
+      showProviders: flag('showProviders'),
+      showAppointmentNotes: flag('showAppointmentNotes'),
+      showPsychiatricAdvanceDirective: flag('showPsychiatricAdvanceDirective'),
+    );
+  }
+
+  EmergencyCardChoices copyWith({
+    bool? showEmergencyContact,
+    bool? showConditions,
+    bool? showMedications,
+    bool? showProviders,
+    bool? showAppointmentNotes,
+    bool? showPsychiatricAdvanceDirective,
+  }) {
+    return EmergencyCardChoices(
+      showEmergencyContact: showEmergencyContact ?? this.showEmergencyContact,
+      showConditions: showConditions ?? this.showConditions,
+      showMedications: showMedications ?? this.showMedications,
+      showProviders: showProviders ?? this.showProviders,
+      showAppointmentNotes: showAppointmentNotes ?? this.showAppointmentNotes,
+      showPsychiatricAdvanceDirective:
+          showPsychiatricAdvanceDirective ??
+          this.showPsychiatricAdvanceDirective,
+    );
+  }
+}
+
 class HealthSnapshot {
   const HealthSnapshot({
     this.appointments = const [],
     this.medications = const [],
     this.providers = const [],
+    this.documents = const [],
     this.wallet = const HealthWallet(),
+    this.emergencyCard = const EmergencyCardChoices(),
     this.pinHash,
     this.initialized = false,
   });
@@ -216,7 +385,9 @@ class HealthSnapshot {
   final List<HealthAppointment> appointments;
   final List<HealthMedication> medications;
   final List<HealthProvider> providers;
+  final List<HealthDocument> documents;
   final HealthWallet wallet;
+  final EmergencyCardChoices emergencyCard;
   final String? pinHash;
 
   /// True after first seed or erase — prevents re-seeding demo data.
@@ -228,7 +399,9 @@ class HealthSnapshot {
     'appointments': [for (final a in appointments) a.toJson()],
     'medications': [for (final m in medications) m.toJson()],
     'providers': [for (final p in providers) p.toJson()],
+    'documents': [for (final d in documents) d.toJson()],
     'wallet': wallet.toJson(),
+    'emergencyCard': emergencyCard.toJson(),
     if (pinHash != null) 'pinHash': pinHash,
     'initialized': initialized,
   };
@@ -250,9 +423,19 @@ class HealthSnapshot {
           if (row is Map)
             HealthProvider.fromJson(Map<String, dynamic>.from(row)),
       ],
+      documents: [
+        for (final row in (json['documents'] as List? ?? const []))
+          if (row is Map)
+            HealthDocument.fromJson(Map<String, dynamic>.from(row)),
+      ],
       wallet: HealthWallet.fromJson(
         json['wallet'] is Map
             ? Map<String, dynamic>.from(json['wallet'] as Map)
+            : null,
+      ),
+      emergencyCard: EmergencyCardChoices.fromJson(
+        json['emergencyCard'] is Map
+            ? Map<String, dynamic>.from(json['emergencyCard'] as Map)
             : null,
       ),
       pinHash: json['pinHash'] as String?,
@@ -264,7 +447,9 @@ class HealthSnapshot {
     List<HealthAppointment>? appointments,
     List<HealthMedication>? medications,
     List<HealthProvider>? providers,
+    List<HealthDocument>? documents,
     HealthWallet? wallet,
+    EmergencyCardChoices? emergencyCard,
     String? pinHash,
     bool? initialized,
     bool clearPinHash = false,
@@ -273,7 +458,9 @@ class HealthSnapshot {
       appointments: appointments ?? this.appointments,
       medications: medications ?? this.medications,
       providers: providers ?? this.providers,
+      documents: documents ?? this.documents,
       wallet: wallet ?? this.wallet,
+      emergencyCard: emergencyCard ?? this.emergencyCard,
       pinHash: clearPinHash ? null : (pinHash ?? this.pinHash),
       initialized: initialized ?? this.initialized,
     );

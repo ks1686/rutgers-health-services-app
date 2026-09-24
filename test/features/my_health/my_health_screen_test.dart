@@ -1,5 +1,6 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
+import 'package:cwc_health_app/features/my_health/data/health_models.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
@@ -126,6 +127,111 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('tab-my-health')));
     await tester.pumpAndSettle();
     expect(find.text('No appointments yet. Tap Add.'), findsOneWidget);
+  });
+
+  testWidgets('Add personal paper saves onto My Health', (tester) async {
+    final health = await readyController();
+    await health.eraseAll();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final addPaper = find.byKey(const ValueKey('add-personal-paper'));
+    await tester.ensureVisible(addPaper);
+    await tester.pumpAndSettle();
+    await tester.tap(addPaper);
+    await tester.pumpAndSettle();
+    expect(find.text('Add a paper'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('RAT plan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('RAT plan'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'My RAT plan');
+    await tester.enterText(fields.at(1), 'People I want called.');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('My RAT plan'), findsOneWidget);
+    expect(health.documents.single.kind, HealthDocumentKind.ratPlan);
+    expect(health.documents.single.body, 'People I want called.');
+  });
+
+  testWidgets('a chosen PAD shows on Help Now while My Health stays locked', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await health.eraseAll();
+    await health.upsertDocument(
+      const HealthDocument(
+        id: 'pad-1',
+        kind: HealthDocumentKind.pad,
+        title: 'My psychiatric advance directive',
+        body: 'Do not restrain me.',
+      ),
+    );
+    await health.upsertDocument(
+      const HealthDocument(
+        id: 'will-1',
+        kind: HealthDocumentKind.livingWill,
+        title: 'Living will',
+        body: 'Private living will words.',
+      ),
+    );
+    await health.upsertMedication(
+      const HealthMedication(
+        id: 'med-1',
+        name: 'Sertraline',
+        purpose: 'Mood',
+        schedule: 'morning',
+      ),
+    );
+    await health.updateEmergencyCard(
+      const EmergencyCardChoices(showPsychiatricAdvanceDirective: true),
+    );
+    await health.setPin('1234');
+    health.lock();
+
+    await pumpHealthApp(tester, health: health);
+    expect(find.text('My Health is locked'), findsOneWidget);
+    expect(find.text('Do not restrain me.'), findsNothing);
+    expect(find.text('Sertraline'), findsNothing);
+
+    await tester.tap(find.text('Help Now'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    expect(health.isUnlocked, isFalse);
+    expect(find.textContaining('Do not restrain me.'), findsOneWidget);
+    expect(find.textContaining('Private living will words.'), findsNothing);
+    expect(find.textContaining('Sertraline'), findsNothing);
+  });
+
+  testWidgets('My Health can turn the PAD onto the emergency card', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await health.eraseAll();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final padSwitch = find.widgetWithText(
+      SwitchListTile,
+      'Psychiatric advance directive',
+    );
+    await tester.ensureVisible(padSwitch);
+    await tester.pumpAndSettle();
+    expect(health.emergencyCard.sharesAnything, isFalse);
+
+    await tester.tap(padSwitch);
+    await tester.pumpAndSettle();
+    expect(health.emergencyCard.showPsychiatricAdvanceDirective, isTrue);
+    expect(health.emergencyCard.showMedications, isFalse);
+    expect(health.emergencyCard.showAppointmentNotes, isFalse);
   });
 
   testWidgets('theme smoke for form fields', (tester) async {

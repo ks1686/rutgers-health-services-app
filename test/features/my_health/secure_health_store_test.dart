@@ -26,7 +26,24 @@ void main() {
     await store.write(sample);
     final loaded = await store.read();
     expect(loaded.appointments.single.provider, 'Dr. Rivera');
+    expect(loaded.documents, isEmpty);
     expect(loaded.initialized, isTrue);
+
+    await store.write(
+      sample.copyWith(
+        documents: const [
+          HealthDocument(
+            id: 'd1',
+            kind: HealthDocumentKind.livingWill,
+            title: 'Living will',
+            body: 'My wishes.',
+          ),
+        ],
+      ),
+    );
+    final withPaper = await store.read();
+    expect(withPaper.documents.single.kind, HealthDocumentKind.livingWill);
+    expect(withPaper.documents.single.body, 'My wishes.');
   });
 
   test('migrates plaintext prefs into secure store and wipes prefs', () async {
