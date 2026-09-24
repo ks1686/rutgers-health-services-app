@@ -1,0 +1,98 @@
+{
+  "tutorials": [
+    {
+      "id": "find-a-pharmacy",
+      "title": "Find a pharmacy",
+      "summary": "Use Nearby to see pharmacies near your town.",
+      "steps": [
+        {
+          "title": "Open Nearby",
+          "body": "Tap Nearby on the bottom bar.",
+          "picture": "Bottom bar. Nearby is the first button."
+        },
+        {
+          "title": "Check the town",
+          "body": "The town chip shows where the list is looking. You can save a town in Settings.",
+          "picture": "A town chip at the top of Nearby, such as New Brunswick."
+        },
+        {
+          "title": "Choose Pharmacy",
+          "body": "Tap Pharmacy. Call or get directions from the card.",
+          "picture": "A pharmacy card with Call and Directions."
+        }
+      ],
+      "video": {
+        "seconds": 45,
+        "captionsAsset": "assets/content/captions/find-a-pharmacy.vtt"
+      }
+    },
+    {
+      "id": "add-an-appointment",
+      "title": "Add an appointment",
+      "summary": "Save a visit on this phone so you can see it later.",
+      "steps": [
+        {
+          "title": "Open My Health",
+          "body": "Tap My Health on the bottom bar.",
+          "picture": "Bottom bar. My Health is the second button."
+        },
+        {
+          "title": "Tap Add",
+          "body": "Under Appointments, tap Add.",
+          "picture": "Appointments card with an Add button."
+        },
+        {
+          "title": "Save the visit",
+          "body": "Type the provider, time, and place. Then save. It stays on this phone.",
+          "picture": "A form with provider, time, and place fields."
+        }
+      ],
+      "video": {
+        "seconds": 60,
+        "captionsAsset": "assets/content/captions/add-an-appointment.vtt"
+      }
+    },
+    {
+      "id": "add-a-medication",
+      "title": "Add a medication",
+      "summary": "Keep your medication list on this phone.",
+      "steps": [
+        {
+          "title": "Open My Health",
+          "body": "Tap My Health.",
+          "picture": "The My Health tab."
+        },
+        {
+          "title": "Tap Add under Medications",
+          "body": "Add the name, what it is for, and when you take it.",
+          "picture": "Medications card with an Add button."
+        }
+      ],
+      "video": {
+        "seconds": 40,
+        "captionsAsset": "assets/content/captions/add-a-medication.vtt"
+      }
+    },
+    {
+      "id": "use-help-now",
+      "title": "Use Help Now",
+      "summary": "Help Now is in the top corner on every screen.",
+      "steps": [
+        {
+          "title": "Tap Help Now",
+          "body": "Help Now is never locked behind a PIN.",
+          "picture": "Help Now button in the top bar."
+        },
+        {
+          "title": "911 is first",
+          "body": "For police, fire, or a medical emergency, tap 911 Emergency.",
+          "picture": "A tall black 911 button at the top of the list."
+        }
+      ],
+      "video": {
+        "seconds": 35,
+        "captionsAsset": "assets/content/captions/use-help-now.vtt"
+      }
+    }
+  ]
+}

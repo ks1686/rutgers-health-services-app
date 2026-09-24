@@ -6,6 +6,8 @@ import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/health_scope.dart';
 import 'features/onboarding/disclaimer_prefs.dart';
 import 'features/onboarding/disclaimer_screen.dart';
+import 'features/settings/app_preferences.dart';
+import 'features/settings/shared_preferences_store.dart';
 import 'shell/app_shell.dart';
 import 'theme/cwc_theme.dart';
 import 'widgets/link_launcher.dart';
@@ -24,6 +26,7 @@ class CwcApp extends StatefulWidget {
 class _CwcAppState extends State<CwcApp> {
   HealthController? _owned;
   HealthController? _health;
+  AppPreferences? _prefs;
   bool _booting = true;
   bool _disclaimerAck = false;
   String? _bootError;
@@ -37,6 +40,7 @@ class _CwcAppState extends State<CwcApp> {
   Future<void> _bootstrap() async {
     final injected = widget.healthController;
     final prefs = await SharedPreferences.getInstance();
+    _prefs = AppPreferences.fromStore(SharedPreferencesStore(prefs));
     _disclaimerAck = prefs.getBool(disclaimerAckPref) ?? false;
     if (injected != null) {
       _health = injected;
@@ -57,6 +61,7 @@ class _CwcAppState extends State<CwcApp> {
 
   @override
   void dispose() {
+    _prefs?.dispose();
     _owned?.dispose();
     super.dispose();
   }
@@ -95,9 +100,27 @@ class _CwcAppState extends State<CwcApp> {
       theme: buildCwcTheme(),
       // Wrap every route (including pushed forms / wallet) in HealthScope.
       builder: (context, child) {
-        return HealthScope(
-          controller: _health!,
-          child: child ?? const SizedBox.shrink(),
+        final preferences = _prefs!;
+        return ListenableBuilder(
+          listenable: preferences,
+          builder: (context, _) {
+            final media = MediaQuery.of(context);
+            return AppPreferencesScope(
+              preferences: preferences,
+              child: HealthScope(
+                controller: _health!,
+                child: MediaQuery(
+                  data: media.copyWith(
+                    textScaler: combineTextScaler(
+                      media.textScaler,
+                      preferences.textSize,
+                    ),
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
+            );
+          },
         );
       },
       home: _disclaimerAck

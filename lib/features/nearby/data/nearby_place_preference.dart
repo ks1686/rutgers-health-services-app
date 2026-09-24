@@ -18,9 +18,18 @@ class PrefsNearbyPlacePreferenceStore implements NearbyPlacePreferenceStore {
 
   @override
   Future<NearbyPlacePreference> read() async {
-    return NearbyPlacePreference.resolve(
-      regionName: _prefs.getString(regionPref),
-      town: _prefs.getString(townPref),
+    final town = _prefs.getString(townPref)?.trim() ?? '';
+    if (town.isEmpty) return NearbyPlacePreference.fallback;
+    final listed = regionForTown(town);
+    if (listed != null) {
+      return NearbyPlacePreference(region: listed, town: town);
+    }
+    // A town typed in Settings is still the lookup, even if it is not on
+    // the short picker list. [NearbyPlacePreference.resolve] stays strict.
+    return NearbyPlacePreference(
+      region:
+          NjRegion.tryParse(_prefs.getString(regionPref)) ?? NjRegion.central,
+      town: town,
     );
   }
 
