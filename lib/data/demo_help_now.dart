@@ -62,14 +62,14 @@ const _clearinghouse = DemoHelpAction(
 
 const _warmline = DemoHelpAction(
   label: 'NJ Peer Warmline',
-  detail: 'Talk with a peer (sample number)',
-  style: DemoHelpStyle.primaryFilled,
+  detail: 'Talk with a peer (sample number). Not a contact you saved.',
+  style: DemoHelpStyle.neutralOutline,
 );
 
 const _wellnessCenter = DemoHelpAction(
   label: 'My Wellness Center',
-  detail: 'New Brunswick Wellness Center · (732) 555-0177',
-  style: DemoHelpStyle.primaryFilled,
+  detail: 'Sample only. Add the person you ask in More.',
+  style: DemoHelpStyle.neutralOutline,
 );
 
 /// Demo catalog: 911 first, then 988, then remaining helplines.
@@ -126,7 +126,8 @@ final _liveNationalHelpActions = <DemoHelpAction>[
 ];
 
 /// National 911 / 988 / poison plus verified NJ lines when [live] is true.
-/// Warmline and CWC stay sample either way (#24).
+/// The warmline and wellness-center rows stay samples. Ask a Peer uses
+/// contacts the person saves.
 List<DemoHelpAction> helpNowActions({required bool live}) {
   return live ? _liveNationalHelpActions : demoHelpActions;
 }

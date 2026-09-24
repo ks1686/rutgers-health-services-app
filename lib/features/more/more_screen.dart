@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/demo_banner.dart';
+import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
 import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
+import 'ask_a_peer_screen.dart';
 import 'helper_privacy_screen.dart';
 import 'placeholder_page.dart';
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key});
+  const MoreScreen({super.key, this.launcher});
+
+  final LinkLauncher? launcher;
 
   void _open(BuildContext context, String title, String body) {
     Navigator.of(context).push(
@@ -91,12 +95,7 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.people_outline,
                 title: 'Ask a Peer',
-                onTap: () => _open(
-                  context,
-                  'Ask a Peer',
-                  'Your Wellness Center contact would appear here '
-                      '(call and text). Sample only in this build.',
-                ),
+                onTap: () => _push(context, AskAPeerScreen(launcher: launcher)),
               ),
               const Divider(height: 1),
               _MoreTile(

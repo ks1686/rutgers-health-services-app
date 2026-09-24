@@ -202,7 +202,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ask a Peer'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Wellness Center contact'), findsOneWidget);
+    expect(
+      find.textContaining('No one is saved on this phone yet.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('would appear here'), findsNothing);
   });
 
   testWidgets('Help Now body text stays at least 18 on the 911 button', (
