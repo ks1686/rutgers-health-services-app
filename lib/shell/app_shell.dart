@@ -56,7 +56,7 @@ class _AppShellState extends State<AppShell> {
           const NearbyScreen(),
           MyHealthScreen(launcher: widget.linkLauncher),
           const LearnScreen(),
-          const MoreScreen(),
+          MoreScreen(launcher: widget.linkLauncher),
         ],
       ),
       bottomNavigationBar: NavigationBar(

@@ -27,4 +27,32 @@ void main() {
       expect(find.text(paragraph), findsOneWidget);
     }
   });
+
+  testWidgets('Erase dialog mentions Ask a Peer contacts on this phone', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: const Scaffold(body: MoreScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Erase My Information'), 300);
+    await tester.tap(find.text('Erase My Information'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Erase my information?'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.textContaining('Ask a Peer'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('cannot be undone'), findsOneWidget);
+  });
 }

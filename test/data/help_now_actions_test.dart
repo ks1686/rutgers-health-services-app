@@ -82,6 +82,13 @@ void main() {
 
       expect(call('NJ Peer Warmline'), isNull);
       expect(call('My Wellness Center'), isNull);
+      for (final label in ['NJ Peer Warmline', 'My Wellness Center']) {
+        final action = live.singleWhere((item) => item.label == label);
+        expect(action.textUri, isNull);
+        expect(action.style, DemoHelpStyle.neutralOutline);
+        expect(action.detail.toLowerCase(), contains('sample'));
+        expect(action.detail, isNot(contains('555')));
+      }
     },
   );
 }

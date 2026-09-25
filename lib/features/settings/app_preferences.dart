@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../more/peer_contact.dart';
 import '../nearby/data/nearby_place_preference.dart';
 import '../nearby/data/nj_places.dart';
 
@@ -12,6 +13,9 @@ const kTextSizePref = 'cwc_settings_text_scale';
 const kRememberedTownPref = PrefsNearbyPlacePreferenceStore.townPref;
 
 const kHelperHidingPref = 'cwc_settings_helper_hiding';
+
+/// People this member asks about the app. JSON list, on this phone only.
+const kPeerContactsPref = 'cwc_peer_contacts';
 
 TextSizeChoice textSizeFromStored(String? raw) {
   return switch (raw) {
@@ -72,6 +76,9 @@ class AppPreferences extends ChangeNotifier {
 
   bool get helperHiding => (_values[kHelperHidingPref] as bool?) ?? false;
 
+  List<PeerContact> get peerContacts =>
+      peerContactsFromStored(_values[kPeerContactsPref] as String?);
+
   Future<void> setTextSize(TextSizeChoice choice) {
     return _set(kTextSizePref, textSizeToStored(choice));
   }
@@ -87,6 +94,10 @@ class AppPreferences extends ChangeNotifier {
 
   Future<void> setHelperHiding(bool value) {
     return _set(kHelperHidingPref, value);
+  }
+
+  Future<void> setPeerContacts(List<PeerContact> contacts) {
+    return _set(kPeerContactsPref, peerContactsToStored(contacts));
   }
 
   Future<void> _set(String key, Object value) async {
