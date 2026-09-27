@@ -1,0 +1,40 @@
+# One-shot helper: git HTTPS from this cloud agent is 401, so CI writes
+# docs/paper/fig1c-learn-grid.png from the Flutter Learn-grid harness.
+name: Recapture Fig.1(c) PNG
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  recapture:
+    if: github.head_ref == 'cursor/learn-drop-exercise-d1f3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.44.7"
+          cache: true
+      - run: flutter pub get
+      - name: Recapture Fig.1(c)
+        run: UPDATE_GOLDENS=1 flutter test test/paper/fig1c_learn_grid_test.dart
+      - name: Commit PNG if it changed
+        run: |
+          git config user.name "Karim Smires"
+          git config user.email "k.smires101@icloud.com"
+          git add docs/paper/fig1c-learn-grid.png
+          if git diff --cached --quiet; then
+            echo "PNG unchanged"
+          else
+            git commit -m "docs(paper): recapture Fig.1(c) six-tile Learn grid"
+            git push
+          fi
