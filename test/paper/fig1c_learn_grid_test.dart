@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Regenerates `docs/paper/fig1c-learn-grid.png` when UPDATE_GOLDENS=1:
 /// `UPDATE_GOLDENS=1 flutter test test/paper/fig1c_learn_grid_test.dart`
-const _kFig1cLogicalSize = Size(360, 1180);
+const _kFig1cLogicalSize = Size(360, 1000);
 const _kFig1cPixelRatio = 2.0;
 const _kFig1cCaptureKey = ValueKey<String>('fig1c-learn-grid');
 const _kRequiredTiles = <String>[
@@ -22,7 +22,6 @@ const _kRequiredTiles = <String>[
   'Mental Health',
   'Stress Management',
   'Nutrition',
-  'Exercise',
   'Preventive Care',
   'Sleep',
 ];
@@ -96,6 +95,7 @@ void main() {
       expect(find.text(title), findsOneWidget);
     }
     expect(find.text('Medications'), findsNothing);
+    expect(find.text('Exercise'), findsNothing);
     expect(find.text('Stress management'), findsNothing);
 
     final png = await tester.runAsync(() => _capturePng(tester));
