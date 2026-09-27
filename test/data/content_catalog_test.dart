@@ -13,22 +13,19 @@ void main() {
     () {
       final json = File('assets/content/learn.json').readAsStringSync();
       final topics = parseLearnTopics(json);
-      expect(topics, hasLength(7));
+      expect(topics, hasLength(6));
       expect(topics.first.source, isNotEmpty);
       expect(topics.first.title, 'Physical Health');
-      expect(
-        topics.map((t) => t.title),
-        containsAll([
-          'Physical Health',
-          'Mental Health',
-          'Nutrition',
-          'Exercise',
-          'Preventive Care',
-          'Sleep',
-          'Stress Management',
-        ]),
-      );
+      expect(topics.map((t) => t.title), [
+        'Physical Health',
+        'Mental Health',
+        'Stress Management',
+        'Nutrition',
+        'Preventive Care',
+        'Sleep',
+      ]);
       expect(topics.map((t) => t.title), isNot(contains('Medications')));
+      expect(topics.map((t) => t.title), isNot(contains('Exercise')));
       expect(topics.map((t) => t.title), isNot(contains('Stress')));
       expect(topics.map((t) => t.title), isNot(contains('Stress management')));
 
@@ -73,11 +70,12 @@ void main() {
 
   test('loadLearnTopics reads the bundled asset', () async {
     final topics = await loadLearnTopics();
-    expect(topics, hasLength(7));
+    expect(topics, hasLength(6));
     expect(topics.map((t) => t.title), contains('Mental Health'));
     expect(topics.map((t) => t.title), contains('Sleep'));
     expect(topics.map((t) => t.title), contains('Stress Management'));
     expect(topics.map((t) => t.title), isNot(contains('Medications')));
+    expect(topics.map((t) => t.title), isNot(contains('Exercise')));
   });
 
   test('loadLearnTopics uses an injected AssetBundle', () async {

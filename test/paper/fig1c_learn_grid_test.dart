@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Regenerates `docs/paper/fig1c-learn-grid.png` when UPDATE_GOLDENS=1:
 /// `UPDATE_GOLDENS=1 flutter test test/paper/fig1c_learn_grid_test.dart`
-const _kFig1cLogicalSize = Size(360, 1180);
+const _kFig1cLogicalSize = Size(360, 1000);
 const _kFig1cPixelRatio = 2.0;
 const _kFig1cCaptureKey = ValueKey<String>('fig1c-learn-grid');
 const _kRequiredTiles = <String>[
@@ -22,7 +22,6 @@ const _kRequiredTiles = <String>[
   'Mental Health',
   'Stress Management',
   'Nutrition',
-  'Exercise',
   'Preventive Care',
   'Sleep',
 ];
@@ -96,16 +95,18 @@ void main() {
       expect(find.text(title), findsOneWidget);
     }
     expect(find.text('Medications'), findsNothing);
+    expect(find.text('Exercise'), findsNothing);
     expect(find.text('Stress management'), findsNothing);
 
     final png = await tester.runAsync(() => _capturePng(tester));
     expect(png, isNotNull);
     expect(png, isNotEmpty);
+    _expectFig1cPngSize(png!);
 
     final outFile = File('docs/paper/fig1c-learn-grid.png');
     if (Platform.environment['UPDATE_GOLDENS'] == '1') {
       outFile.parent.createSync(recursive: true);
-      outFile.writeAsBytesSync(png!);
+      outFile.writeAsBytesSync(png);
     } else {
       expect(
         outFile.existsSync(),
@@ -115,6 +116,7 @@ void main() {
             'Regenerate with UPDATE_GOLDENS=1 flutter test '
             'test/paper/fig1c_learn_grid_test.dart',
       );
+      _expectFig1cPngSize(outFile.readAsBytesSync());
     }
   });
 }
@@ -153,6 +155,17 @@ ThemeData _paperTheme() {
       }),
     ),
   );
+}
+
+void _expectFig1cPngSize(Uint8List bytes) {
+  expect(bytes.length, greaterThan(24));
+  expect(bytes.sublist(0, 8), <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+  final width =
+      (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+  final height =
+      (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+  expect(width, _kFig1cLogicalSize.width * _kFig1cPixelRatio);
+  expect(height, _kFig1cLogicalSize.height * _kFig1cPixelRatio);
 }
 
 Future<Uint8List> _capturePng(WidgetTester tester) async {
