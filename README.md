@@ -45,7 +45,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 |--------------|---------------|
 | Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer plus a plain insurance and walk-in warning; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; remembered North/Central/South town; one-shot location is an optional shortcut and sorts by proximity |
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
-| Learn | Topics from bundled `assets/content/learn.json` (offline); source labels on each article |
+| Learn | Topics from bundled `assets/content/learn.json` (offline); Sleep and Stress Management are their own areas; no Medications tile (lists live in My Health); source labels on each article |
 | More | List to placeholder pages; Erase clears My Health |
 | Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; emergency-card toggle at the top (real My Health wallet) |
 

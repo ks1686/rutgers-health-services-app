@@ -73,10 +73,10 @@ void main() {
     expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
   });
 
-  testWidgets('Sleep is its own area and stress stays inside Physical Health', (
+  testWidgets('Sleep and Stress Management are their own Learn areas', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(400, 1600));
+    await tester.binding.setSurfaceSize(const Size(400, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -88,13 +88,15 @@ void main() {
 
     expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
     expect(find.text('Sleep'), findsOneWidget);
+    expect(find.text('Stress Management'), findsOneWidget);
+    expect(find.text('Medications'), findsNothing);
     expect(find.text('Stress management'), findsNothing);
 
     await tester.tap(find.text('Sleep'));
     await tester.pumpAndSettle();
     expect(find.text('Everyday sleep tips'), findsOneWidget);
     expect(find.text('Sleep apnea'), findsOneWidget);
-    expect(find.text('Stress management'), findsNothing);
+    expect(find.text('Everyday ways to ease stress'), findsNothing);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -102,13 +104,21 @@ void main() {
     await tester.tap(find.text('Physical Health'));
     await tester.pumpAndSettle();
     expect(find.text('From: CDC'), findsOneWidget);
-    expect(find.text('Stress management'), findsOneWidget);
+    expect(find.textContaining('use My Health'), findsOneWidget);
+    expect(find.text('Stress management'), findsNothing);
+    expect(find.text('Everyday ways to ease stress'), findsNothing);
     expect(find.text('Sleep apnea'), findsNothing);
 
-    await tester.scrollUntilVisible(
-      find.text('Everyday ways to ease stress'),
-      200,
-    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Stress Management'), findsOneWidget);
+    await tester.tap(find.text('Stress Management'));
+    await tester.pumpAndSettle();
+    expect(find.text('Everyday ways to ease stress'), findsOneWidget);
+    expect(find.text('When stress feels like too much'), findsOneWidget);
+    expect(find.text('Sleep apnea'), findsNothing);
+
     await tester.tap(find.text('Everyday ways to ease stress'));
     await tester.pumpAndSettle();
     expect(find.textContaining('do not have to track'), findsOneWidget);

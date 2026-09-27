@@ -24,10 +24,11 @@ No network fetch to load Learn. A link-out opens only when someone taps it. Host
 
 ## Placement (issues #29 and #30)
 
-Written down before this ships, from the current issue bodies (September 18, 2026 session):
+Written down before this ships, from the current issue bodies (September 18, 2026 session) and a later Karim/Sasan study-build decision:
 
 - **Sleep is its own Learn area.** George, Serena, and Ken said sleep should stand alone. It is a top-level card, not nested under Physical Health. Starter articles: everyday sleep tips (a cooler, darker room) and sleep apnea.
-- **Stress management does not stand alone.** George named it, and Matt nodded. The room did not vote for stress to be its own area. The direct vote was about sleep. Stress stays inside Physical Health, under the heading "Stress management". It is reading only. It is not goal tracking (optional nudges are #33).
+- **Stress Management is its own Learn area.** The study build uses a selectable top-level tile (Karim/Sasan). The two stress articles live on that tile, not under Physical Health. It is reading only. It is not goal tracking (optional nudges are #33).
+- **Medications is not a Learn area.** Personal lists and reminders stay in My Health. Learn has no "Medications" tile, so the tab does not look like the place to manage meds. Physical Health includes a short pointer to My Health for a medicines list. Spec LRN-1 still names medications as a survey information need; that is not a Learn card. The More how-to "Add a medication" still opens My Health.
 
 ## Links that were checked
 

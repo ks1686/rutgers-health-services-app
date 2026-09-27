@@ -3,9 +3,22 @@
     "title": "Physical Health",
     "iconLabel": "body",
     "summary": "Everyday care for your body.",
-    "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off.",
-    "source": "CDC",
-    "articlesHeading": "Stress management",
+    "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off. To keep a list of medicines you take, use My Health. That list is a memory aid, not medical advice.",
+    "source": "CDC"
+  },
+  {
+    "title": "Mental Health",
+    "iconLabel": "mind",
+    "summary": "Support for your mind and mood.",
+    "body": "Feeling stressed or low is common. Talking with a peer, counselor, or trusted person can help. Crisis lines are under Help Now.",
+    "source": "SAMHSA"
+  },
+  {
+    "title": "Stress Management",
+    "iconLabel": "stress",
+    "summary": "Small steps that can take the edge off.",
+    "body": "These short notes are reading only. You do not have to track this or hit a goal.",
+    "source": "",
     "articles": [
       {
         "title": "Everyday ways to ease stress",
@@ -26,13 +39,6 @@
     ]
   },
   {
-    "title": "Mental Health",
-    "iconLabel": "mind",
-    "summary": "Support for your mind and mood.",
-    "body": "Feeling stressed or low is common. Talking with a peer, counselor, or trusted person can help. Crisis lines are under Help Now.",
-    "source": "SAMHSA"
-  },
-  {
     "title": "Nutrition",
     "iconLabel": "food",
     "summary": "Simple ideas for eating well.",
@@ -45,13 +51,6 @@
     "summary": "Move in ways that fit your day.",
     "body": "Walking, stretching, or light activity counts. Start small. Stop if you feel pain, and ask a provider before starting a new routine.",
     "source": "CDC"
-  },
-  {
-    "title": "Medications",
-    "iconLabel": "meds",
-    "summary": "Keep track of what you take.",
-    "body": "Know the name, dose, and why you take each medicine. Use My Health as a memory aid — not medical advice. Ask your pharmacist questions.",
-    "source": "FDA"
   },
   {
     "title": "Preventive Care",

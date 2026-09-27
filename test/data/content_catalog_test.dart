@@ -8,53 +8,76 @@ import 'package:cwc_health_app/data/content_catalog.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('learn.json parses sourced topics with Sleep on its own', () {
-    final json = File('assets/content/learn.json').readAsStringSync();
-    final topics = parseLearnTopics(json);
-    expect(topics, hasLength(7));
-    expect(topics.first.source, isNotEmpty);
-    expect(topics.first.title, 'Physical Health');
-    expect(topics.map((t) => t.title), contains('Sleep'));
-    expect(topics.map((t) => t.title), isNot(contains('Stress')));
-    expect(topics.map((t) => t.title), isNot(contains('Stress management')));
+  test(
+    'learn.json parses sourced topics with Sleep and Stress on their own',
+    () {
+      final json = File('assets/content/learn.json').readAsStringSync();
+      final topics = parseLearnTopics(json);
+      expect(topics, hasLength(7));
+      expect(topics.first.source, isNotEmpty);
+      expect(topics.first.title, 'Physical Health');
+      expect(
+        topics.map((t) => t.title),
+        containsAll([
+          'Physical Health',
+          'Mental Health',
+          'Nutrition',
+          'Exercise',
+          'Preventive Care',
+          'Sleep',
+          'Stress Management',
+        ]),
+      );
+      expect(topics.map((t) => t.title), isNot(contains('Medications')));
+      expect(topics.map((t) => t.title), isNot(contains('Stress')));
+      expect(topics.map((t) => t.title), isNot(contains('Stress management')));
 
-    final physical = topics.firstWhere((t) => t.title == 'Physical Health');
-    expect(physical.body.toLowerCase(), isNot(contains('sleep')));
-    expect(physical.articlesHeading, 'Stress management');
-    expect(physical.articles, hasLength(2));
-    expect(
-      physical.articles.map((a) => a.title),
-      containsAll([
-        'Everyday ways to ease stress',
-        'When stress feels like too much',
-      ]),
-    );
-    expect(
-      physical.articles.map((a) => a.body).join(' ').toLowerCase(),
-      contains('do not have to track'),
-    );
-    for (final article in physical.articles) {
-      expect(article.source, isNotEmpty);
-      expect(article.link, isNotNull);
-      expect(article.link!.scheme, 'https');
-    }
+      final physical = topics.firstWhere((t) => t.title == 'Physical Health');
+      expect(physical.body.toLowerCase(), isNot(contains('sleep')));
+      expect(physical.body, contains('My Health'));
+      expect(physical.body.toLowerCase(), contains('medicines'));
+      expect(physical.articlesHeading, isNull);
+      expect(physical.articles, isEmpty);
 
-    final sleep = topics.firstWhere((t) => t.title == 'Sleep');
-    expect(sleep.articles.map((a) => a.title), [
-      'Everyday sleep tips',
-      'Sleep apnea',
-    ]);
-    expect(sleep.articles.map((a) => a.link!.host), [
-      'medlineplus.gov',
-      'www.nhlbi.nih.gov',
-    ]);
-  });
+      final stress = topics.firstWhere((t) => t.title == 'Stress Management');
+      expect(stress.articlesHeading, isNull);
+      expect(stress.articles, hasLength(2));
+      expect(
+        stress.articles.map((a) => a.title),
+        containsAll([
+          'Everyday ways to ease stress',
+          'When stress feels like too much',
+        ]),
+      );
+      expect(
+        stress.articles.map((a) => a.body).join(' ').toLowerCase(),
+        contains('do not have to track'),
+      );
+      for (final article in stress.articles) {
+        expect(article.source, isNotEmpty);
+        expect(article.link, isNotNull);
+        expect(article.link!.scheme, 'https');
+      }
+
+      final sleep = topics.firstWhere((t) => t.title == 'Sleep');
+      expect(sleep.articles.map((a) => a.title), [
+        'Everyday sleep tips',
+        'Sleep apnea',
+      ]);
+      expect(sleep.articles.map((a) => a.link!.host), [
+        'medlineplus.gov',
+        'www.nhlbi.nih.gov',
+      ]);
+    },
+  );
 
   test('loadLearnTopics reads the bundled asset', () async {
     final topics = await loadLearnTopics();
     expect(topics, hasLength(7));
     expect(topics.map((t) => t.title), contains('Mental Health'));
     expect(topics.map((t) => t.title), contains('Sleep'));
+    expect(topics.map((t) => t.title), contains('Stress Management'));
+    expect(topics.map((t) => t.title), isNot(contains('Medications')));
   });
 
   test('loadLearnTopics uses an injected AssetBundle', () async {
