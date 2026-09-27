@@ -6,7 +6,7 @@
 **File name:** CWC Health App — Lo-Fi Wireframes v0.1 *(the file name reflects its origin; it now also contains the Final Design v1.1 page)*
 **File key:** `yAwsNNegakKROue3o0CAMJ`
 **Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.4.md` (requirements — authoritative for behavior)
-**Last updated:** August 2026 — **v1.1** tokens/Figma unchanged. As-built Flutter Nearby notes added under §2 (live OSM, raw hours, map placeholder) — not a visual rebrand; next look change should bump to v1.2.
+**Last updated:** September 2026 — **v1.1** tokens/Figma unchanged. As-built Flutter Nearby notes and Learn tile list under §2 (six study-build tiles; no Medications or Exercise cards) — not a visual rebrand; next look change should bump to v1.2.
 
 **Rule of the three documents:** the rundown explains *the project*, the spec defines *what the app does*, this document + the Figma file define *what the app looks like*. A change in any one should be checked against the other two, and versions should be bumped together.
 
@@ -35,7 +35,7 @@ The Figma file contains two pages:
 
 Every screen (except Help Now, which is the destination) carries the persistent **Help Now pill** in the header (NOW-1) and the four-tab bottom bar with the active tab tinted (NAV-1). Sample data in Figma is intentionally realistic-but-fake (Dr. Rivera, Main Street Pharmacy, Metformin/Sertraline) so review conversations focus on structure, not placeholders.
 
-**As built in the Flutter study build (August 2026, not a Figma change):** Nearby can show live OSM rows behind `LIVE_NEARBY` (disclaimer banner; hours currently the raw `opening_hours` tag; “See these on a map” is still a placeholder). Learn in the study build is Physical Health, Mental Health, Stress Management, Nutrition, Exercise, Preventive Care, and Sleep — not the Figma six-topic grid. There is no Learn "Medications" tile; medicine lists live in My Health. Tokens and Figma frames above remain canonical for look. Engineering detail: `docs/engineering/nearby-live-data.md` and `docs/engineering/learn-content.md`.
+**As built in the Flutter study build (August 2026, not a Figma change):** Nearby can show live OSM rows behind `LIVE_NEARBY` (disclaimer banner; hours currently the raw `opening_hours` tag; “See these on a map” is still a placeholder). Learn in the study build is a six-tile grid: Physical Health, Mental Health, Stress Management, Nutrition, Preventive Care, and Sleep — not the Figma six-topic set. There is no Learn "Medications" or "Exercise" tile; medicine lists live in My Health. Tokens and Figma frames above remain canonical for look. Engineering detail: `docs/engineering/nearby-live-data.md` and `docs/engineering/learn-content.md`.
 
 ## 3. Design tokens
 
