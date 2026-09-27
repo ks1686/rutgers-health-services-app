@@ -90,6 +90,7 @@ void main() {
     expect(find.text('Sleep'), findsOneWidget);
     expect(find.text('Stress Management'), findsOneWidget);
     expect(find.text('Medications'), findsNothing);
+    expect(find.text('Exercise'), findsNothing);
     expect(find.text('Stress management'), findsNothing);
 
     await tester.tap(find.text('Sleep'));
