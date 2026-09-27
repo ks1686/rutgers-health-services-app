@@ -65,6 +65,11 @@ void main() {
     expect(tutorials, isNotEmpty);
     expect(tutorials.map((item) => item.title), contains('Find a pharmacy'));
     expect(tutorials.map((item) => item.title), isNot(contains('Ask a Peer')));
+    final addMed = tutorials.firstWhere(
+      (item) => item.id == 'add-a-medication',
+    );
+    expect(addMed.title, 'Add a medication');
+    expect(addMed.steps.first.title, 'Open My Health');
     for (final tutorial in tutorials) {
       expect(tutorial.steps, isNotEmpty);
       expect(tutorial.video.seconds, inInclusiveRange(1, 90));

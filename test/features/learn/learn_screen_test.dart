@@ -88,6 +88,7 @@ void main() {
 
     expect(find.text('This does not replace seeing a doctor.'), findsOneWidget);
     expect(find.text('Sleep'), findsOneWidget);
+    expect(find.text('Medications'), findsNothing);
     expect(find.text('Stress management'), findsNothing);
 
     await tester.tap(find.text('Sleep'));
@@ -102,6 +103,7 @@ void main() {
     await tester.tap(find.text('Physical Health'));
     await tester.pumpAndSettle();
     expect(find.text('From: CDC'), findsOneWidget);
+    expect(find.textContaining('use My Health'), findsOneWidget);
     expect(find.text('Stress management'), findsOneWidget);
     expect(find.text('Sleep apnea'), findsNothing);
 

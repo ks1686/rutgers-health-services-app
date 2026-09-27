@@ -51,7 +51,7 @@ Authoritative detail + evidence tags: feature spec v0.4. Working names subject t
 |------|-----|
 | **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; remembered North/Central/South town; optional one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map) |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
-| **Learn** | Survey domains plus **Sleep as its own area** (#29). Stress stays inside Physical Health (#30), not its own card. ~6th-grade; source-labeled; offline from `assets/content/learn.json`; **no AI answers** in study build |
+| **Learn** | Survey domains plus **Sleep as its own area** (#29). Stress stays inside Physical Health (#30), not its own card. **No Learn "Medications" tile** — personal lists/reminders stay in My Health. ~6th-grade; source-labeled; offline from `assets/content/learn.json`; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: **911 first** (high-contrast), then 988, Poison Control, ReachNJ, NJ Self-Help Group Clearinghouse, member’s CWC, NJ peer warmline; optional emergency card at the top (off by default, reads the real wallet) |
 | **More** | Tutorials + ≤90s Wi‑Fi-downloadable videos, Ask a Peer, PSS Helper Mode (demo data), settings, plain-language privacy, one-tap erase |
 

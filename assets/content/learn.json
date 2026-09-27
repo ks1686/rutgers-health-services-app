@@ -3,7 +3,7 @@
     "title": "Physical Health",
     "iconLabel": "body",
     "summary": "Everyday care for your body.",
-    "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off.",
+    "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off. To keep a list of medicines you take, use My Health. That list is a memory aid, not medical advice.",
     "source": "CDC",
     "articlesHeading": "Stress management",
     "articles": [
@@ -45,13 +45,6 @@
     "summary": "Move in ways that fit your day.",
     "body": "Walking, stretching, or light activity counts. Start small. Stop if you feel pain, and ask a provider before starting a new routine.",
     "source": "CDC"
-  },
-  {
-    "title": "Medications",
-    "iconLabel": "meds",
-    "summary": "Keep track of what you take.",
-    "body": "Know the name, dose, and why you take each medicine. Use My Health as a memory aid — not medical advice. Ask your pharmacist questions.",
-    "source": "FDA"
   },
   {
     "title": "Preventive Care",

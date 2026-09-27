@@ -35,7 +35,7 @@ The Figma file contains two pages:
 
 Every screen (except Help Now, which is the destination) carries the persistent **Help Now pill** in the header (NOW-1) and the four-tab bottom bar with the active tab tinted (NAV-1). Sample data in Figma is intentionally realistic-but-fake (Dr. Rivera, Main Street Pharmacy, Metformin/Sertraline) so review conversations focus on structure, not placeholders.
 
-**As built in the Flutter study build (August 2026, not a Figma change):** Nearby can show live OSM rows behind `LIVE_NEARBY` (disclaimer banner; hours currently the raw `opening_hours` tag; “See these on a map” is still a placeholder). Tokens and Figma frames above remain canonical for look. Engineering detail: `docs/engineering/nearby-live-data.md`.
+**As built in the Flutter study build (August 2026, not a Figma change):** Nearby can show live OSM rows behind `LIVE_NEARBY` (disclaimer banner; hours currently the raw `opening_hours` tag; “See these on a map” is still a placeholder). Learn in the study build is Physical Health, Mental Health, Nutrition, Exercise, Preventive Care, and Sleep — not the Figma six-topic grid. Stress stays under Physical Health. There is no Learn "Medications" tile; medicine lists live in My Health. Tokens and Figma frames above remain canonical for look. Engineering detail: `docs/engineering/nearby-live-data.md` and `docs/engineering/learn-content.md`.
 
 ## 3. Design tokens
 
