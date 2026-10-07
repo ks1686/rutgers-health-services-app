@@ -192,6 +192,17 @@ class _VideoBlockState extends State<_VideoBlock> {
       : rootBundle.loadString(widget.tutorial.video.captionsAsset);
   String? _status;
 
+  String _videoNote(HowToVideo video) {
+    final seconds = video.seconds;
+    if (video.downloadUrl == null) {
+      return 'About $seconds seconds. This build has the steps and captions. '
+          'It does not include a video file to download.';
+    }
+    return 'About $seconds seconds. Videos do not play by themselves. '
+        'A video file downloads only on Wi-Fi, then stays on this phone. '
+        'Captions work with no internet.';
+  }
+
   Future<void> _download() async {
     final cache = widget.cache;
     final url = widget.tutorial.video.downloadUrl;
@@ -228,9 +239,7 @@ class _VideoBlockState extends State<_VideoBlock> {
         ),
         const SizedBox(height: 8),
         Text(
-          'About ${video.seconds} seconds. Videos do not play by themselves. '
-          'A video file downloads only on Wi-Fi, then stays on this phone. '
-          'Captions work with no internet.',
+          _videoNote(video),
           style: const TextStyle(
             fontSize: 18,
             height: 1.4,

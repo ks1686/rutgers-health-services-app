@@ -64,6 +64,27 @@ Checked on October 6, 2026:
 
 Not linked: `https://www.cdc.gov/vaccines/index.html` (403). `https://medlineplus.gov/healthyeating.html` (404). Parent tiles still show the older source labels (CDC, SAMHSA, USDA). Each new note has its own source.
 
+## Starting-release notes (2026-10-07)
+
+The same twelve notes were rewritten in original plain language for the first study build. Nothing was pasted from the linked pages. Titles and the six-tile layout stayed the same. MyPlate (`https://www.myplate.gov/`) returned HTTP 403 on this check, so “A simple way to fill a plate” now links Nutrition.gov instead. The other links below returned HTTP 200 on 2026-10-07. These notes are still not a CAB-final text. [TEAM]
+
+| Note | Result | Page |
+| --- | --- | --- |
+| A checkup when you feel okay | 200 | [MedlinePlus: Health Checkup](https://medlineplus.gov/healthcheckup.html) |
+| Moving a little each day | 200 | [MedlinePlus: Exercise and Physical Fitness](https://medlineplus.gov/exerciseandphysicalfitness.html) |
+| Small ways to care for your mood | 200 | [NIMH: Caring for Your Mental Health](https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health) |
+| When to ask for more help | 200 | [MedlinePlus: Mental Health](https://medlineplus.gov/mentalhealth.html) |
+| Everyday ways to ease stress | 200 | [MedlinePlus: Stress](https://medlineplus.gov/stress.html) |
+| When stress feels like too much | 200 | [MedlinePlus: Stress](https://medlineplus.gov/stress.html) |
+| Eating when you can | 200 | [MedlinePlus: Nutrition](https://medlineplus.gov/nutrition.html) |
+| A simple way to fill a plate | 200 | [Nutrition.gov: Healthy Eating](https://www.nutrition.gov/topics/basic-nutrition/healthy-eating) |
+| Checks before you feel sick | 200 | [MedlinePlus: Health Screening](https://medlineplus.gov/healthscreening.html) |
+| Shots that protect you | 200 | [MedlinePlus: Vaccines](https://medlineplus.gov/vaccines.html) |
+| Everyday sleep tips | 200 | [MedlinePlus: Changing your sleep habits](https://medlineplus.gov/ency/patientinstructions/000757.htm) |
+| Sleep apnea | 200 | [NHLBI: Sleep Apnea](https://www.nhlbi.nih.gov/health/sleep-apnea) |
+
+Not linked on this pass: `https://www.myplate.gov/` (403). `https://www.cdc.gov/` (403 on earlier checks). Mayo and Cleveland Clinic were not linked.
+
 ## CAB / content update path
 
 1. Draft or revise copy offline (plain language; name the source).
