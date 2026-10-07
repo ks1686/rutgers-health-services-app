@@ -14,20 +14,12 @@ import 'ask_a_peer_screen.dart';
 import 'session_answers.dart';
 import 'session_questions_screen.dart';
 import 'helper_privacy_screen.dart';
-import 'placeholder_page.dart';
+import 'protects_you_page.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, this.launcher});
 
   final LinkLauncher? launcher;
-
-  void _open(BuildContext context, String title, String body) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => PlaceholderPage(title: title, body: body),
-      ),
-    );
-  }
 
   void _push(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -156,17 +148,7 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.privacy_tip_outlined,
                 title: 'How This App Protects You',
-                onTap: () => _open(
-                  context,
-                  'How This App Protects You',
-                  'Your appointments, medications, and providers stay on this '
-                      'phone only — not in a cloud account we can see. '
-                      'They are stored with the phone’s built-in secure storage '
-                      '(Android Keystore / iOS Keychain). '
-                      'Optional PIN locks My Health on screen. Help Now is never '
-                      'locked. More privacy wording will be co-written with the '
-                      'advisory committee.',
-                ),
+                onTap: () => _push(context, const ProtectsYouPage()),
               ),
               const Divider(height: 1),
               _MoreTile(

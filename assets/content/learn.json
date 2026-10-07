@@ -9,7 +9,7 @@
       {
         "title": "A checkup when you feel okay",
         "summary": "A regular visit can catch problems early.",
-        "body": "A checkup is a visit when you feel okay, not only when you are sick. The clinic can check blood pressure, ask what medicines you take, and talk about shots. Write down questions before you go. Your own medicine list belongs in My Health. This note is not medical advice.",
+        "body": "A checkup is a visit when you are not only going because you are sick or hurt. The clinic may check blood pressure and ask about your age, your family, and risks for some illnesses. They may talk about shots. They may also talk about food, movement, and alcohol or tobacco if you use them. Before you go, write your questions. Write the medicines, vitamins, and supplements you take. You can keep that medicine list in My Health. The right tests are not the same for every person. This note is not medical advice.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/healthcheckup.html"
@@ -17,7 +17,7 @@
       {
         "title": "Moving a little each day",
         "summary": "A short walk counts.",
-        "body": "You do not need a gym. A short walk, light stretching, or standing up more often can help your body. Start with what feels safe. If something hurts or you feel dizzy, stop and ask a doctor or clinic. This note is not a workout plan.",
+        "body": "You do not need a gym or special clothes. A short walk, light stretching, or standing up more often can help your body. Small bits of movement through the week still count. Start with what feels safe for you. If you feel pain, chest pressure, or dizziness, stop and ask a doctor or clinic. This note is not a workout plan.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/exerciseandphysicalfitness.html"
@@ -34,7 +34,7 @@
       {
         "title": "Small ways to care for your mood",
         "summary": "Talking with someone you trust can help.",
-        "body": "Your mood can change from day to day. A regular bedtime, a meal, a short walk, or a talk with a peer can make the day easier. You do not have to handle it alone. This note does not diagnose anything.",
+        "body": "Your mood can change from day to day. Caring for it can be small. Talk with someone you trust. Try to eat and rest. Move a little if you can. Cut back on alcohol or drugs if they make your mood worse. You do not have to handle a hard day alone. A peer, counselor, or clinic can listen. This note does not diagnose anything.",
         "source": "NIMH",
         "linkLabel": "Read more on NIMH",
         "linkUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health"
@@ -42,7 +42,7 @@
       {
         "title": "When to ask for more help",
         "summary": "Reach out if daily life stays hard.",
-        "body": "Ask a clinic, counselor, or peer if you feel low, worried, or numb for many days, or if everyday tasks get hard. If you might hurt yourself, open Help Now. This note does not replace a doctor.",
+        "body": "Ask for more help if you feel low, worried, or numb for many days. Ask if sleep, food, work, or getting out of bed stays hard. Ask if you are using alcohol or drugs to get through the day. A clinic, counselor, or peer can help you choose a next step. If you might hurt yourself or someone else, open Help Now right away. This note does not replace a doctor.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/mentalhealth.html"
@@ -59,7 +59,7 @@
       {
         "title": "Everyday ways to ease stress",
         "summary": "Small steps can take the edge off.",
-        "body": "Stress is a normal body response. A few slow breaths, a short walk, or talking with someone you trust can help. You do not have to track this or hit a goal. If stress gets in the way of daily life, talk with a doctor, counselor, or peer.",
+        "body": "Stress is your body's response to pressure. A fast heart, tight muscles, or a busy mind can be part of it. A few slow breaths, a short walk, or a talk with someone you trust can take the edge off. You do not have to track this or hit a goal. If stress gets in the way of daily life for many days, talk with a doctor, counselor, or peer.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/stress.html"
@@ -67,7 +67,7 @@
       {
         "title": "When stress feels like too much",
         "summary": "Ask for help if it will not let up.",
-        "body": "Feeling tense, worried, or worn out for many days is a reason to reach out. A clinic, counselor, or peer can help you sort next steps. If you might hurt yourself, open Help Now. This note does not replace a doctor.",
+        "body": "Feeling tense, worried, or worn out for many days is a reason to reach out. So is snapping at people, skipping meals, or not being able to rest. A clinic, counselor, or peer can help you sort next steps. If you might hurt yourself, open Help Now. This note does not replace a doctor.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/stress.html"
@@ -84,7 +84,7 @@
       {
         "title": "Eating when you can",
         "summary": "Regular meals and water are a fine start.",
-        "body": "You do not need a perfect diet. Try to eat at regular times, drink water, and add fruit or vegetables when you can get them. If food is hard to afford, ask your clinic or a peer about food help nearby. This note is not a meal plan.",
+        "body": "You do not need a perfect diet. Try to eat at regular times and drink water. Fruit, vegetables, beans, eggs, or other protein help when you can get them. If food is hard to afford or store, ask your clinic or a peer about food help nearby. A clinic can also help if diabetes or another condition changes what you eat. This note is not a meal plan.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/nutrition.html"
@@ -92,10 +92,10 @@
       {
         "title": "A simple way to fill a plate",
         "summary": "Fruits, vegetables, grains, and protein.",
-        "body": "When you can, fill half the plate with fruits and vegetables. Use the rest for grains and protein. Water is a good drink. A clinic can help if diabetes or another condition changes what you eat. This is general information, not a diet made for you.",
+        "body": "A simple plate can include fruits or vegetables, grains, and a protein food such as beans, eggs, or meat. Water is a good drink. Milk or yogurt can fit too if you use them. You do not have to measure every meal. A clinic can help if a health condition changes what you eat. This is general information, not a diet made for you.",
         "source": "USDA",
-        "linkLabel": "Read more on MyPlate",
-        "linkUrl": "https://www.myplate.gov/"
+        "linkLabel": "Read more on Nutrition.gov",
+        "linkUrl": "https://www.nutrition.gov/topics/basic-nutrition/healthy-eating"
       }
     ]
   },
@@ -109,7 +109,7 @@
       {
         "title": "Checks before you feel sick",
         "summary": "Ask which tests are due this year.",
-        "body": "A screening is a check for a problem before you feel sick. Which ones you need depends on your age and health. Ask your clinic what is due this year. This note does not list every test.",
+        "body": "A screening is a check for a problem before you feel sick. Blood pressure, blood sugar, and some cancer checks are examples. Which ones you need depends on your age, sex, health, and family history. Ask your clinic what is due this year. Bring a list of questions. This note does not list every test.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/healthscreening.html"
@@ -117,7 +117,7 @@
       {
         "title": "Shots that protect you",
         "summary": "Adults need vaccines too.",
-        "body": "Vaccines, also called shots, help your body get ready for some illnesses. Adults need them too, not only children. Ask your clinic which ones fit you. This note does not tell you to get a specific shot.",
+        "body": "Vaccines, also called shots, help your body get ready for some illnesses. Adults need them too, not only children. A flu shot and other adult shots are common questions for a clinic. Which shots fit you depends on your age and health. Ask before you get one. This note does not tell you to get a specific shot.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/vaccines.html"
@@ -134,7 +134,7 @@
       {
         "title": "Everyday sleep tips",
         "summary": "A cool, dark room can help.",
-        "body": "Try to go to bed and wake up around the same time. A cooler, darker, quiet room can make sleep easier. Skip big meals, caffeine, and bright screens close to bedtime when you can. If sleep stays hard, talk with a doctor.",
+        "body": "Try to go to bed and wake up around the same time. A cooler, darker, quiet room can make sleep easier. Skip big meals, caffeine, and bright screens close to bedtime when you can. Dimming the lights for a short wind-down can help. If sleep stays hard, or you feel very tired in the day, talk with a doctor.",
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/ency/patientinstructions/000757.htm"
@@ -142,7 +142,7 @@
       {
         "title": "Sleep apnea",
         "summary": "Breathing can pause during sleep.",
-        "body": "Sleep apnea means breathing stops and starts while you sleep. Loud snoring, gasping, or feeling very tired in the day can be signs. A doctor can check it. This short note is not a diagnosis.",
+        "body": "Sleep apnea means breathing stops and starts while you sleep. Loud snoring, gasping, or a morning headache can be signs. So can feeling very tired in the day. It is more common with some health conditions, and anyone can have it. A doctor can check it. This short note is not a diagnosis.",
         "source": "NHLBI",
         "linkLabel": "Read more on NHLBI",
         "linkUrl": "https://www.nhlbi.nih.gov/health/sleep-apnea"

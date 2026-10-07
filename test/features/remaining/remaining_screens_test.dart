@@ -194,7 +194,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Step 1. Open Nearby'), findsOneWidget);
     expect(find.text('Play captions'), findsOneWidget);
-    expect(find.textContaining('downloads only on Wi-Fi'), findsOneWidget);
+    expect(
+      find.textContaining('does not include a video file'),
+      findsOneWidget,
+    );
 
     await tester.pageBack();
     await tester.pumpAndSettle();
