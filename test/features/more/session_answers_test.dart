@@ -25,8 +25,9 @@ void main() {
     expect(sessionAnswersFromStored('{').isEmpty, isTrue);
     expect(sessionAnswersFromStored('[]').isEmpty, isTrue);
     expect(
-      sessionAnswersFromStored('{"nearby":"maybe","scarlet":"red","note":"ok"}')
-          .nearby,
+      sessionAnswersFromStored(
+        '{"nearby":"maybe","scarlet":"red","note":"ok"}',
+      ).nearby,
       isNull,
     );
     expect(sessionAnswersFromStored('{"note":"ok"}').note, 'ok');
