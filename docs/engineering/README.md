@@ -5,6 +5,7 @@ Shared, committed plans and handoffs for humans and agents.
 | Path | Purpose |
 |------|---------|
 | [`nearby-live-data.md`](nearby-live-data.md) | Nearby live-data collaborator handoff (**implemented**; local demo is live-on Android) |
+| [`cab-demo-smoke.md`](cab-demo-smoke.md) | Phone smoke for the live-Nearby demo APK before the Oct 14 CAB |
 | [`learn-content.md`](learn-content.md) | Learn bundled JSON + CAB content update path (#32) |
 | [`accessibility-captions.md`](accessibility-captions.md) | Caption strategy, large text, contrast, low-power notes (#35) |
 | [`../superpowers/specs/`](../superpowers/specs/) | Design specs |
