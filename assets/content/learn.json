@@ -4,14 +4,50 @@
     "iconLabel": "body",
     "summary": "Everyday care for your body.",
     "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off. To keep a list of medicines you take, use My Health. That list is a memory aid, not medical advice.",
-    "source": "CDC"
+    "source": "CDC",
+    "articles": [
+      {
+        "title": "A checkup when you feel okay",
+        "summary": "A regular visit can catch problems early.",
+        "body": "A checkup is a visit when you feel okay, not only when you are sick. The clinic can check blood pressure, ask what medicines you take, and talk about shots. Write down questions before you go. Your own medicine list belongs in My Health. This note is not medical advice.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/healthcheckup.html"
+      },
+      {
+        "title": "Moving a little each day",
+        "summary": "A short walk counts.",
+        "body": "You do not need a gym. A short walk, light stretching, or standing up more often can help your body. Start with what feels safe. If something hurts or you feel dizzy, stop and ask a doctor or clinic. This note is not a workout plan.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/exerciseandphysicalfitness.html"
+      }
+    ]
   },
   {
     "title": "Mental Health",
     "iconLabel": "mind",
     "summary": "Support for your mind and mood.",
     "body": "Feeling stressed or low is common. Talking with a peer, counselor, or trusted person can help. Crisis lines are under Help Now.",
-    "source": "SAMHSA"
+    "source": "SAMHSA",
+    "articles": [
+      {
+        "title": "Small ways to care for your mood",
+        "summary": "Talking with someone you trust can help.",
+        "body": "Your mood can change from day to day. A regular bedtime, a meal, a short walk, or a talk with a peer can make the day easier. You do not have to handle it alone. This note does not diagnose anything.",
+        "source": "NIMH",
+        "linkLabel": "Read more on NIMH",
+        "linkUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health"
+      },
+      {
+        "title": "When to ask for more help",
+        "summary": "Reach out if daily life stays hard.",
+        "body": "Ask a clinic, counselor, or peer if you feel low, worried, or numb for many days, or if everyday tasks get hard. If you might hurt yourself, open Help Now. This note does not replace a doctor.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/mentalhealth.html"
+      }
+    ]
   },
   {
     "title": "Stress Management",
@@ -43,14 +79,50 @@
     "iconLabel": "food",
     "summary": "Simple ideas for eating well.",
     "body": "You do not need a perfect diet. Aim for regular meals when you can, drink water, and ask your clinic about food resources nearby.",
-    "source": "USDA"
+    "source": "USDA",
+    "articles": [
+      {
+        "title": "Eating when you can",
+        "summary": "Regular meals and water are a fine start.",
+        "body": "You do not need a perfect diet. Try to eat at regular times, drink water, and add fruit or vegetables when you can get them. If food is hard to afford, ask your clinic or a peer about food help nearby. This note is not a meal plan.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/nutrition.html"
+      },
+      {
+        "title": "A simple way to fill a plate",
+        "summary": "Fruits, vegetables, grains, and protein.",
+        "body": "When you can, fill half the plate with fruits and vegetables. Use the rest for grains and protein. Water is a good drink. A clinic can help if diabetes or another condition changes what you eat. This is general information, not a diet made for you.",
+        "source": "USDA",
+        "linkLabel": "Read more on MyPlate",
+        "linkUrl": "https://www.myplate.gov/"
+      }
+    ]
   },
   {
     "title": "Preventive Care",
     "iconLabel": "shield",
     "summary": "Screenings and shots that help.",
     "body": "Vaccines and checkups can catch problems early. Ask your clinic which ones are right for you this year.",
-    "source": "CDC"
+    "source": "CDC",
+    "articles": [
+      {
+        "title": "Checks before you feel sick",
+        "summary": "Ask which tests are due this year.",
+        "body": "A screening is a check for a problem before you feel sick. Which ones you need depends on your age and health. Ask your clinic what is due this year. This note does not list every test.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/healthscreening.html"
+      },
+      {
+        "title": "Shots that protect you",
+        "summary": "Adults need vaccines too.",
+        "body": "Vaccines, also called shots, help your body get ready for some illnesses. Adults need them too, not only children. Ask your clinic which ones fit you. This note does not tell you to get a specific shot.",
+        "source": "MedlinePlus",
+        "linkLabel": "Read more on MedlinePlus",
+        "linkUrl": "https://medlineplus.gov/vaccines.html"
+      }
+    ]
   },
   {
     "title": "Sleep",
