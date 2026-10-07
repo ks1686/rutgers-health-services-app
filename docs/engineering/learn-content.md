@@ -45,6 +45,25 @@ Checked on September 24, 2026 (HTTP 200):
 
 Also checked and not linked, so the study app does not send people into a clinic appointment flow: Cleveland Clinic sleep apnea and stress pages (both HTTP 200). CDC and Mayo returned 403 or 404 to this check, so they are not linked.
 
+## Study-build filler (2026-10-06)
+
+Physical Health, Mental Health, Nutrition, and Preventive Care each have two short notes for the Oct 14 CAB demo. Sleep and Stress were already filled. Copy is original plain language. Nothing was pasted from the linked pages. These notes are study-build filler, not a CAB-final text. [TEAM 2026-10-05] said CDC, Mayo, or Cleveland filler was acceptable. This pass links only pages that returned HTTP 200 on 2026-10-06. CDC still returned 403, so it is not linked. Mayo was not linked. Cleveland Clinic stress returned 200 on GET and was not linked, for the same clinic-flow reason as September 24.
+
+Checked on October 6, 2026:
+
+| Used in the app | Result | Page |
+| --- | --- | --- |
+| A checkup when you feel okay | 200 | [MedlinePlus: Health Checkup](https://medlineplus.gov/healthcheckup.html) |
+| Moving a little each day | 200 | [MedlinePlus: Exercise and Physical Fitness](https://medlineplus.gov/exerciseandphysicalfitness.html) |
+| Small ways to care for your mood | 200 | [NIMH: Caring for Your Mental Health](https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health) |
+| When to ask for more help | 200 | [MedlinePlus: Mental Health](https://medlineplus.gov/mentalhealth.html) |
+| Eating when you can | 200 | [MedlinePlus: Nutrition](https://medlineplus.gov/nutrition.html) |
+| A simple way to fill a plate | 200 | [USDA MyPlate](https://www.myplate.gov/) |
+| Checks before you feel sick | 200 | [MedlinePlus: Health Screening](https://medlineplus.gov/healthscreening.html) |
+| Shots that protect you | 200 | [MedlinePlus: Vaccines](https://medlineplus.gov/vaccines.html) |
+
+Not linked: `https://www.cdc.gov/vaccines/index.html` (403). `https://medlineplus.gov/healthyeating.html` (404). Parent tiles still show the older source labels (CDC, SAMHSA, USDA). Each new note has its own source.
+
 ## CAB / content update path
 
 1. Draft or revise copy offline (plain language; name the source).

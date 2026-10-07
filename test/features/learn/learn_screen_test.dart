@@ -106,6 +106,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('From: CDC'), findsOneWidget);
     expect(find.textContaining('use My Health'), findsOneWidget);
+    expect(find.text('A checkup when you feel okay'), findsOneWidget);
+    expect(find.text('Moving a little each day'), findsOneWidget);
     expect(find.text('Stress management'), findsNothing);
     expect(find.text('Everyday ways to ease stress'), findsNothing);
     expect(find.text('Sleep apnea'), findsNothing);

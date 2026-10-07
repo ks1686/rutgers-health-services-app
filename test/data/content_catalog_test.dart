@@ -34,7 +34,32 @@ void main() {
       expect(physical.body, contains('My Health'));
       expect(physical.body.toLowerCase(), contains('medicines'));
       expect(physical.articlesHeading, isNull);
-      expect(physical.articles, isEmpty);
+      expect(physical.articles.map((a) => a.title), [
+        'A checkup when you feel okay',
+        'Moving a little each day',
+      ]);
+
+      final padded = [
+        physical,
+        topics.firstWhere((t) => t.title == 'Mental Health'),
+        topics.firstWhere((t) => t.title == 'Nutrition'),
+        topics.firstWhere((t) => t.title == 'Preventive Care'),
+      ];
+      for (final topic in padded) {
+        expect(topic.articles, hasLength(2), reason: topic.title);
+        for (final article in topic.articles) {
+          expect(article.source, isNotEmpty, reason: article.title);
+          expect(article.link, isNotNull, reason: article.title);
+          expect(article.link!.scheme, 'https');
+        }
+      }
+      expect(
+        topics
+            .firstWhere((t) => t.title == 'Mental Health')
+            .articles
+            .map((a) => a.link!.host),
+        ['www.nimh.nih.gov', 'medlineplus.gov'],
+      );
 
       final stress = topics.firstWhere((t) => t.title == 'Stress Management');
       expect(stress.articlesHeading, isNull);
