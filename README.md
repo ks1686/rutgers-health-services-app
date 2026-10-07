@@ -61,9 +61,9 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 |--------------|---------------|
 | Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer plus a plain insurance and walk-in warning; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; remembered North/Central/South town; one-shot location is an optional shortcut and sorts by proximity |
 | My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
-| Learn | Topics from bundled `assets/content/learn.json` (offline); Sleep and Stress Management are their own areas; no Medications or Exercise tiles; source labels on each article |
-| More | List to placeholder pages; Erase clears My Health |
-| Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; emergency-card toggle at the top (real My Health wallet) |
+| Learn | Six offline topics from `assets/content/learn.json`. Two original notes each, with a source and a link. No Medications or Exercise tile. Notes are not a CAB-final text |
+| More | How to Use (steps and captions; no video file), Ask a Peer, Session questions, Wellness goals, Helper Mode, About, Notifications, Settings, How This App Protects You, Erase |
+| Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; warmline and wellness-center rows stay samples; emergency-card toggle at the top (real My Health wallet) |
 
 ## Project docs
 
@@ -71,6 +71,7 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 - [`CWC_Health_App/`](CWC_Health_App/) — requirements + design reference
 - [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) — **Nearby live-data** collaborator handoff
 - [`docs/superpowers/plans/2026-09-03-my-health.md`](docs/superpowers/plans/2026-09-03-my-health.md) — My Health interactive plan
+- [`docs/engineering/starting-release.md`](docs/engineering/starting-release.md) — what the October 2026 study build includes
 - [`docs/engineering/learn-content.md`](docs/engineering/learn-content.md) — Learn JSON + CAB update path
 - Figma: https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
 

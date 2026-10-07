@@ -17,6 +17,8 @@ Do this on a phone with a network connection. Stop if a step does not match.
 5. Open **Help Now** from the header. **911 Emergency** is first. The page says the buttons are demo-only and do not place calls. Do not expect the dialer. Leave with the back button. The bottom tabs are still there.
 6. Open **More**, then **Ask a Peer**. The peer screen is full screen and the bottom tabs are gone. Back returns to More and the tabs.
 7. On **More**, open **Session questions**. Tap one Yes or No. The page says the answers stay on this phone. Back returns to More.
+8. On **More**, open **How This App Protects You**. The page says personal information is not uploaded. Back returns to More.
+9. On **More**, open **How to Use This App**, then **Find a pharmacy**. The steps are on the phone. The page says this build does not include a video file. Back returns to More.
 
 ## Pass
 

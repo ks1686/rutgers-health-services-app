@@ -13,7 +13,7 @@ Authoritative requirements: `CWC_Health_App/01_CWC_Health_App_Feature_Specificat
 - **My Health** is the default landing tab (P1 CWC feedback). Nearby stays a tab.
 - Persistent **Help Now** control in every screen header; never gated by PIN.
 - Max **two taps** from any tab root to a core task.
-- **More** is a plain large-type list (tutorials, Ask a Peer, Helper Mode, Settings, privacy, erase)—not a drawer.
+- **More** is a plain large-type list (tutorials, Ask a Peer, Session questions, Helper Mode, Settings, privacy, erase)—not a drawer.
 
 ## MVP feature boundaries
 
@@ -22,7 +22,7 @@ Authoritative requirements: `CWC_Health_App/01_CWC_Health_App_Feature_Specificat
 | Nearby | Town/region picker first; list + walk-time; offline cache; optional GPS + OSM map | Require location at launch; miles-only; paid map APIs |
 | My Health | Manual appointments/meds/providers; portal **link-out**; wallet card; optional PIN | Store portal credentials; EHR sync (this award) |
 | Learn | Survey domains, plus Sleep and Stress Management as their own areas. Source labels; offline; ~6th-grade | AI chat/answers; Sleep nested under Physical Health; Stress nested only under Physical Health; Medications as a Learn tile (lists live in My Health); Exercise as a Learn tile |
-| Help Now | Offline: 988 call+text, 911, Poison Control, CWC, NJ peer warmline; emergency card **off** by default | PIN wall; alarm-only “EMERGENCY” tone without CAB buy-in |
+| Help Now | Offline, 911 first, then 988, Poison Control, ReachNJ, Clearinghouse. Warmline and CWC stay samples until CSPNJ confirms them. Emergency card **off** by default | PIN wall; alarm-only “EMERGENCY” tone without CAB buy-in |
 | Accounts | No account required; local personal data; guest/kiosk for center devices | Mandatory login/email/phone |
 
 Working tab/Help Now labels are co-design hypotheses—keep them easy to rename.

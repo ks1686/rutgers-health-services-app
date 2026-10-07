@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of August 2026 (~M14): pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; Flutter study build on `main` has four tabs + Help Now, **live Nearby** (Google soft-fail → OSM, `LIVE_NEARBY`, default off; one-shot coarse GPS + FIND-4 overhead map), and **interactive My Health** (on-device encrypted store). Local engineering demo is **Android** with live Nearby on. Flutter **web is not a ship target**.
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of October 2026: pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; the Flutter study build on `main` is the first installable demo (four tabs + Help Now, live Nearby, interactive My Health, sourced Learn notes, on-device session questions). Local engineering demo is **Android** with live Nearby on. Flutter **web is not a ship target**. Status: [`docs/engineering/starting-release.md`](docs/engineering/starting-release.md).
 
 ## 2. Formal identity
 
@@ -53,7 +53,7 @@ Authoritative detail + evidence tags: feature spec v0.4. Working names subject t
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Survey domains plus **Sleep** (#29) and **Stress Management** as their own areas. **No Learn "Medications" or "Exercise" tile** — personal lists/reminders stay in My Health; movement stays in Physical Health. ~6th-grade; source-labeled; offline from `assets/content/learn.json`; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: **911 first** (high-contrast), then 988, Poison Control, ReachNJ, NJ Self-Help Group Clearinghouse, member’s CWC, NJ peer warmline; optional emergency card at the top (off by default, reads the real wallet) |
-| **More** | Tutorials + ≤90s Wi‑Fi-downloadable videos, Ask a Peer, PSS Helper Mode (demo data), settings, plain-language privacy, one-tap erase |
+| **More** | How-to steps and captions (no video file in this build), Ask a Peer, on-device session questions, Helper Mode, settings, plain-language privacy page, one-tap erase |
 
 **Tech:** Flutter (this repo); Android 8+ era / low-RAM test device; &lt;~40MB; offline-first; remote-config/hosted JSON for directory + Learn + Help Now numbers; WCAG 2.1 AA, ≥48dp targets, 18pt+ body + OS scaling, TalkBack/VoiceOver; open-source/low-cost stack.
 
@@ -126,6 +126,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 | Doc | Role |
 |-----|------|
+| [`docs/engineering/starting-release.md`](docs/engineering/starting-release.md) | October 2026 study build: shipped scope and closed tracker |
 | [`docs/engineering/nearby-live-data.md`](docs/engineering/nearby-live-data.md) | Collaborator handoff + as-built + next work |
 | [`docs/superpowers/specs/2026-08-11-nearby-live-data-design.md`](docs/superpowers/specs/2026-08-11-nearby-live-data-design.md) | Live-data spike design (implemented) |
 | [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) | Tasks 1–6 done; Task 7 docs written |
@@ -153,7 +154,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Study build on `main`: four tabs + Help Now; default landing is My Health; first-launch disclaimer once; live Nearby (Google soft-fail → OSM) behind `LIVE_NEARBY` (default off); My Health CRUD + Keystore/Keychain encryption + optional PIN + Erase. Learn loads topics from bundled `assets/content/learn.json`. Help Now: 911 first, ReachNJ + Clearinghouse listed, live national/verified NJ dialers behind `HELP_NOW_LIVE` (default off). Live cards show Open now / Closed (expand weekday hours when OSM tags parse). Warmline/CWC/Ask a Peer still sample.
+- Study build on `main` (October 2026): four tabs + Help Now; default landing is My Health; first-launch disclaimer once; live Nearby behind `LIVE_NEARBY` (default off; demo APK on); My Health CRUD + encryption + optional PIN + Erase; Learn has six tiles and two sourced notes each; More has session questions, a privacy page, and how-to steps without a video file. Help Now: 911 first; live dialers behind `HELP_NOW_LIVE` (demo APK off). Warmline and CWC rows stay sample until CSPNJ confirms them. Ask a Peer uses contacts saved on the phone. See `docs/engineering/starting-release.md`.
 - Live Nearby place choice: remembered North/Central/South town is the lookup (default New Brunswick). One-shot coarse GPS is an optional shortcut (coordinates transient / not cached); that list is sorted by proximity. If location is denied or unavailable, the tab returns to the remembered town. NJ region guardrail is skipped on the device-location path so travel out of state still works.
 - Live Nearby map (FIND-4): opt-in overhead map; Google Maps when `GOOGLE_MAPS_API_KEY` is set on native, else OSM/`flutter_map` (study default on Android); pins follow the shared category filter; no pan-to-refetch.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.
