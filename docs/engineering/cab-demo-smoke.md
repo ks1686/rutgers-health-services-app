@@ -16,6 +16,7 @@ Do this on a phone with a network connection. Stop if a step does not match.
 4. Open **Learn**. Count six tiles: Physical Health, Mental Health, Stress Management, Nutrition, Preventive Care, Sleep. There is no Medications tile and no Exercise tile. Open Physical Health and one short note. The note names a source.
 5. Open **Help Now** from the header. **911 Emergency** is first. The page says the buttons are demo-only and do not place calls. Do not expect the dialer. Leave with the back button. The bottom tabs are still there.
 6. Open **More**, then **Ask a Peer**. The peer screen is full screen and the bottom tabs are gone. Back returns to More and the tabs.
+7. On **More**, open **Session questions**. Tap one Yes or No. The page says the answers stay on this phone. Back returns to More.
 
 ## Pass
 

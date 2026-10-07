@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../more/peer_contact.dart';
+import '../more/session_answers.dart';
 import '../nearby/data/nearby_place_preference.dart';
 import '../nearby/data/nj_places.dart';
 
@@ -16,6 +17,9 @@ const kHelperHidingPref = 'cwc_settings_helper_hiding';
 
 /// People this member asks about the app. JSON list, on this phone only.
 const kPeerContactsPref = 'cwc_peer_contacts';
+
+/// Co-design session answers. JSON object, on this phone only.
+const kSessionAnswersPref = 'cwc_session_answers';
 
 TextSizeChoice textSizeFromStored(String? raw) {
   return switch (raw) {
@@ -79,6 +83,9 @@ class AppPreferences extends ChangeNotifier {
   List<PeerContact> get peerContacts =>
       peerContactsFromStored(_values[kPeerContactsPref] as String?);
 
+  SessionAnswers get sessionAnswers =>
+      sessionAnswersFromStored(_values[kSessionAnswersPref] as String?);
+
   Future<void> setTextSize(TextSizeChoice choice) {
     return _set(kTextSizePref, textSizeToStored(choice));
   }
@@ -98,6 +105,10 @@ class AppPreferences extends ChangeNotifier {
 
   Future<void> setPeerContacts(List<PeerContact> contacts) {
     return _set(kPeerContactsPref, peerContactsToStored(contacts));
+  }
+
+  Future<void> setSessionAnswers(SessionAnswers answers) {
+    return _set(kSessionAnswersPref, sessionAnswersToStored(answers));
   }
 
   Future<void> _set(String key, Object value) async {
