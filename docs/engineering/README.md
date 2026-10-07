@@ -12,13 +12,16 @@ Shared, committed plans and handoffs for humans and agents.
 
 ## CI expectations
 
-Every PR to `main` runs [`.github/workflows/flutter-ci.yml`](../../.github/workflows/flutter-ci.yml) with **three parallel jobs**:
+Every PR to `main`, plus a manual **workflow_dispatch**, runs [`.github/workflows/flutter-ci.yml`](../../.github/workflows/flutter-ci.yml) with **four parallel jobs**:
 
 | Job | What it proves |
 |-----|----------------|
 | **Format, analyze, unit + widget tests** | Style, static analysis, unit/widget tests |
 | **Integration navigation smoke** | `integration_test/` tab circuit + Help Now |
-| **Compile Android APK** | `flutter build apk --debug` then unsigned `flutter build apk --release` |
+| **Compile Android APK** | `flutter build apk --debug` then unsigned `flutter build apk --release` (flag-off; not uploaded) |
+| **Demo release APK (live Nearby)** | `flutter build apk --release --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=false`, uploaded as `cwc-demo-apk-live-nearby-<sha>` for 30 days |
+
+The demo artifact is the installable CAB file. `HELP_NOW_LIVE` stays off so Help Now does not dial. Tests still run without either flag.
 
 Flutter **web is not a ship or CI target** (folder removed; study build is Android + iOS).
 
