@@ -37,6 +37,22 @@ flutter build apk --release   # unsigned; locks the release manifest
 
 GitHub Actions runs format/analyze/tests, integration navigation smoke, and Android debug **plus unsigned release** APK on every PR to `main` (see `.github/workflows/flutter-ci.yml`).
 
+### CAB demo APK
+
+The file to install is the **demo release** artifact, not the flag-off compile check.
+
+```bash
+flutter build apk --release \
+  --dart-define=LIVE_NEARBY=true \
+  --dart-define=HELP_NOW_LIVE=false
+```
+
+CI uploads that APK as `cwc-demo-apk-live-nearby-<sha>` (kept 30 days) on pull requests, pushes to `main`, and manual runs. The flag-off release APK is still compiled and is not uploaded.
+
+`HELP_NOW_LIVE` stays **off** on this shared build. Help Now buttons show the demo-only line and do not open the phone dialer, so a tap in the room does not start a 911 call. Nearby Call, Text, and Directions on live cards still launch. Rebuild with `HELP_NOW_LIVE=true` only when Karim wants real Help Now dialing in that room.
+
+The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK. Download needs access to this private repo.
+
 Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, three tests fail by design: one asserts the flag's default is off, and two assert the demo listings render. Live mode is supposed to hide demo data, so those failures confirm the separation rather than reveal a bug.
 
 ## What’s in this build

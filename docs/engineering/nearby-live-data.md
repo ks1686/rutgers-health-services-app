@@ -9,7 +9,7 @@
 **Task 6 (cross-platform verify + README flags):** **Complete** (kholaif) — two Android release blockers found and fixed; see below.  
 **Task 7 (collaborator close-out):** **Docs synced 2026-08-14** (ks1686). FIND-1 not rewritten. Commit of this close-out is with the next docs PR.  
 **Local demo:** **Live Nearby on Android** (`LIVE_NEARBY=true`). Flutter web is not a ship target. The flag-off static list is not used for local engineering review.  
-**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus. Compile-time `LIVE_NEARBY` still defaults **off** so a meeting APK cannot accidentally show live listings.
+**Meeting context:** 2026-08-11 project call — Nearby / “locator” is the near-term engineering focus. Compile-time `LIVE_NEARBY` still defaults **off** so a build without the flag cannot accidentally show live listings. The CAB handoff file is the CI artifact `cwc-demo-apk-live-nearby-<sha>` (`LIVE_NEARBY=true`, `HELP_NOW_LIVE=false`). Do not hand the flag-off APK.
 
 ## Read these in order
 

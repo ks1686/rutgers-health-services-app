@@ -120,7 +120,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 ## 11. Engineering track — Nearby (Aug 2026)
 
-**Priority:** Nearby / locator. **Local demo = live-on Android.** Compile-time `LIVE_NEARBY` still defaults off so meeting APKs stay on the fake list.
+**Priority:** Nearby / locator. **Local demo = live-on Android.** Compile-time `LIVE_NEARBY` still defaults off so a build without the flag stays on the fake list. The shared CAB file is the CI demo artifact: release APK with `LIVE_NEARBY=true` and `HELP_NOW_LIVE=false` (`cwc-demo-apk-live-nearby-<sha>`). Do not hand the flag-off APK. Help Now stays demo-only on that file so a meeting tap does not open the 911 dialer.
 
 **Shared docs (start here):**
 
@@ -135,7 +135,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 **Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Hours expand is on `main` (flag default still off). Study-build hardening (2026-08-15): member-safe empty vs unavailable, Nominatim timeout, persistent last-success cache, 18pt body + 48dp Help Now, honest PIN/Erase copy, gated `HELP_NOW_LIVE`. Live Nearby on Android: one-shot coarse GPS, nearest-first sort, town fallback, FIND-4 opt-in map (Google when keyed, OSM `flutter_map` study default). Still open: physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
 
-**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, and unsigned release APK. **No web job** (web is not a ship target).
+**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, unsigned flag-off release APK (not uploaded), and an uploaded demo release APK (`LIVE_NEARBY=true`, `HELP_NOW_LIVE=false`). **No web job** (web is not a ship target).
 
 **Run (local):** `flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true`
 
