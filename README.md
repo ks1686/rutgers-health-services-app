@@ -105,6 +105,8 @@ Live mode needs the `INTERNET` permission and Android 11+ package-visibility `<q
 
 ## Feedback questions this prototype supports
 
+More → **Session questions** asks these on the phone. Answers stay on the device. Erase my information deletes them. They are not uploaded.
+
 - Can you find Nearby vs My Health?
 - Is Help Now always one tap away?
 - Does More feel like a visible list (not a hidden menu)?

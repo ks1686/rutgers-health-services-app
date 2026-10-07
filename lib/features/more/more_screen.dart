@@ -11,6 +11,8 @@ import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
 import 'ask_a_peer_screen.dart';
+import 'session_answers.dart';
+import 'session_questions_screen.dart';
 import 'helper_privacy_screen.dart';
 import 'placeholder_page.dart';
 
@@ -40,8 +42,8 @@ class MoreScreen extends StatelessWidget {
         title: const Text('Erase my information?'),
         content: const Text(
           'This deletes appointments, medications, providers, wallet details, '
-          'reminders, your My Health PIN, and people you saved under Ask a Peer '
-          'from this phone. It cannot be undone.',
+          'reminders, your My Health PIN, people you saved under Ask a Peer, '
+          'and session question answers from this phone. It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -70,6 +72,7 @@ class MoreScreen extends StatelessWidget {
     }
     await health.eraseAll();
     await prefs?.setPeerContacts([]);
+    await prefs?.setSessionAnswers(const SessionAnswers());
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -100,6 +103,12 @@ class MoreScreen extends StatelessWidget {
                 icon: Icons.people_outline,
                 title: 'Ask a Peer',
                 onTap: () => _push(context, AskAPeerScreen(launcher: launcher)),
+              ),
+              const Divider(height: 1),
+              _MoreTile(
+                icon: Icons.rate_review_outlined,
+                title: 'Session questions',
+                onTap: () => _push(context, const SessionQuestionsScreen()),
               ),
               const Divider(height: 1),
               _MoreTile(
