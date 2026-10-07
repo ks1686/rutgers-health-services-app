@@ -5,6 +5,7 @@ Shared, committed plans and handoffs for humans and agents.
 | Path | Purpose |
 |------|---------|
 | [`nearby-live-data.md`](nearby-live-data.md) | Nearby live-data collaborator handoff (**implemented**; local demo is live-on Android) |
+| [`starting-release.md`](starting-release.md) | October 2026 study build: what shipped, what closed the tracker, what is still outside |
 | [`cab-demo-smoke.md`](cab-demo-smoke.md) | Phone smoke for the live-Nearby demo APK before the Oct 14 CAB |
 | [`learn-content.md`](learn-content.md) | Learn bundled JSON + CAB content update path (#32) |
 | [`accessibility-captions.md`](accessibility-captions.md) | Caption strategy, large text, contrast, low-power notes (#35) |
@@ -45,4 +46,4 @@ Flutter pin: **3.44.7** (stable).
 - Device/emulator `flutter drive` on Android
 - Screenshot / golden tests
 
-Nearby live-data Tasks 1–6, device-location proximity, and FIND-4 overhead map are on this branch. My Health interactive + encrypted store: [`../superpowers/plans/2026-09-03-my-health.md`](../superpowers/plans/2026-09-03-my-health.md). See [`nearby-live-data.md`](nearby-live-data.md).
+Nearby live data, My Health, Learn, and More are on `main`. Status of the installable study build: [`starting-release.md`](starting-release.md). Nearby handoff: [`nearby-live-data.md`](nearby-live-data.md). My Health plan: [`../superpowers/plans/2026-09-03-my-health.md`](../superpowers/plans/2026-09-03-my-health.md).
