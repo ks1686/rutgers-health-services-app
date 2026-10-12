@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import 'demo_health.dart';
-import 'demo_help_now.dart';
 import 'demo_learn.dart';
 import 'demo_resources.dart';
 
@@ -94,26 +93,6 @@ Future<List<DemoLearnTopic>> loadLearnTopics({AssetBundle? bundle}) async {
   }
   final raw = await rootBundle.loadString(kLearnAssetPath);
   return _cachedLearnTopics = parseLearnTopics(raw);
-}
-
-List<DemoHelpAction> parseHelpNowActions(String json) {
-  final decoded = jsonDecode(json);
-  if (decoded is! Map) {
-    throw const FormatException('help_now.json must be an object');
-  }
-  final demo = decoded['demo'];
-  if (demo is! List) {
-    throw const FormatException('help_now.json demo must be a list');
-  }
-  return [
-    for (final row in demo)
-      if (row is Map)
-        DemoHelpAction(
-          label: row['label'] as String,
-          detail: row['detail'] as String,
-          style: DemoHelpStyle.values.byName(row['style'] as String),
-        ),
-  ];
 }
 
 ({

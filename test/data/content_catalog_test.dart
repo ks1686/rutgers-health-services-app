@@ -138,17 +138,6 @@ void main() {
     );
   });
 
-  test('help_now.json parses demo actions with 911 first', () {
-    final json = File('assets/content/help_now.json').readAsStringSync();
-    final actions = parseHelpNowActions(json);
-    expect(actions, hasLength(7));
-    expect(actions.first.label, '911 Emergency');
-    expect(
-      actions.map((a) => a.label),
-      containsAll(['ReachNJ', 'NJ Self-Help Group Clearinghouse']),
-    );
-  });
-
   test('health.json parses sample wallet and meds', () {
     final json = File('assets/content/health.json').readAsStringSync();
     final health = parseHealthCatalog(json);

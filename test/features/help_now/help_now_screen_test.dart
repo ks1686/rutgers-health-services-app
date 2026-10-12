@@ -24,37 +24,43 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('HELP_NOW_LIVE defaults off', () {
+  test('calling is on by default and unconfirmed rows are off', () {
     final config = HelpNowConfig.fromEnvironment();
-    expect(config.helpNowLive, isFalse);
+    expect(config.liveCalls, isTrue);
+    expect(config.showUnconfirmedRows, isFalse);
   });
 
-  testWidgets('flag-off Help Now stays demo-only', (tester) async {
-    await pumpHelpNow(
-      tester,
-      const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
+  testWidgets('unconfirmed warmline and wellness center rows stay hidden', (
+    tester,
+  ) async {
+    await pumpHelpNow(tester, const HelpNowScreen());
+    await tester.scrollUntilVisible(
+      find.text('NJ Self-Help Group Clearinghouse'),
+      200,
     );
-    await tester.tap(find.text('988 Suicide & Crisis Lifeline'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Demo only'), findsOneWidget);
+    expect(find.text('NJ Peer Warmline'), findsNothing);
+    expect(find.text('My Wellness Center'), findsNothing);
+  });
+
+  testWidgets('the banner explains the number is filled in, not dialed', (
+    tester,
+  ) async {
+    await pumpHelpNow(tester, const HelpNowScreen());
+    expect(find.textContaining('never dials for you'), findsOneWidget);
+    expect(find.textContaining('demo'), findsNothing);
   });
 
   testWidgets('911 sits above 988 and the emergency card sits above 911', (
     tester,
   ) async {
-    await pumpHelpNow(
-      tester,
-      const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
-    );
+    await pumpHelpNow(tester, const HelpNowScreen());
 
     expect(find.text('Emergency'), findsOneWidget);
     expect(find.text('Additional support'), findsOneWidget);
 
     final card = tester.getTopLeft(find.text('Show my emergency card here'));
     final nineOneOne = tester.getTopLeft(find.text('911 Emergency'));
-    final nineEight = tester.getTopLeft(
-      find.text('988 Suicide & Crisis Lifeline'),
-    );
+    final nineEight = tester.getTopLeft(find.text('Call 988'));
     expect(card.dy, lessThan(nineOneOne.dy));
     expect(nineOneOne.dy, lessThan(nineEight.dy));
   });
@@ -66,7 +72,7 @@ void main() {
     await pumpHelpNow(
       tester,
       HelpNowScreen(
-        config: const HelpNowConfig(helpNowLive: true),
+        config: const HelpNowConfig(),
         launcher: (uri) async {
           launched.add(uri);
           return true;
@@ -90,7 +96,7 @@ void main() {
     await pumpHelpNow(
       tester,
       HelpNowScreen(
-        config: const HelpNowConfig(helpNowLive: true),
+        config: const HelpNowConfig(),
         launcher: (uri) async {
           launched.add(uri);
           return true;
@@ -115,12 +121,14 @@ void main() {
     expect(launched.single, Uri(scheme: 'tel', path: '18447322465'));
   });
 
-  testWidgets('warmline and CWC stay demo even when live', (tester) async {
+  testWidgets('revealing unconfirmed rows still cannot dial them', (
+    tester,
+  ) async {
     final launched = <Uri>[];
     await pumpHelpNow(
       tester,
       HelpNowScreen(
-        config: const HelpNowConfig(helpNowLive: true),
+        config: const HelpNowConfig(showUnconfirmedRows: true),
         launcher: (uri) async {
           launched.add(uri);
           return true;
@@ -131,12 +139,15 @@ void main() {
     await tester.scrollUntilVisible(find.text('NJ Peer Warmline'), 400);
     await tester.tap(find.text('NJ Peer Warmline'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Demo only'), findsOneWidget);
     expect(find.textContaining('sample number'), findsWidgets);
+    expect(
+      find.textContaining('not available yet'),
+      findsOneWidget,
+      reason: 'an unconfirmed number must not open a dialer',
+    );
 
     await tester.tap(find.text('My Wellness Center'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Demo only'), findsWidgets);
     expect(launched, isEmpty);
   });
 
@@ -166,7 +177,7 @@ void main() {
         theme: buildCwcTheme(),
         home: HealthScope(
           controller: health,
-          child: const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
+          child: const HelpNowScreen(config: HelpNowConfig(liveCalls: false)),
         ),
       ),
     );
@@ -200,7 +211,7 @@ void main() {
         theme: buildCwcTheme(),
         home: HealthScope(
           controller: health,
-          child: const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
+          child: const HelpNowScreen(config: HelpNowConfig(liveCalls: false)),
         ),
       ),
     );

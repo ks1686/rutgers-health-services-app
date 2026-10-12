@@ -220,7 +220,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildCwcTheme(),
-        home: const HelpNowScreen(config: HelpNowConfig(helpNowLive: false)),
+        home: const HelpNowScreen(config: HelpNowConfig(liveCalls: false)),
       ),
     );
     await tester.pumpAndSettle();

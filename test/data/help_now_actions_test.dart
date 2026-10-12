@@ -1,50 +1,46 @@
-import 'package:cwc_health_app/data/demo_help_now.dart';
+import 'dart:io';
+
+import 'package:cwc_health_app/features/help_now/help_now_actions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  List<String> labels(bool live) => [
-    for (final action in helpNowActions(live: live)) action.label,
+  List<String> labels({bool showUnconfirmedRows = false}) => [
+    for (final action in helpNowActions(
+      showUnconfirmedRows: showUnconfirmedRows,
+    ))
+      action.label,
   ];
 
   test('911 is first; 988 follows; other helplines after', () {
-    final demo = labels(false);
-    expect(demo.first, '911 Emergency');
-    expect(
-      demo.indexOf('911 Emergency'),
-      lessThan(demo.indexOf('988 Suicide & Crisis Lifeline')),
-    );
-    expect(
-      demo.indexOf('988 Suicide & Crisis Lifeline'),
-      lessThan(demo.indexOf('Poison Control')),
-    );
+    final rows = labels();
+    expect(rows.first, '911 Emergency');
+    expect(rows.indexOf('911 Emergency'), lessThan(rows.indexOf('Call 988')));
+    expect(rows.indexOf('Call 988'), lessThan(rows.indexOf('Poison Control')));
   });
 
   test('ReachNJ and Self-Help Group Clearinghouse are listed after 988', () {
-    final demo = labels(false);
-    expect(demo, contains('ReachNJ'));
-    expect(demo, contains('NJ Self-Help Group Clearinghouse'));
+    final rows = labels();
+    expect(rows, contains('ReachNJ'));
+    expect(rows, contains('NJ Self-Help Group Clearinghouse'));
+    expect(rows.indexOf('Call 988'), lessThan(rows.indexOf('ReachNJ')));
     expect(
-      demo.indexOf('988 Suicide & Crisis Lifeline'),
-      lessThan(demo.indexOf('ReachNJ')),
-    );
-    expect(
-      demo.indexOf('ReachNJ'),
-      lessThan(demo.indexOf('NJ Self-Help Group Clearinghouse')),
+      rows.indexOf('ReachNJ'),
+      lessThan(rows.indexOf('NJ Self-Help Group Clearinghouse')),
     );
   });
 
   test('Poison Control copy says when to use it vs 911', () {
     final poison = helpNowActions(
-      live: false,
+      showUnconfirmedRows: false,
     ).singleWhere((a) => a.label == 'Poison Control');
     expect(poison.detail.toLowerCase(), contains('swallowed'));
     expect(poison.detail.toLowerCase(), contains('911'));
   });
 
   test('911 is emergency-styled; other lines are not', () {
-    final actions = helpNowActions(live: false);
+    final actions = helpNowActions(showUnconfirmedRows: false);
     final nineOneOne = actions.singleWhere((a) => a.label == '911 Emergency');
-    expect(nineOneOne.style, DemoHelpStyle.emergencyFilled);
+    expect(nineOneOne.style, HelpNowStyle.emergencyFilled);
     expect(nineOneOne.section, HelpNowSection.emergency);
     expect(
       actions
@@ -54,41 +50,107 @@ void main() {
     );
   });
 
-  test(
-    'live national and verified NJ numbers fill the dialer; warmline stays sample',
-    () {
-      final live = helpNowActions(live: true);
-      Uri? call(String label) => live
-          .cast<DemoHelpAction?>()
-          .firstWhere((a) => a!.label == label, orElse: () => null)
-          ?.callUri;
-
-      expect(call('911 Emergency'), Uri(scheme: 'tel', path: '911'));
-      expect(call('Poison Control'), Uri(scheme: 'tel', path: '18002221222'));
-      expect(call('ReachNJ'), Uri(scheme: 'tel', path: '18447322465'));
-      expect(
-        call('NJ Self-Help Group Clearinghouse'),
-        Uri(scheme: 'tel', path: '18003676274'),
-      );
-
-      expect(
-        live.where((a) => a.label == 'Call 988').single.callUri,
-        Uri(scheme: 'tel', path: '988'),
-      );
-      expect(
-        live.where((a) => a.label == 'Text 988').single.textUri,
-        Uri(scheme: 'sms', path: '988'),
-      );
-
-      expect(call('NJ Peer Warmline'), isNull);
-      expect(call('My Wellness Center'), isNull);
-      for (final label in ['NJ Peer Warmline', 'My Wellness Center']) {
-        final action = live.singleWhere((item) => item.label == label);
-        expect(action.textUri, isNull);
-        expect(action.style, DemoHelpStyle.neutralOutline);
-        expect(action.detail.toLowerCase(), contains('sample'));
+  group('unconfirmed rows are held back until CSPNJ confirms them', () {
+    test('warmline and wellness center are hidden by default', () {
+      final rows = labels();
+      expect(rows, isNot(contains('NJ Peer Warmline')));
+      expect(rows, isNot(contains('My Wellness Center')));
+      // Nothing shipped may carry a 555 placeholder number.
+      for (final action in helpNowActions(showUnconfirmedRows: false)) {
         expect(action.detail, isNot(contains('555')));
       }
-    },
-  );
+    });
+
+    test('they are still available behind the flag, without a dialer URI', () {
+      final rows = labels(showUnconfirmedRows: true);
+      expect(rows, contains('NJ Peer Warmline'));
+      expect(rows, contains('My Wellness Center'));
+      for (final action in helpNowActions(showUnconfirmedRows: true)) {
+        if (action.label != 'NJ Peer Warmline' &&
+            action.label != 'My Wellness Center') {
+          continue;
+        }
+        // A tap must not be able to dial a number nobody has verified.
+        expect(action.callUri, isNull);
+        expect(action.textUri, isNull);
+        expect(action.detail.toLowerCase(), contains('sample'));
+      }
+    });
+  });
+
+  group('every shipped row dials with tel: and never auto-places a call', () {
+    test('confirmed rows carry a tel: or sms: URI', () {
+      final actions = helpNowActions(showUnconfirmedRows: false);
+      for (final action in actions) {
+        expect(
+          action.callUri ?? action.textUri,
+          isNotNull,
+          reason: '${action.label} has no dialer URI',
+        );
+      }
+
+      HelpNowAction call(String label) =>
+          actions.singleWhere((a) => a.label == label);
+
+      expect(call('911 Emergency').callUri, Uri(scheme: 'tel', path: '911'));
+      expect(call('Call 988').callUri, Uri(scheme: 'tel', path: '988'));
+      expect(call('Text 988').textUri, Uri(scheme: 'sms', path: '988'));
+      expect(
+        call('Poison Control').callUri,
+        Uri(scheme: 'tel', path: '18002221222'),
+      );
+      expect(call('ReachNJ').callUri, Uri(scheme: 'tel', path: '18447322465'));
+      expect(
+        call('NJ Self-Help Group Clearinghouse').callUri,
+        Uri(scheme: 'tel', path: '18003676274'),
+      );
+    });
+
+    test('no row uses a tel: URI that could bypass the dialer', () {
+      // `tel:` is ACTION_DIAL on Android: the number is filled in and the
+      // person presses call. Nothing in the app may request CALL_PHONE, which
+      // would allow ACTION_CALL and a silently placed call.
+      for (final action in helpNowActions(showUnconfirmedRows: true)) {
+        for (final uri in [action.callUri, action.textUri]) {
+          if (uri == null) continue;
+          expect(
+            uri.scheme,
+            anyOf('tel', 'sms'),
+            reason: '${action.label} uses an unexpected scheme ${uri.scheme}',
+          );
+          // No query tricks that could be smuggled through.
+          expect(uri.query, isEmpty, reason: action.label);
+        }
+      }
+    });
+
+    test('the Android manifest does not request CALL_PHONE', () {
+      final manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
+      expect(
+        manifest,
+        isNot(contains('android.permission.CALL_PHONE')),
+        reason:
+            'ACTION_DIAL needs no permission. CALL_PHONE would allow the app '
+            'to place a call without the person confirming.',
+      );
+      // It must still be able to resolve a tel: intent on Android 11+.
+      expect(manifest, contains('android.intent.action.DIAL'));
+      expect(manifest, contains('android:scheme="tel"'));
+    });
+
+    test('no help-now source file carries a placeholder 555 number', () {
+      for (final path in [
+        'lib/features/help_now/help_now_actions.dart',
+        'lib/features/help_now/help_now_screen.dart',
+      ]) {
+        expect(
+          File(path).readAsStringSync(),
+          isNot(contains('555-')),
+          reason: '$path still holds a 555 placeholder number',
+        );
+      }
+    });
+  });
 }
