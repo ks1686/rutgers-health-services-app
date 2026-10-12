@@ -37,6 +37,20 @@ flutter build apk --release   # unsigned; locks the release manifest
 
 GitHub Actions runs format/analyze/tests, integration navigation smoke, and Android debug **plus unsigned release** APK on every PR to `main` (see `.github/workflows/flutter-ci.yml`).
 
+### One-command pre-CAB smoke
+
+[`scripts/smoke.sh`](scripts/smoke.sh) runs the same gates as CI and builds the demo APK in one go:
+
+```bash
+scripts/smoke.sh                 # format + analyze + test + live APK + phone checklist
+scripts/smoke.sh --skip-build    # gates only
+scripts/smoke.sh --skip-format   # ignore local/CI formatter version drift
+```
+
+It prints the APK path, size, and sha256, warns if you ever build the flag-off list, and ends with the short manual phone checklist. The full walkthrough with the pass line stays in [`docs/engineering/cab-demo-smoke.md`](docs/engineering/cab-demo-smoke.md).
+
+Two notes. `flutter test` runs **without** `LIVE_NEARBY`, because three tests assert the flag defaults off and that the demo listings render. And `HELP_NOW_LIVE` defaults to `false` inside the script — in a meeting room a tap must not open the 911 dialer. Override with `HELP_NOW_LIVE=true` only when you want real Help Now dialing in that specific room.
+
 ### CAB demo APK
 
 The file to install is the **demo release** artifact, not the flag-off compile check.
@@ -51,7 +65,7 @@ CI uploads that APK as `cwc-demo-apk-live-nearby-<sha>` (kept 30 days) on pull r
 
 `HELP_NOW_LIVE` stays **off** on this shared build. Help Now buttons show the demo-only line and do not open the phone dialer, so a tap in the room does not start a 911 call. Nearby Call, Text, and Directions on live cards still launch. Rebuild with `HELP_NOW_LIVE=true` only when Karim wants real Help Now dialing in that room.
 
-The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK. Download needs access to this private repo.
+The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK. Download needs access to this repo.
 
 Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, three tests fail by design: one asserts the flag's default is off, and two assert the demo listings render. Live mode is supposed to hide demo data, so those failures confirm the separation rather than reveal a bug.
 
