@@ -63,9 +63,15 @@ flutter build apk --release \
 
 CI uploads that APK as `cwc-demo-apk-live-nearby-<sha>` (kept 30 days) on pull requests, pushes to `main`, and manual runs. The flag-off release APK is still compiled and is not uploaded.
 
+**To share with someone outside the repo**, use the GitHub release rather than the CI artifact. Artifact links sit behind a login wall and expire in 30 days; release assets download without an account.
+
+- [`study-build-2026-10`](https://github.com/ks1686/rutgers-health-services-app/releases/tag/study-build-2026-10) — October 2026 study build for CAB (Oct 14) and Jessica (Oct 19). Marked pre-release: this is a co-design draft.
+
+To cut a new one, build the APK (or let CI produce it), then `gh release create <tag> <apk> --target main --prerelease`.
+
 `HELP_NOW_LIVE` stays **off** on this shared build. Help Now buttons show the demo-only line and do not open the phone dialer, so a tap in the room does not start a 911 call. Nearby Call, Text, and Directions on live cards still launch. Rebuild with `HELP_NOW_LIVE=true` only when Karim wants real Help Now dialing in that room.
 
-The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK. Download needs access to this repo.
+The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK.
 
 Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, three tests fail by design: one asserts the flag's default is off, and two assert the demo listings render. Live mode is supposed to hide demo data, so those failures confirm the separation rather than reveal a bug.
 
