@@ -2,6 +2,8 @@
 
 Use the **demo release APK**, artifact `cwc-demo-apk-live-nearby-<sha>`.
 
+To produce that APK and re-print this checklist in one command, run `scripts/smoke.sh` from the repo root.
+
 That build is `LIVE_NEARBY=true` and `HELP_NOW_LIVE=false`. Do not install the flag-off compile APK. Help Now buttons do not dial. Nearby Call, Text, and Directions do.
 
 Uninstall any older CWC Health App first. Each Actions runner signs with a new debug key, so an in-place upgrade can fail.
