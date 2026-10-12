@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/demo_help_now.dart';
 import '../../theme/cwc_theme.dart';
-import '../../widgets/demo_snackbar.dart';
 import '../../widgets/link_launcher.dart';
 import '../my_health/data/emergency_card.dart';
 import '../my_health/data/health_models.dart';
 import '../my_health/health_scope.dart';
 import '../settings/app_preferences.dart';
+import 'help_now_actions.dart';
 import 'help_now_config.dart';
 
 const helpNowEmergencyCardPref = 'cwc_help_now_show_emergency_card';
@@ -70,19 +69,29 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  void _onAction(DemoHelpAction action) {
+  /// Opens the phone's own dialer with the number filled in. On Android a
+  /// `tel:` URI is ACTION_DIAL: nothing is placed until the person presses
+  /// call, which is why the app needs no CALL_PHONE permission.
+  void _onAction(HelpNowAction action) {
     final uri = action.callUri ?? action.textUri;
-    if (uri != null) {
-      _open(uri);
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('That number is not available yet.'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
       return;
     }
-    showDemoOnlySnackBar(context, action.label);
+    _open(uri);
   }
 
   @override
   Widget build(BuildContext context) {
-    final live = _config.helpNowLive;
-    final actions = helpNowActions(live: live);
+    final actions = helpNowActions(
+      showUnconfirmedRows: _config.showUnconfirmedRows,
+    );
     final emergency = [
       for (final action in actions)
         if (action.section == HelpNowSection.emergency) action,
@@ -111,13 +120,11 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            live
-                ? 'One tap fills the phone number. You place the call. '
-                      '911, 988, Poison Control, ReachNJ, and the Clearinghouse '
-                      'can call or text from this phone. The Wellness Center '
-                      'and peer warmline are still sample numbers.'
-                : 'One tap to reach support. These buttons are demo-only '
-                      '(they do not place calls or texts yet).',
+            _config.liveCalls
+                ? 'One tap opens the phone number, filled in. You place the '
+                      'call yourself — this app never dials for you.'
+                : 'One tap to reach support. Calling is turned off in this '
+                      'build.',
             style: const TextStyle(
               color: CwcColors.sub,
               height: 1.4,
@@ -245,12 +252,12 @@ class _EmergencyCardBlock extends StatelessWidget {
 class _HelpActionButton extends StatelessWidget {
   const _HelpActionButton({required this.action, required this.onPressed});
 
-  final DemoHelpAction action;
+  final HelpNowAction action;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final isEmergency = action.style == DemoHelpStyle.emergencyFilled;
+    final isEmergency = action.style == HelpNowStyle.emergencyFilled;
     final child = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
@@ -279,7 +286,7 @@ class _HelpActionButton extends StatelessWidget {
     );
 
     switch (action.style) {
-      case DemoHelpStyle.emergencyFilled:
+      case HelpNowStyle.emergencyFilled:
         return FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
@@ -290,7 +297,7 @@ class _HelpActionButton extends StatelessWidget {
           ),
           child: child,
         );
-      case DemoHelpStyle.primaryFilled:
+      case HelpNowStyle.primaryFilled:
         return FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
@@ -299,7 +306,7 @@ class _HelpActionButton extends StatelessWidget {
           ),
           child: child,
         );
-      case DemoHelpStyle.blackOutline:
+      case HelpNowStyle.blackOutline:
         return OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
@@ -313,7 +320,7 @@ class _HelpActionButton extends StatelessWidget {
           ),
           child: child,
         );
-      case DemoHelpStyle.neutralOutline:
+      case HelpNowStyle.neutralOutline:
         return OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
@@ -325,13 +332,13 @@ class _HelpActionButton extends StatelessWidget {
     }
   }
 
-  Color _detailColor(DemoHelpStyle style) {
+  Color _detailColor(HelpNowStyle style) {
     switch (style) {
-      case DemoHelpStyle.emergencyFilled:
-      case DemoHelpStyle.primaryFilled:
+      case HelpNowStyle.emergencyFilled:
+      case HelpNowStyle.primaryFilled:
         return Colors.white;
-      case DemoHelpStyle.blackOutline:
-      case DemoHelpStyle.neutralOutline:
+      case HelpNowStyle.blackOutline:
+      case HelpNowStyle.neutralOutline:
         return CwcColors.sub;
     }
   }
