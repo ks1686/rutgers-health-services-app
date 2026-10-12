@@ -1,27 +1,31 @@
 # CWC Health App
 
-Navigation prototype for co-design feedback. Rutgers Scarlet chrome, four bottom tabs (**Nearby | My Health | Learn | More**), and a persistent **Help Now** control. **Nearby live listings** (OpenStreetMap) and interactive **My Health** (encrypted on-device) are in the study build. No accounts, no stored credentials, no third-party analytics.
+Version **1.0.0**. Rutgers Scarlet chrome, four bottom tabs (**Nearby | My Health | Learn | More**), and a persistent **Help Now** control. Nearby lists real OpenStreetMap places. My Health starts empty and stays on the device. No accounts, no stored credentials, no third-party analytics.
 
 **Ship targets: Android + iOS only.** Flutter web is not supported (no `web/` folder, not in CI).
 
 ## Run
 
-Local review is **Android with live Nearby** (emulator or device).
+Local review is Android (emulator or device). Nearby is always live. Help Now dials unless you turn it off.
 
 ```bash
 flutter pub get
-flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true
+flutter run -d android
 ```
 
-`LIVE_NEARBY` still **defaults off** at compile time, so a meeting APK without the flag keeps the fake New Brunswick list. Do not use the flag-off list as the working engineering demo.
-
-Optional Google Places attempt (study build does not enable billing; OSM is the supported path):
+Turn Help Now dialing off for a room where a tap must not open the phone app:
 
 ```bash
-flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=GOOGLE_PLACES_API_KEY=...
+flutter run -d android --dart-define=HELP_NOW_LIVE=false
 ```
 
-Never commit API keys.
+Optional Google Places attempt (no billing in this build; OpenStreetMap is the path that works):
+
+```bash
+flutter run -d android --dart-define=GOOGLE_PLACES_API_KEY=...
+```
+
+Never commit API keys. iOS Simulator steps are in [`docs/engineering/ios-simulator.md`](docs/engineering/ios-simulator.md).
 
 ## Verify (local = CI)
 
@@ -39,51 +43,40 @@ GitHub Actions runs format/analyze/tests, integration navigation smoke, and Andr
 
 ### One-command pre-CAB smoke
 
-[`scripts/smoke.sh`](scripts/smoke.sh) runs the same gates as CI and builds the demo APK in one go:
+[`scripts/smoke.sh`](scripts/smoke.sh) runs the same gates as CI and builds the release APK:
 
 ```bash
-scripts/smoke.sh                 # format + analyze + test + live APK + phone checklist
+scripts/smoke.sh                 # format + analyze + test + release APK + checklist
 scripts/smoke.sh --skip-build    # gates only
 scripts/smoke.sh --skip-format   # ignore local/CI formatter version drift
+scripts/smoke.sh --ios           # also build the iOS Simulator app
 ```
 
-It prints the APK path, size, and sha256, warns if you ever build the flag-off list, and ends with the short manual phone checklist. The full walkthrough with the pass line stays in [`docs/engineering/cab-demo-smoke.md`](docs/engineering/cab-demo-smoke.md).
+It prints the APK path, size, and sha256, then the short phone checklist. The full walkthrough is [`docs/engineering/cab-demo-smoke.md`](docs/engineering/cab-demo-smoke.md).
 
-Two notes. `flutter test` runs **without** `LIVE_NEARBY`, because three tests assert the flag defaults off and that the demo listings render. And `HELP_NOW_LIVE` defaults to `false` inside the script — in a meeting room a tap must not open the 911 dialer. Override with `HELP_NOW_LIVE=true` only when you want real Help Now dialing in that specific room.
+`HELP_NOW_LIVE` defaults to **true**. Pass `HELP_NOW_LIVE=false` only for a build whose taps must not open the dialer.
 
-### CAB demo APK
-
-The file to install is the **demo release** artifact, not the flag-off compile check.
+### Release APK
 
 ```bash
-flutter build apk --release \
-  --dart-define=LIVE_NEARBY=true \
-  --dart-define=HELP_NOW_LIVE=false
+flutter build apk --release
 ```
 
-CI uploads that APK as `cwc-demo-apk-live-nearby-<sha>` (kept 30 days) on pull requests, pushes to `main`, and manual runs. The flag-off release APK is still compiled and is not uploaded.
+Version is `1.0.0` (`pubspec.yaml` `1.0.0+1`). A local release is signed with an upload key that is not in this repo. GitHub Actions stays on the runner debug key and uploads `cwc-demo-apk-live-nearby-<sha>` (kept 30 days). That artifact is not the file to hand someone: it expires, it needs a GitHub login, and it will not upgrade an upload-key install. Uninstall first if you must try it.
 
-**To share with someone outside the repo**, use the GitHub release rather than the CI artifact. Artifact links sit behind a login wall and expire in 30 days; release assets download without an account.
+The older [`study-build-2026-10`](https://github.com/ks1686/rutgers-health-services-app/releases/tag/study-build-2026-10) pre-release does not dial Help Now. Do not use it as v1.
 
-- [`study-build-2026-10`](https://github.com/ks1686/rutgers-health-services-app/releases/tag/study-build-2026-10) — October 2026 study build for CAB (Oct 14) and Jessica (Oct 19). Marked pre-release: this is a co-design draft.
-
-To cut a new one, build the APK (or let CI produce it), then `gh release create <tag> <apk> --target main --prerelease`.
-
-`HELP_NOW_LIVE` stays **off** on this shared build. Help Now buttons show the demo-only line and do not open the phone dialer, so a tap in the room does not start a 911 call. Nearby Call, Text, and Directions on live cards still launch. Rebuild with `HELP_NOW_LIVE=true` only when Karim wants real Help Now dialing in that room.
-
-The APK is signed with the Actions runner debug key. That key is new on each runner, so Android may refuse to upgrade in place. Uninstall the old app, then install the new APK.
-
-Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, three tests fail by design: one asserts the flag's default is off, and two assert the demo listings render. Live mode is supposed to hide demo data, so those failures confirm the separation rather than reveal a bug.
+Do not publish a new GitHub release until Karim says so.
 
 ## What’s in this build
 
-| Tab / screen | Demo behavior |
-|--------------|---------------|
-| Nearby | Live OSM pharmacies/clinics/urgent care behind `LIVE_NEARBY`; unvetted disclaimer plus a plain insurance and walk-in warning; opt-in overhead map (Google when `GOOGLE_MAPS_API_KEY` set, else OSM tiles); shared category chips filter list + pins; Open now / Closed hours; remembered North/Central/South town; one-shot location is an optional shortcut and sorts by proximity |
-| My Health | On-device appointments / meds / providers (Keystore/Keychain); optional PIN; wallet card; Erase from More |
-| Learn | Six offline topics from `assets/content/learn.json`. Two original notes each, with a source and a link. No Medications or Exercise tile. Notes are not a CAB-final text |
+| Tab / screen | What ships |
+|--------------|------------|
+| Nearby | Live OSM pharmacies, clinics, and urgent care. Unvetted disclaimer. Opt-in map (Google when `GOOGLE_MAPS_API_KEY` is set, otherwise OSM tiles). Category chips filter the list and the pins. Open now / Closed. Remembered North/Central/South town. Optional one-shot location sorts nearest-first |
+| My Health | Starts empty. On-device appointments, medicines, and providers (Keystore/Keychain). Optional PIN. Wallet card. Erase from More |
+| Learn | Six offline topics from `assets/content/learn.json`. Two notes each, with a source and a link. No Medications or Exercise tile. Tile line is **From: CWC Health App team**. Notes cite MedlinePlus, NIMH, USDA, or NHLBI |
 | More | How to Use (steps and captions; no video file), Ask a Peer, Session questions, Wellness goals, Helper Mode, About, Notifications, Settings, How This App Protects You, Erase |
-| Help Now | 911 first, then 988 / Poison Control / ReachNJ / Clearinghouse; demo only unless `HELP_NOW_LIVE`; warmline and wellness-center rows stay samples; emergency-card toggle at the top (real My Health wallet) |
+| Help Now | 911 first, then 988 (call and text), Poison Control, ReachNJ, Clearinghouse. Each opens `tel:` or `sms:` and the member places the call. NJ Peer Warmline and My Wellness Center stay hidden until CSPNJ confirms the numbers |
 
 ## Project docs
 
@@ -97,18 +90,18 @@ Run the suite **without** `--dart-define=LIVE_NEARBY=true`. With the flag on, th
 
 ### Nearby live data
 
-**Default compile stays on static Nearby data** so a meeting build cannot accidentally show live listings. Local engineering uses the flag **on**. There is no runtime switch.
+Nearby has no sample list and no on/off flag. A failed lookup says the list is unavailable.
 
 ```bash
-flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true
+flutter run -d android
 ```
 
 | Flag | Default | Effect |
 |------|---------|--------|
-| `LIVE_NEARBY` | `false` | `true` replaces the Nearby tab's sample listings with real places and shows the "not checked by our team" disclaimer |
-| `HELP_NOW_LIVE` | `false` | `true` turns 911 / 988 / Poison Control / ReachNJ / Clearinghouse into `tel:`/`sms:` launches (user still places the call). Warmline and CWC stay sample. Meeting APKs stay off. |
-| `GOOGLE_PLACES_API_KEY` | empty | Optional. Empty, unauthorized, or unbilled keys soft-fail silently to OpenStreetMap. Never commit keys. |
-| `GOOGLE_MAPS_API_KEY` | empty | Optional FIND-4 map. Empty → OSM `flutter_map` (study default on Android). Non-empty on Android/iOS → Google Maps (also set `-PGOOGLE_MAPS_API_KEY=` / iOS `GMSApiKey`). |
+| `HELP_NOW_LIVE` | `true` | `false` keeps the Help Now rows from opening the dialer. Warmline and wellness-center rows stay hidden either way |
+| `HELP_NOW_UNCONFIRMED` | `false` | `true` shows NJ Peer Warmline and My Wellness Center. Those rows have no number and do not dial |
+| `GOOGLE_PLACES_API_KEY` | empty | Optional. Empty, unauthorized, or unbilled keys soft-fail to OpenStreetMap. Never commit keys |
+| `GOOGLE_MAPS_API_KEY` | empty | Optional map. Empty uses OSM tiles. Non-empty on Android/iOS uses Google Maps |
 
 **Never commit API keys.** Pass them per native build with `--dart-define` only if needed. Empty key is the correct study default.
 
@@ -133,4 +126,14 @@ More → **Session questions** asks these on the phone. Answers stay on the devi
 - Does More feel like a visible list (not a hidden menu)?
 - Does scarlet branding feel supportive or alarming?
 
-Draft for co-design — nothing is final until the community says so.
+Nothing here is a clinical recommendation. Wording still waits on the community where the spec says so.
+
+## Known gaps: free APIs to migrate
+
+Nearby search, town lookup, and the default map use free OpenStreetMap services (Overpass, Nominatim, OSM tiles). A later release can move those to Google Places and Google Maps. The Google flags above already soft-fail to OpenStreetMap. Do not migrate them as part of v1.
+
+Also still open, and not placeholders to invent:
+
+- NJ Peer Warmline and the member's wellness center phone numbers, until CSPNJ confirms them.
+- TestFlight. That needs a paid Apple Developer Program account.
+- App icon artwork is still the Flutter template set.

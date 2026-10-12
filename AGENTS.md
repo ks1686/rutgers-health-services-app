@@ -49,7 +49,7 @@ Authoritative detail + evidence tags: feature spec v0.5. Working names subject t
 
 | Area | MVP |
 |------|-----|
-| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **Study build:** live OSM pharmacies/clinics behind `LIVE_NEARBY` (Open now / Closed expands weekday hours when OSM tags parse; remembered North/Central/South town; optional one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map) |
+| **Nearby** | Spec MVP: curated NJ directory (cached offline); region/town picker; walk-time; optional OSM map. **v1:** live OSM pharmacies/clinics (Open now / Closed expands weekday hours when OSM tags parse; remembered North/Central/South town; optional one-shot coarse GPS + nearest-first sort; opt-in FIND-4 overhead map). No sample list |
 | **My Health** | Manual appointments, meds, providers/portal *link-outs* (no credentials), offline wallet card; optional PIN (never gates Nearby/Learn/Help Now) |
 | **Learn** | Survey domains plus **Sleep** (#29) and **Stress Management** as their own areas. **No Learn "Medications" or "Exercise" tile** — personal lists/reminders stay in My Health; movement stays in Physical Health. ~6th-grade; source-labeled; offline from `assets/content/learn.json`; **no AI answers** in study build |
 | **Help Now** | One tap, never PIN-blocked, offline: **911 first** (high-contrast), then 988, Poison Control, ReachNJ, NJ Self-Help Group Clearinghouse, member’s CWC, NJ peer warmline; optional emergency card at the top (off by default, reads the real wallet) |
@@ -120,7 +120,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 ## 11. Engineering track — Nearby (Aug 2026)
 
-**Priority:** Nearby / locator. **Local demo = live-on Android.** Compile-time `LIVE_NEARBY` still defaults off so a build without the flag stays on the fake list. The shared CAB file is the CI demo artifact: release APK with `LIVE_NEARBY=true` and `HELP_NOW_LIVE=false` (`cwc-demo-apk-live-nearby-<sha>`). Do not hand the flag-off APK. Help Now stays demo-only on that file so a meeting tap does not open the 911 dialer.
+**Priority:** Nearby / locator. Nearby is always live. There is no `LIVE_NEARBY` flag and no sample place list. Help Now dials by default (`tel:` / `sms:`, member places the call). Pass `HELP_NOW_LIVE=false` only when a tap must not open the dialer. CI uploads a debug-signed release APK (`cwc-demo-apk-live-nearby-<sha>`). The installable phone file is the locally signed release, not that artifact.
 
 **Shared docs (start here):**
 
@@ -132,13 +132,13 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 | [`docs/superpowers/plans/2026-08-11-nearby-live-data.md`](docs/superpowers/plans/2026-08-11-nearby-live-data.md) | Tasks 1–6 done; Task 7 docs written |
 | [`docs/superpowers/specs/2026-09-03-nearby-map-design.md`](docs/superpowers/specs/2026-09-03-nearby-map-design.md) | FIND-4 overhead map (implemented) |
 
-**Locked approach (this spike):** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay; gate behind `LIVE_NEARBY` (default off).
+**Locked approach (this spike):** Google Places HTTP (optional, **no billing** → expected soft-fail) → **OSM Overpass** fallback; Nominatim for town geocode; pure Dart on iOS+Android; **no** curated CWC overlay. The old `LIVE_NEARBY` gate is gone.
 
-**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Hours expand is on `main` (flag default still off). Study-build hardening (2026-08-15): member-safe empty vs unavailable, Nominatim timeout, persistent last-success cache, 18pt body + 48dp Help Now, honest PIN/Erase copy, gated `HELP_NOW_LIVE`. Live Nearby on Android: one-shot coarse GPS, nearest-first sort, town fallback, FIND-4 opt-in map (Google when keyed, OSM `flutter_map` study default). Still open: physical Android/iOS tap of Call. Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
+**Implementation: complete on `main`.** Tasks 1–2 by ks1686; Tasks 3–6 by kholaif (PRs #3–#7). Study-build hardening (2026-08-15): member-safe empty vs unavailable, Nominatim timeout, persistent last-success cache, 18pt body + 48dp Help Now, honest PIN/Erase copy. v1: Nearby always live, My Health starts empty, Help Now dials unless `HELP_NOW_LIVE=false`. Live Nearby: one-shot coarse GPS, nearest-first sort, town fallback, FIND-4 opt-in map (Google when keyed, OSM `flutter_map` study default). Spec FIND-1 is still the curated-directory MVP — do not silently rewrite it.
 
-**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, unsigned flag-off release APK (not uploaded), and an uploaded demo release APK (`LIVE_NEARBY=true`, `HELP_NOW_LIVE=false`). **No web job** (web is not a ship target).
+**CI:** PRs to `main` run `.github/workflows/flutter-ci.yml` — format/analyze/unit+widget tests, `integration_test` navigation smoke, debug APK, a release APK compile check (not uploaded), and an uploaded debug-signed release APK. **No web job** (web is not a ship target). **No iOS job.** Simulator steps: `docs/engineering/ios-simulator.md`.
 
-**Run (local):** `flutter run -d android --dart-define=LIVE_NEARBY=true --dart-define=HELP_NOW_LIVE=true`
+**Run (local):** `flutter run -d android`
 
 ---
 
@@ -146,7 +146,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 
 - Prefer Cursor’s Simple Browser only if a temporary web spike exists; **study-build demos are Android** (`flutter run -d android`). Flutter web is not a ship target.
 - Distill `CWC_Health_App/` into AGENTS.md and `.cursor/rules/` for agents while keeping those markdown files as the versioned source of truth.
-- Nearby is the current engineering priority. Local review uses **live Nearby** (`LIVE_NEARBY=true`) on Android; the flag-off static list is not the working demo.
+- Nearby is the current engineering priority. Nearby is always live. There is no flag-off sample list.
 - Prefer GitHub Actions CI that covers format, analyze, unit/widget/integration tests, and Android compile—not format/lint alone.
 - Prefer Nearby (and other feature) work in a git worktree under `/Users/ks1686/Documents/Worktrees/rutgers-health-services-app/<branch>` rather than dirtying the main checkout.
 - For parallel agents on this repo, use separate worktrees per slice (e.g. Nearby vs My Health) so agents do not collide.
@@ -154,7 +154,7 @@ Phone-less members (~40%) — including CAB interest in a simple website / non-p
 ## Learned Workspace Facts
 
 - Flutter package at repo root is `cwc_health_app`; Android application id is `org.rutgers.cwc.cwc_health_app`.
-- Study build on `main` (October 2026): four tabs + Help Now; default landing is My Health; first-launch disclaimer once; live Nearby behind `LIVE_NEARBY` (default off; demo APK on); My Health CRUD + encryption + optional PIN + Erase; Learn has six tiles and two sourced notes each; More has session questions, a privacy page, and how-to steps without a video file. Help Now: 911 first; live dialers behind `HELP_NOW_LIVE` (demo APK off). Warmline and CWC rows stay sample until CSPNJ confirms them. Ask a Peer uses contacts saved on the phone. See `docs/engineering/starting-release.md`.
+- v1 on `main` (October 2026): four tabs + Help Now; default landing is My Health; first-launch disclaimer once; Nearby always live; My Health starts empty (CRUD + encryption + optional PIN + Erase); Learn has six tiles and two sourced notes each; More has session questions, a privacy page, and how-to steps without a video file. Help Now dials by default (911 first). Warmline and CWC rows stay hidden until CSPNJ confirms them. Ask a Peer uses contacts saved on the phone. See `docs/engineering/starting-release.md`.
 - Live Nearby place choice: remembered North/Central/South town is the lookup (default New Brunswick). One-shot coarse GPS is an optional shortcut (coordinates transient / not cached); that list is sorted by proximity. If location is denied or unavailable, the tab returns to the remembered town. NJ region guardrail is skipped on the device-location path so travel out of state still works.
 - Live Nearby map (FIND-4): opt-in overhead map; Google Maps when `GOOGLE_MAPS_API_KEY` is set on native, else OSM/`flutter_map` (study default on Android); pins follow the shared category filter; no pan-to-refetch.
 - `.cursor/rules/` is committed; other `.cursor/*` paths remain gitignored — put shared plans under `docs/`.

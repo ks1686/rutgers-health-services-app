@@ -26,7 +26,7 @@ import 'widgets/nearby_town_picker.dart';
 
 typedef NearbyLinkLauncher = Future<bool> Function(Uri uri);
 
-/// Nearby tab. Static demo by default; live locator behind `LIVE_NEARBY`.
+/// Nearby tab. Always the live locator. There is no sample-place list.
 class NearbyScreen extends StatelessWidget {
   const NearbyScreen({
     super.key,

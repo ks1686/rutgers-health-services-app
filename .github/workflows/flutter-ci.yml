@@ -68,15 +68,14 @@ jobs:
       - run: flutter pub get
       - name: Build debug APK
         run: flutter build apk --debug
-      # Flag-off on purpose. Proves a meeting build without defines still
-      # compiles. Do not upload this APK — the handoff file is demo-apk.
-      - name: Build unsigned release APK
+      # Compile check only. Not uploaded. Debug-signed on the runner.
+      - name: Build release APK
         run: flutter build apk --release
 
-  # One installable file for CAB / Jessica. Compile defaults stay off so
-  # local and PR test runs still see the fake Nearby list.
+  # One installable file for CAB / Jessica. Nearby is always live.
+  # Help Now dials unless a build explicitly passes HELP_NOW_LIVE=false.
   demo-apk:
-    name: Demo release APK (live Nearby)
+    name: Release APK
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -97,19 +96,18 @@ jobs:
       - name: Record demo defines
         run: |
           {
-            echo "### Demo APK"
-            echo "- \`LIVE_NEARBY=true\` (real OSM places)"
-            echo "- \`HELP_NOW_LIVE=false\` (Help Now buttons do not dial)"
+            echo "### Release APK"
+            echo "- Nearby is always live (OpenStreetMap). There is no sample list."
+            echo "- Help Now uses \`tel:\` / \`sms:\`. The member places the call."
             echo "- sha \`${{ github.sha }}\`"
             echo "- Flutter \`${{ env.FLUTTER_VERSION }}\`"
             echo ""
-            echo "Signed with the runner debug key. Uninstall any older copy before installing a new artifact."
+            echo "Signed with the runner debug key, not the upload key. Uninstall any older copy before installing a new artifact. The installable file for a phone is the locally signed APK."
+
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Build demo release APK
         run: |
-          flutter build apk --release \
-            --dart-define=LIVE_NEARBY=true \
-            --dart-define=HELP_NOW_LIVE=false
+          flutter build apk --release
       - name: Upload demo release APK
         uses: actions/upload-artifact@v4
         with:
