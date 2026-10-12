@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
-import '../../widgets/demo_banner.dart';
 import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
@@ -80,8 +79,6 @@ class MoreScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const DemoBanner(),
-        const SizedBox(height: 16),
         Card(
           child: Column(
             children: [

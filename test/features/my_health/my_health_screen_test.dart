@@ -1,21 +1,18 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_models.dart';
-import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../support/health_seed.dart';
+import '../../support/stub_nearby.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<HealthController> readyController() async {
-    final c = HealthController(InMemoryHealthStore());
-    await c.load();
-    return c;
-  }
+  Future<HealthController> readyController() async => seededController();
 
   Future<void> pumpHealthApp(
     WidgetTester tester, {
@@ -26,7 +23,12 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(400, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      CwcApp(healthController: health, linkLauncher: launcher),
+      CwcApp(
+        healthController: health,
+        linkLauncher: launcher,
+        // Nearby is always live, so keep this test off the network.
+        nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -89,7 +91,7 @@ void main() {
     await tester.tap(walletButton);
     await tester.pumpAndSettle();
     expect(find.text('My Health Snapshot'), findsOneWidget);
-    expect(find.textContaining('Metformin'), findsOneWidget);
+    expect(find.textContaining('Test Medicine'), findsOneWidget);
   });
 
   testWidgets('PIN lock gates My Health content', (tester) async {

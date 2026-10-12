@@ -4,11 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/demo_resources.dart';
 import '../../theme/cwc_theme.dart';
 import '../settings/app_preferences.dart';
-import '../../widgets/demo_banner.dart';
-import '../../widgets/demo_snackbar.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
@@ -48,27 +45,14 @@ class NearbyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = config ?? NearbyConfig.fromEnvironment();
-    if (!resolved.liveNearby) {
-      return _NearbyDemoView(placePreference: placePreference);
-    }
     return _NearbyLiveView(
-      config: resolved,
+      config: config ?? NearbyConfig.fromEnvironment(),
       repository: repository,
       launcher: launcher,
       clock: clock,
       placePreference: placePreference,
     );
   }
-}
-
-class _NearbyDemoView extends StatefulWidget {
-  const _NearbyDemoView({this.placePreference});
-
-  final NearbyPlacePreferenceStore? placePreference;
-
-  @override
-  State<_NearbyDemoView> createState() => _NearbyDemoViewState();
 }
 
 Future<void> _publishRememberedTown(
@@ -78,145 +62,6 @@ Future<void> _publishRememberedTown(
   final prefs = AppPreferencesScope.maybeOf(context);
   if (prefs == null || prefs.rememberedTown == picked.town) return;
   await prefs.setRememberedTown(picked.town);
-}
-
-class _NearbyDemoViewState extends State<_NearbyDemoView> {
-  String _category = 'All';
-  bool _showMapPlaceholder = false;
-  NearbyPlacePreference _place = NearbyPlacePreference.fallback;
-  NearbyPlacePreferenceStore? _placeStore;
-
-  List<DemoResource> get _filtered {
-    if (_place.town != demoTown) return const [];
-    if (_category == 'All') return demoResources;
-    return demoResources.where((r) => r.category == _category).toList();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final remembered = AppPreferencesScope.maybeOf(context)?.rememberedTown;
-    if (remembered == null) return;
-    final town = nearbyTownFromPreference(remembered);
-    if (town == _place.town) return;
-    final listed = regionForTown(town);
-    setState(() {
-      _place = NearbyPlacePreference(
-        region: listed ?? _place.region,
-        town: town,
-      );
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPlace();
-  }
-
-  Future<void> _loadPlace() async {
-    final store = await nearbyPlacePreferenceStore(
-      injected: widget.placePreference,
-    );
-    final place = await store.read();
-    if (!mounted) return;
-    setState(() {
-      _placeStore = store;
-      _place = place;
-    });
-  }
-
-  Future<void> _pickTown() async {
-    final store = _placeStore;
-    if (store == null) return;
-    final picked = await showNearbyTownPicker(context, current: _place);
-    if (picked == null || !mounted) return;
-    await store.save(picked);
-    if (!mounted) return;
-    setState(() => _place = picked);
-    await _publishRememberedTown(context, picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        const DemoBanner(),
-        const SizedBox(height: 12),
-        const NearbyCoverageNotice(),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            ActionChip(
-              key: const ValueKey('nearby-town-chip'),
-              avatar: const Icon(Icons.location_city, size: 18),
-              label: Text('${_place.town} ▾'),
-              onPressed: _placeStore == null ? null : _pickTown,
-            ),
-            TextButton(
-              onPressed: () => showDemoOnlySnackBar(context, 'use my location'),
-              child: const Text('Use my location?'),
-            ),
-          ],
-        ),
-        if (_place.town != demoTown) ...[
-          const SizedBox(height: 12),
-          const Text(
-            'This sample list is only for New Brunswick. '
-            'Your town is saved on this phone.',
-            style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.35),
-          ),
-        ],
-        const SizedBox(height: 12),
-        _CategoryChips(
-          categories: demoCategories,
-          selected: _category,
-          onSelected: (category) => setState(() => _category = category),
-        ),
-        const SizedBox(height: 8),
-        _MapToggle(
-          value: _showMapPlaceholder,
-          subtitle: 'Map is a placeholder in this demo',
-          onChanged: (value) => setState(() => _showMapPlaceholder = value),
-        ),
-        if (_showMapPlaceholder) const _MapPlaceholder(),
-        for (final resource in _filtered) ...[
-          _PlaceCard(
-            name: resource.name,
-            hours: Text(
-              resource.status,
-              style: const TextStyle(color: CwcColors.sub, fontSize: 18),
-            ),
-            description: resource.description,
-            badges: [
-              resource.walkTime,
-              if (resource.transitHint != null) resource.transitHint!,
-            ],
-            address: resource.address,
-            actions: [
-              OutlinedButton(
-                onPressed: () => showDemoOnlySnackBar(context, 'Call'),
-                child: const Text('Call'),
-              ),
-              OutlinedButton(
-                onPressed: () => showDemoOnlySnackBar(context, 'Text'),
-                child: const Text('Text'),
-              ),
-              OutlinedButton(
-                onPressed: () => showDemoOnlySnackBar(context, 'Directions'),
-                child: const Text('Directions'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
-      ],
-    );
-  }
 }
 
 class _NearbyLiveView extends StatefulWidget {
@@ -752,29 +597,6 @@ class _MapToggle extends StatelessWidget {
       value: value,
       activeThumbColor: CwcColors.primary,
       onChanged: onChanged,
-    );
-  }
-}
-
-class _MapPlaceholder extends StatelessWidget {
-  const _MapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: CwcColors.primaryTint,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CwcColors.line),
-      ),
-      child: const Text(
-        'Map view placeholder\n(OpenStreetMap would load here)',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: CwcColors.sub, height: 1.4),
-      ),
     );
   }
 }

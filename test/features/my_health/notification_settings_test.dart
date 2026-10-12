@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../support/stub_nearby.dart';
+
 class _RecordingScheduler implements ReminderScheduler {
   HealthSnapshot? last;
   bool lastSuppress = false;
@@ -26,6 +28,36 @@ class _RecordingScheduler implements ReminderScheduler {
   Future<bool> notificationsAllowed() async => true;
 }
 
+/// The app ships no sample records, so tests seed their own.
+Future<void> _seedTestData(HealthController health) async {
+  await health.upsertAppointment(
+    HealthAppointment(
+      id: 'test-appt-1',
+      provider: 'Test Provider',
+      whenLabel: 'Thu, Aug 7 · 10:30 AM',
+      location: 'Test Clinic',
+      phone: '(555) 010-0000',
+    ),
+  );
+  await health.upsertAppointment(
+    HealthAppointment(
+      id: 'test-appt-2',
+      provider: 'Test Provider Two',
+      whenLabel: 'Mon, Aug 11 · 2:00 PM',
+      location: 'Test Clinic',
+      phone: '(555) 010-0000',
+    ),
+  );
+  await health.upsertMedication(
+    HealthMedication(
+      id: 'test-med-1',
+      name: 'Test Medicine',
+      purpose: 'Test purpose',
+      schedule: '1 tablet morning and evening with food',
+    ),
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -33,7 +65,12 @@ void main() {
     SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
     await tester.binding.setSurfaceSize(const Size(400, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(CwcApp(healthController: health));
+    await tester.pumpWidget(
+      CwcApp(
+        healthController: health,
+        nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -46,18 +83,19 @@ void main() {
       reminders: scheduler,
     );
     await health.load();
+    await _seedTestData(health);
     await pump(tester, health);
 
     await tester.tap(find.byKey(const ValueKey('tab-my-health')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Metformin'), 300);
-    await tester.tap(find.text('Metformin'));
+    await tester.scrollUntilVisible(find.text('Test Medicine'), 300);
+    await tester.tap(find.text('Test Medicine'));
     await tester.pumpAndSettle();
 
     final nameField = tester.widget<TextFormField>(
       find.byType(TextFormField).first,
     );
-    expect(nameField.controller?.text, 'Metformin');
+    expect(nameField.controller?.text, 'Test Medicine');
 
     await tester.tap(
       find.widgetWithText(SwitchListTile, 'Remind me on this phone'),
@@ -69,11 +107,13 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
 
-    final metformin = health.medications.where((m) => m.name == 'Metformin');
+    final metformin = health.medications.where(
+      (m) => m.name == 'Test Medicine',
+    );
     expect(metformin, hasLength(1));
     expect(metformin.single.remind, isTrue);
     expect(metformin.single.remindMinutes, [8 * 60, 20 * 60]);
-    expect(metformin.single.purpose, 'Blood sugar');
+    expect(metformin.single.purpose, 'Test purpose');
 
     final planned = planReminders(
       scheduler.last!,
@@ -84,7 +124,7 @@ void main() {
       planned.every((r) => r.body == 'Time for a medication reminder'),
       isTrue,
     );
-    expect(planned.every((r) => r.body.contains('Metformin')), isFalse);
+    expect(planned.every((r) => r.body.contains('Test Medicine')), isFalse);
     expect(
       planned.every(
         (r) => r.body.contains('1 tablet morning and evening with food'),
@@ -102,6 +142,7 @@ void main() {
       reminders: scheduler,
     );
     await health.load();
+    await _seedTestData(health);
     final before = health.medications.length;
     await pump(tester, health);
 
@@ -112,17 +153,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TextFormField), findsNothing);
-    expect(find.text('Metformin'), findsOneWidget);
-    expect(find.text('Dr. Rivera'), findsWidgets);
+    expect(find.text('Test Medicine'), findsOneWidget);
+    expect(find.text('Test Provider'), findsWidgets);
 
-    await tester.tap(find.byKey(const ValueKey('reminder-med-seed-med-0')));
+    await tester.tap(find.byKey(const ValueKey('reminder-med-test-med-1')));
     await tester.pumpAndSettle();
 
     expect(health.medications, hasLength(before));
     final metformin = health.medications.firstWhere(
-      (m) => m.id == 'seed-med-0',
+      (m) => m.id == 'test-med-1',
     );
-    expect(metformin.name, 'Metformin');
+    expect(metformin.name, 'Test Medicine');
     expect(metformin.remind, isTrue);
     expect(metformin.schedule, '1 tablet morning and evening with food');
 
@@ -134,7 +175,7 @@ void main() {
       planned.every((r) => r.body == 'Time for a medication reminder'),
       isTrue,
     );
-    expect(planned.every((r) => r.body.contains('Metformin')), isFalse);
+    expect(planned.every((r) => r.body.contains('Test Medicine')), isFalse);
   });
 
   testWidgets('turning an appointment reminder off keeps the visit', (
@@ -145,6 +186,7 @@ void main() {
       reminders: _RecordingScheduler(),
     );
     await health.load();
+    await _seedTestData(health);
     final appt = health.appointments.first;
     await health.upsertAppointment(
       appt.copyWith(
@@ -182,6 +224,7 @@ void main() {
       reminders: scheduler,
     );
     await health.load();
+    await _seedTestData(health);
     await pump(tester, health);
 
     Future<void> openMore() async {
@@ -207,8 +250,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('Notifications'), 300);
     await tester.tap(find.text('Notifications'));
     await tester.pumpAndSettle();
-    expect(find.text('Metformin'), findsNothing);
-    expect(find.text('Dr. Rivera'), findsNothing);
+    expect(find.text('Test Medicine'), findsNothing);
+    expect(find.text('Test Provider'), findsNothing);
     expect(
       find.textContaining('Hidden while someone is helping you.'),
       findsWidgets,
@@ -231,7 +274,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Notifications'));
     await tester.pumpAndSettle();
-    expect(find.text('Metformin'), findsOneWidget);
-    expect(find.text('Dr. Rivera'), findsWidgets);
+    expect(find.text('Test Medicine'), findsOneWidget);
+    expect(find.text('Test Provider'), findsWidgets);
   });
 }

@@ -142,7 +142,7 @@ void main() {
   const area = GeoPoint(lat: 40.4862, lng: -74.4518);
   final now = DateTime.utc(2026, 8, 12, 20);
 
-  const liveConfig = NearbyConfig(liveNearby: true, googlePlacesApiKey: 'k');
+  const liveConfig = NearbyConfig(googlePlacesApiKey: 'k');
 
   NearbyRepository build({
     required _FakeGeocode geocode,
