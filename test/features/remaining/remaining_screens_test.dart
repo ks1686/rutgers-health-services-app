@@ -1,24 +1,28 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/help_now/help_now_config.dart';
 import 'package:cwc_health_app/features/help_now/help_now_screen.dart';
-import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
-import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../support/health_seed.dart';
+import '../../support/stub_nearby.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> pumpApp(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
-    final health = HealthController(InMemoryHealthStore());
-    await health.load();
+    final health = await seededController();
     await tester.binding.setSurfaceSize(const Size(400, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(CwcApp(healthController: health));
+    await tester.pumpWidget(
+      CwcApp(
+        healthController: health,
+        nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -109,7 +113,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    expect(find.text('Dr. Rivera'), findsWidgets);
+    expect(find.text('Test Provider'), findsWidgets);
     expect(find.text('Sample Patient'), findsNothing);
 
     await tester.tap(find.text('More').last);
@@ -131,8 +135,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
-    expect(find.text('Dr. Rivera'), findsNothing);
-    expect(find.text('Metformin'), findsNothing);
+    expect(find.text('Test Provider'), findsNothing);
+    expect(find.text('Test Medicine'), findsNothing);
     expect(
       find.textContaining('Hidden while someone is helping you.'),
       findsWidgets,
@@ -143,7 +147,7 @@ void main() {
     await tester.scrollUntilVisible(wallet, 300);
     await tester.tap(wallet);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Diabetes'), findsNothing);
+    expect(find.textContaining('Test condition'), findsNothing);
     expect(
       find.textContaining('Hidden while someone is helping you.'),
       findsOneWidget,
@@ -166,8 +170,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
-    expect(find.text('Dr. Rivera'), findsWidgets);
-    expect(find.text('Metformin'), findsOneWidget);
+    expect(find.text('Test Provider'), findsWidgets);
+    expect(find.text('Test Medicine'), findsOneWidget);
   });
 
   testWidgets('how-to steps work offline and Ask a Peer stays separate', (

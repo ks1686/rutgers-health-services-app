@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import '../../../data/demo_health.dart';
 import 'health_models.dart';
 import 'health_store.dart';
 import 'reminder_scheduler.dart';
@@ -57,7 +56,7 @@ class HealthController extends ChangeNotifier {
     try {
       var snap = await _store.read();
       if (!snap.initialized) {
-        snap = _seedFromDemo();
+        snap = _emptySeed();
         await _store.write(snap);
       }
       _snapshot = snap;
@@ -73,47 +72,12 @@ class HealthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  HealthSnapshot _seedFromDemo() {
-    return HealthSnapshot(
-      appointments: [
-        for (var i = 0; i < demoAppointments.length; i++)
-          HealthAppointment(
-            id: 'seed-appt-$i',
-            provider: demoAppointments[i].provider,
-            whenLabel: demoAppointments[i].whenLabel,
-            location: demoAppointments[i].location,
-            phone: demoAppointments[i].phone,
-            note: demoAppointments[i].note,
-          ),
-      ],
-      medications: [
-        for (var i = 0; i < demoMedications.length; i++)
-          HealthMedication(
-            id: 'seed-med-$i',
-            name: demoMedications[i].name,
-            purpose: demoMedications[i].purpose,
-            schedule: demoMedications[i].schedule,
-          ),
-      ],
-      providers: [
-        for (var i = 0; i < demoProviders.length; i++)
-          HealthProvider(
-            id: 'seed-prov-$i',
-            name: demoProviders[i].name,
-            role: demoProviders[i].role,
-            phone: demoProviders[i].phone,
-            portalLabel: demoProviders[i].portalLabel,
-            portalUrl: demoProviders[i].portalLabel == null
-                ? null
-                : 'https://example.com/portal',
-          ),
-      ],
-      wallet: const HealthWallet(
-        emergencyContact: demoWalletEmergencyContact,
-        conditions: demoWalletConditions,
-      ),
-      initialized: true,
-    );
+  /// First launch starts empty. There is no bundled sample record: a seeded
+  /// appointment or medication would look like the person's real health
+  /// history, and a seeded phone number would ring a stranger or nobody.
+  /// Everything here is typed in by the person on their own phone.
+  HealthSnapshot _emptySeed() {
+    return const HealthSnapshot(initialized: true);
   }
 
   Future<void> _persist(HealthSnapshot next) async {

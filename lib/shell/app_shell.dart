@@ -3,15 +3,20 @@ import 'package:flutter/material.dart';
 import '../features/learn/learn_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/my_health/my_health_screen.dart';
+import '../features/nearby/data/nearby_repository.dart';
 import '../features/nearby/nearby_screen.dart';
 import '../platform/preview_protection.dart';
 import '../widgets/help_now_button.dart';
 import '../widgets/link_launcher.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.linkLauncher});
+  const AppShell({super.key, this.linkLauncher, this.nearbyRepository});
 
   final LinkLauncher? linkLauncher;
+
+  /// Injected in tests. Nearby is always live, so widget tests supply a stub
+  /// instead of letting the tab reach the network.
+  final NearbyRepository? nearbyRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -53,7 +58,7 @@ class _AppShellState extends State<AppShell> {
       body: IndexedStack(
         index: _tabIndex,
         children: [
-          const NearbyScreen(),
+          NearbyScreen(repository: widget.nearbyRepository),
           MyHealthScreen(launcher: widget.linkLauncher),
           const LearnScreen(),
           MoreScreen(launcher: widget.linkLauncher),

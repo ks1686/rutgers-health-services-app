@@ -9,21 +9,29 @@ import 'package:cwc_health_app/features/my_health/data/health_models.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 
 void main() {
-  test('first load seeds demo sample once', () async {
+  test('first load starts empty and does not re-seed', () async {
     final store = InMemoryHealthStore();
     final a = HealthController(store);
     await a.load();
-    expect(a.appointments, isNotEmpty);
-    expect(a.medications, isNotEmpty);
-    expect(a.providers, isNotEmpty);
-    expect(a.wallet.emergencyContact, isNotEmpty);
+    expect(a.appointments, isEmpty);
+    expect(a.medications, isEmpty);
+    expect(a.providers, isEmpty);
+    expect(a.wallet.emergencyContact, isEmpty);
 
-    await a.deleteAppointment(a.appointments.first.id);
-    final remaining = a.appointments.length;
+    await a.upsertAppointment(
+      HealthAppointment(
+        id: 'a1',
+        provider: 'Test Provider',
+        whenLabel: 'Thu',
+        location: 'Test Clinic',
+        phone: '',
+      ),
+    );
 
     final b = HealthController(store);
     await b.load();
-    expect(b.appointments.length, remaining);
+    expect(b.appointments, hasLength(1));
+    expect(b.appointments.single.provider, 'Test Provider');
   });
 
   test('erase clears data and does not re-seed', () async {

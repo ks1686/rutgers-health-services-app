@@ -9,9 +9,7 @@ import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
 import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
-import 'package:cwc_health_app/features/nearby/data/nearby_place_preference.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
-import 'package:cwc_health_app/features/nearby/data/nj_places.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/geo_point.dart';
@@ -23,8 +21,7 @@ import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.da
 import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 
-const _demoConfig = NearbyConfig(liveNearby: false, googlePlacesApiKey: '');
-const _liveConfig = NearbyConfig(liveNearby: true, googlePlacesApiKey: '');
+const _liveConfig = NearbyConfig(googlePlacesApiKey: '');
 
 class _StubRepository implements NearbyRepository {
   _StubRepository(this.result, {this.deviceLocation, this.nearDeviceResult});
@@ -158,70 +155,6 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
-
-  group('demo mode', () {
-    testWidgets('shows the demo banner and sample pharmacy', (tester) async {
-      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
-
-      expect(find.text('Main Street Pharmacy'), findsOneWidget);
-      expect(find.textContaining('Draft for co-design'), findsOneWidget);
-      expect(find.text('Use my location?'), findsOneWidget);
-      expect(find.text(kNearbyCoverageWarning), findsOneWidget);
-      expect(find.byType(NearbyLiveDisclaimer), findsNothing);
-    });
-
-    testWidgets('keeps demo-only snackbars on actions', (tester) async {
-      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
-
-      await tester.tap(find.text('Call').first);
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Demo only'), findsOneWidget);
-    });
-
-    testWidgets('demo cards keep Open until 7pm and have no Open now', (
-      tester,
-    ) async {
-      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
-
-      expect(find.text('Open until 7pm'), findsOneWidget);
-      expect(find.text('Open now'), findsNothing);
-      expect(find.text('Hours not listed'), findsNothing);
-    });
-
-    testWidgets('town picker saves a town and drops the sample list', (
-      tester,
-    ) async {
-      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
-
-      await tester.tap(find.byKey(const ValueKey('nearby-town-chip')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('nearby-region-south')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('nearby-town-Camden')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Camden ▾'), findsOneWidget);
-      expect(find.text('Main Street Pharmacy'), findsNothing);
-      expect(
-        find.textContaining('sample list is only for New Brunswick'),
-        findsOneWidget,
-      );
-      final prefs = await SharedPreferences.getInstance();
-      expect(
-        prefs.getString(PrefsNearbyPlacePreferenceStore.townPref),
-        'Camden',
-      );
-      expect(
-        prefs.getString(PrefsNearbyPlacePreferenceStore.regionPref),
-        NjRegion.south.name,
-      );
-
-      await pumpScreen(tester, const NearbyScreen(config: _demoConfig));
-      expect(find.text('Camden ▾'), findsOneWidget);
-      expect(find.text('Main Street Pharmacy'), findsNothing);
-    });
-  });
 
   group('live mode', () {
     testWidgets('shows the unvetted disclaimer and repository rows', (

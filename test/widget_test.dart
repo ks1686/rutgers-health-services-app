@@ -1,13 +1,15 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/data/content_catalog.dart';
 import 'package:cwc_health_app/features/learn/learn_screen.dart';
-import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
-import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
+import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/health_seed.dart';
+import 'support/stub_nearby.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +23,22 @@ void main() {
     Map<String, Object> prefs = const {disclaimerAckPref: true},
   }) async {
     SharedPreferences.setMockInitialValues(Map<String, Object>.from(prefs));
-    final health = HealthController(InMemoryHealthStore());
-    await health.load();
+    final health = await seededController();
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(CwcApp(healthController: health));
+    await tester.pumpWidget(
+      CwcApp(
+        healthController: health,
+        nearbyRepository: StubNearbyRepository(
+          result: stubNearbyResult(
+            resources: [
+              stubResource(name: 'Highland Pharmacy'),
+              stubResource(name: 'Riverside Clinic', category: 'Clinic'),
+            ],
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -41,7 +54,10 @@ void main() {
 
     await tester.tap(find.text('Nearby').last);
     await tester.pumpAndSettle();
-    expect(find.text('Main Street Pharmacy'), findsOneWidget);
+    expect(find.text('Highland Pharmacy'), findsOneWidget);
+    expect(find.text('Riverside Clinic'), findsOneWidget);
+    // No bundled placeholder directory ships with the app.
+    expect(find.text('Main Street Pharmacy'), findsNothing);
   });
 
   testWidgets('first launch shows disclaimer until acknowledged', (
@@ -119,33 +135,30 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 
-  testWidgets('Nearby filters, map placeholder, and demo actions render', (
+  testWidgets('Nearby filters, live actions, and the unvetted notice render', (
     tester,
   ) async {
     await pumpApp(tester);
     await tester.tap(find.text('Nearby').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('New Brunswick ▾'), findsOneWidget);
-    expect(find.text('Use my location?'), findsOneWidget);
+    expect(find.text('New Brunswick \u25be'), findsOneWidget);
     expect(find.text('See these on a map'), findsOneWidget);
+    expect(find.byType(NearbyLiveDisclaimer), findsOneWidget);
 
-    await tester.tap(find.text('Pharmacy'));
+    await tester.tap(find.widgetWithText(FilterChip, 'Pharmacy'));
     await tester.pumpAndSettle();
-    expect(find.text('Main Street Pharmacy'), findsOneWidget);
-    expect(find.text('Community Health Clinic'), findsNothing);
+    expect(find.text('Highland Pharmacy'), findsOneWidget);
+    expect(find.text('Riverside Clinic'), findsNothing);
 
-    await tester.tap(find.text('All'));
+    await tester.tap(find.widgetWithText(FilterChip, 'All'));
     await tester.pumpAndSettle();
-    expect(find.text('Community Health Clinic'), findsOneWidget);
+    expect(find.text('Riverside Clinic'), findsOneWidget);
 
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Map view placeholder'), findsOneWidget);
-
+    // A live card launches the phone's own app rather than a demo notice.
     await tester.tap(find.text('Call').first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Demo only'), findsOneWidget);
+    expect(find.textContaining('Demo only'), findsNothing);
   });
 
   testWidgets('disclaimers stay on Learn, More, and Nearby', (tester) async {

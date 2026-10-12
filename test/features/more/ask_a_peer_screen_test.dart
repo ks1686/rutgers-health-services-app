@@ -8,6 +8,7 @@ import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../support/stub_nearby.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,8 @@ void main() {
           launched.add(uri);
           return true;
         },
+        // Nearby is always live, so keep this test off the network.
+        nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
       ),
     );
     await tester.pumpAndSettle();

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../test/support/stub_nearby.dart';
+
 /// End-to-end smoke of shell navigation and critical chrome.
 ///
 /// Runs in CI via `flutter test integration_test` (VM) and can be driven on
@@ -17,7 +19,16 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const CwcApp());
+    await tester.pumpWidget(
+      CwcApp(
+        // Nearby is always live. A stub keeps this smoke off the network.
+        nearbyRepository: StubNearbyRepository(
+          result: stubNearbyResult(
+            resources: [stubResource(name: 'Highland Pharmacy')],
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('tab-nearby')), findsOneWidget);
@@ -47,6 +58,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('tab-nearby')));
     await tester.pumpAndSettle();
-    expect(find.text('Main Street Pharmacy'), findsOneWidget);
+    expect(find.text('Highland Pharmacy'), findsOneWidget);
+    expect(find.text('Main Street Pharmacy'), findsNothing);
   });
 }

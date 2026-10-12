@@ -138,20 +138,49 @@ void main() {
     );
   });
 
-  test('health.json parses sample wallet and meds', () {
-    final json = File('assets/content/health.json').readAsStringSync();
-    final health = parseHealthCatalog(json);
-    expect(health.appointments, hasLength(2));
-    expect(health.medications.first.name, 'Metformin');
-    expect(health.walletConditions, contains('Diabetes'));
+  test('no bundled JSON ships placeholder phone numbers', () {
+    for (final entity in Directory('assets/content').listSync()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      expect(
+        entity.readAsStringSync(),
+        isNot(contains('555-')),
+        reason: '${entity.path} still holds a 555 placeholder number',
+      );
+    }
   });
 
-  test('resources.json parses New Brunswick demo rows', () {
-    final json = File('assets/content/resources.json').readAsStringSync();
-    final catalog = parseResourceCatalog(json);
-    expect(catalog.town, 'New Brunswick');
-    expect(catalog.resources, hasLength(5));
-    expect(catalog.resources.first.name, 'Main Street Pharmacy');
+  test('no bundled JSON carries placeholder content markers', () {
+    const markers = ['Main Street Pharmacy', 'Dr. Rivera', 'Metformin'];
+    for (final entity in Directory('assets/content').listSync()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      final body = entity.readAsStringSync();
+      for (final marker in markers) {
+        expect(
+          body,
+          isNot(contains(marker)),
+          reason: '${entity.path} still ships sample content ($marker)',
+        );
+      }
+    }
+  });
+
+  test('no widget test reaches the live Nearby network', () {
+    // Nearby has no static fallback any more, so a widget test that forgets a
+    // stub would quietly hit Nominatim/Overpass and make the suite depend on
+    // the internet.
+    for (final entity in Directory('test').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('_test.dart')) continue;
+      if (entity.path.contains(RegExp(r'/support/|/nearby/'))) continue;
+      final body = entity.readAsStringSync();
+      if (!body.contains('CwcApp(')) continue;
+      expect(
+        body,
+        contains('nearbyRepository:'),
+        reason:
+            '${entity.path} builds CwcApp without a nearbyRepository stub, so '
+            'the Nearby tab would hit the network during tests',
+      );
+    }
   });
 }
 

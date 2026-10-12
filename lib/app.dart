@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/my_health/data/health_controller.dart';
+import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/data/local_reminder_scheduler.dart';
 import 'features/my_health/health_scope.dart';
@@ -14,11 +15,20 @@ import 'theme/cwc_theme.dart';
 import 'widgets/link_launcher.dart';
 
 class CwcApp extends StatefulWidget {
-  const CwcApp({super.key, this.healthController, this.linkLauncher});
+  const CwcApp({
+    super.key,
+    this.healthController,
+    this.linkLauncher,
+    this.nearbyRepository,
+  });
 
   /// Injected in tests. When null, opens Keystore/Keychain-backed store.
   final HealthController? healthController;
   final LinkLauncher? linkLauncher;
+
+  /// Injected in tests. Nearby is always live, so widget tests supply a stub
+  /// instead of letting the tab reach the network.
+  final NearbyRepository? nearbyRepository;
 
   @override
   State<CwcApp> createState() => _CwcAppState();
@@ -134,7 +144,10 @@ class _CwcAppState extends State<CwcApp> {
         );
       },
       home: _disclaimerAck
-          ? AppShell(linkLauncher: widget.linkLauncher)
+          ? AppShell(
+              linkLauncher: widget.linkLauncher,
+              nearbyRepository: widget.nearbyRepository,
+            )
           : DisclaimerScreen(
               launcher: widget.linkLauncher,
               onAcknowledged: _acknowledgeDisclaimer,
