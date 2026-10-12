@@ -15,7 +15,7 @@ Each entry is an object:
 | `iconLabel` | Icon key (`body`, `mind`, `food`, `move`, `meds`, `shield`, `sleep`, `stress`, …) |
 | `summary` | One-line card / article lead |
 | `body` | Plain-language overview (~6th-grade). May be a short shelf intro. |
-| `source` | Attribution label shown when non-empty (e.g. `CDC`). A shelf can leave this empty when each article has its own source. |
+| `source` | Attribution label for this entry's own `body`, shown as “From: …” when non-empty. It names whoever wrote **that paragraph**, not the agency the topic draws on. Parent tiles use `CWC Health App team`; each nested article keeps its own real source. |
 | `articlesHeading` | Optional section title for nested articles |
 | `articles` | Optional list of short articles (`title`, `summary`, `body`, `source`, optional `linkLabel` + `linkUrl`) |
 | `linkLabel` / `linkUrl` | Optional https link-out. `http` is rejected. |
@@ -62,7 +62,7 @@ Checked on October 6, 2026:
 | Checks before you feel sick | 200 | [MedlinePlus: Health Screening](https://medlineplus.gov/healthscreening.html) |
 | Shots that protect you | 200 | [MedlinePlus: Vaccines](https://medlineplus.gov/vaccines.html) |
 
-Not linked: `https://www.cdc.gov/vaccines/index.html` (403). `https://medlineplus.gov/healthyeating.html` (404). Parent tiles still show the older source labels (CDC, SAMHSA, USDA). Each new note has its own source.
+Not linked: `https://www.cdc.gov/vaccines/index.html` (403). `https://medlineplus.gov/healthyeating.html` (404). Parent tiles still showed the older source labels (CDC, SAMHSA, USDA) at this point; that was corrected on 2026-10-12, see below. Each new note has its own source.
 
 ## Starting-release notes (2026-10-07)
 
@@ -84,6 +84,16 @@ The same twelve notes were rewritten in original plain language for the first st
 | Sleep apnea | 200 | [NHLBI: Sleep Apnea](https://www.nhlbi.nih.gov/health/sleep-apnea) |
 
 Not linked on this pass: `https://www.myplate.gov/` (403). `https://www.cdc.gov/` (403 on earlier checks). Mayo and Cleveland Clinic were not linked.
+
+## Parent-tile attribution fix (2026-10-12)
+
+The six parent tiles still carried their pre-existing labels: `CDC` on Physical Health and Preventive Care, `SAMHSA` on Mental Health, `USDA` on Nutrition, and an empty string on Stress Management and Sleep. The app renders a tile's `source` directly under that tile's `body`, as **“From: X”**.
+
+That was wrong. Every tile `body` is original CWC plain language, and the linked pages belong to a *different* agency than the label claimed — Physical Health and Preventive Care were labelled CDC while both notes link **MedlinePlus** (NIH/NLM), and Mental Health was labelled SAMHSA while its notes link **NIMH** and **MedlinePlus**, both NIH. In a health app for readers with low health literacy, attributing our own writing to a federal agency it was not written by is a trust problem, and LRN-2 only asks that sources be labelled so trustworthiness is visible.
+
+All six tile labels are now `CWC Health App team`. The twelve article sources are unchanged and remain the real citations. The Learn footer example changed from “for example, CDC” to “for example, MedlinePlus”, because no linked note is a CDC page.
+
+No note text was rewritten and no link changed. This fixes a label, not CAB-approved wording. [TEAM 2026-10-12]
 
 ## CAB / content update path
 

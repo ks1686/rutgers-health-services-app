@@ -104,7 +104,8 @@ void main() {
 
     await tester.tap(find.text('Physical Health'));
     await tester.pumpAndSettle();
-    expect(find.text('From: CDC'), findsOneWidget);
+    expect(find.text('From: CWC Health App team'), findsOneWidget);
+    expect(find.text('From: CDC'), findsNothing);
     expect(find.textContaining('use My Health'), findsOneWidget);
     expect(find.text('A checkup when you feel okay'), findsOneWidget);
     expect(find.text('Moving a little each day'), findsOneWidget);
