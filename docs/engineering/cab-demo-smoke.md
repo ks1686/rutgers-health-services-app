@@ -1,6 +1,9 @@
 # CAB demo smoke (before Oct 14, 2026)
 
-Use the **demo release APK**, artifact `cwc-demo-apk-live-nearby-<sha>`.
+Use the **demo release APK**. For Oct 14, that is the `study-build-2026-10` GitHub release:
+<https://github.com/ks1686/rutgers-health-services-app/releases/tag/study-build-2026-10>
+
+CI also uploads the same build as `cwc-demo-apk-live-nearby-<sha>`. Prefer the release — it downloads without an account and does not expire in 30 days.
 
 To produce that APK and re-print this checklist in one command, run `scripts/smoke.sh` from the repo root.
 
