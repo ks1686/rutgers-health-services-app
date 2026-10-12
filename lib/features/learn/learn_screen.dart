@@ -169,7 +169,7 @@ class _LearnScreenState extends State<LearnScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Sources are labeled on each article (for example, CDC).',
+              'Sources are labeled on each article (for example, MedlinePlus).',
               style: TextStyle(color: CwcColors.sub, fontSize: 18),
             ),
           ],

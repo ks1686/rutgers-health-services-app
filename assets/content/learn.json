@@ -4,7 +4,7 @@
     "iconLabel": "body",
     "summary": "Everyday care for your body.",
     "body": "Check in with how you feel. Movement and regular checkups help you stay well. Ask a peer or clinic if something feels off. To keep a list of medicines you take, use My Health. That list is a memory aid, not medical advice.",
-    "source": "CDC",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "A checkup when you feel okay",
@@ -29,7 +29,7 @@
     "iconLabel": "mind",
     "summary": "Support for your mind and mood.",
     "body": "Feeling stressed or low is common. Talking with a peer, counselor, or trusted person can help. Crisis lines are under Help Now.",
-    "source": "SAMHSA",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "Small ways to care for your mood",
@@ -54,7 +54,7 @@
     "iconLabel": "stress",
     "summary": "Small steps that can take the edge off.",
     "body": "These short notes are reading only. You do not have to track this or hit a goal.",
-    "source": "",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "Everyday ways to ease stress",
@@ -79,7 +79,7 @@
     "iconLabel": "food",
     "summary": "Simple ideas for eating well.",
     "body": "You do not need a perfect diet. Aim for regular meals when you can, drink water, and ask your clinic about food resources nearby.",
-    "source": "USDA",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "Eating when you can",
@@ -104,7 +104,7 @@
     "iconLabel": "shield",
     "summary": "Screenings and shots that help.",
     "body": "Vaccines and checkups can catch problems early. Ask your clinic which ones are right for you this year.",
-    "source": "CDC",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "Checks before you feel sick",
@@ -129,7 +129,7 @@
     "iconLabel": "sleep",
     "summary": "Rest, on its own.",
     "body": "Sleep stands on its own here. These short notes stay the same for a long time.",
-    "source": "",
+    "source": "CWC Health App team",
     "articles": [
       {
         "title": "Everyday sleep tips",
