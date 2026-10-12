@@ -5,7 +5,7 @@
 **Canonical design file (Figma):** https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ
 **File name:** CWC Health App — Lo-Fi Wireframes v0.1 *(the file name reflects its origin; it now also contains the Final Design v1.1 page)*
 **File key:** `yAwsNNegakKROue3o0CAMJ`
-**Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.4.md` (requirements — authoritative for behavior)
+**Companion documents:** `00_PROJECT_RUNDOWN_CWC_Health_App.md` (project context) · `01_CWC_Health_App_Feature_Specification_v0.5.md` (requirements — authoritative for behavior)
 **Last updated:** September 2026 — **v1.1** tokens/Figma unchanged. As-built Flutter Nearby notes and Learn tile list under §2 (six study-build tiles; no Medications or Exercise cards) — not a visual rebrand; next look change should bump to v1.2.
 
 **Rule of the three documents:** the rundown explains *the project*, the spec defines *what the app does*, this document + the Figma file define *what the app looks like*. A change in any one should be checked against the other two, and versions should be bumped together.

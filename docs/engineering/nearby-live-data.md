@@ -18,7 +18,7 @@
 | 1 | This file | Locked decisions + how to run + as-built notes |
 | 2 | [`../superpowers/specs/2026-08-11-nearby-live-data-design.md`](../superpowers/specs/2026-08-11-nearby-live-data-design.md) | Design / architecture (this spike; map was a non-goal) |
 | 3 | [`../superpowers/plans/2026-08-11-nearby-live-data.md`](../superpowers/plans/2026-08-11-nearby-live-data.md) | Task-by-task implementation plan (Tasks 1–6 done) |
-| 4 | [`../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md`](../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md) | FIND-* / TECH-* (note tension below) |
+| 4 | [`../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.5.md`](../../CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.5.md) | FIND-* / TECH-* (note tension below) |
 | 5 | [`../../AGENTS.md`](../../AGENTS.md) | Project + agent ground rules |
 
 ## Locked decisions (do not reopen without Karim)

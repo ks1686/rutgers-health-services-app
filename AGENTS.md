@@ -5,7 +5,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 | Doc | Authority |
 |-----|-----------|
 | `CWC_Health_App/00_PROJECT_RUNDOWN_CWC_Health_App.md` | Project context |
-| `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.4.md` | **Behavior** (requirements) |
+| `CWC_Health_App/01_CWC_Health_App_Feature_Specification_v0.5.md` | **Behavior** (requirements) |
 | `CWC_Health_App/02_CWC_Health_App_Design_Reference_v1.1.md` | **Look** (tokens + screen map) |
 | [Figma](https://www.figma.com/design/yAwsNNegakKROue3o0CAMJ) (`yAwsNNegakKROue3o0CAMJ`) | Canonical visuals |
 
@@ -13,7 +13,7 @@ Zero-context handoff for humans and AI agents. **Source documents** (versioned, 
 
 ## 1. One-paragraph summary
 
-Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of October 2026: pre-surveys analyzed; spec v0.4 + Final Design v1.1 (Rutgers Scarlet) drafted; the Flutter study build on `main` is the first installable demo (four tabs + Help Now, live Nearby, interactive My Health, sourced Learn notes, on-device session questions). Local engineering demo is **Android** with live Nearby on. Flutter **web is not a ship target**. Status: [`docs/engineering/starting-release.md`](docs/engineering/starting-release.md).
+Funded, IRB-approved Rutgers pilot (OVPR BHEI, ~$40K, 06/30/2025–06/29/2027): co-design a smartphone app that centralizes health information and healthcare/wellness navigation for adults with mental health, substance use, and/or co-occurring physical conditions who live in poverty—many currently or formerly unhoused. Work happens in **Community Wellness Centers (CWCs)** run by **CSPNJ** across NJ. Three aims: (1) needs assessment via focus groups, (2) co-design + student-built app, (3) usability testing + peer-led training materials. As of October 2026: pre-surveys analyzed; spec v0.5 + Final Design v1.1 (Rutgers Scarlet) drafted; the Flutter study build on `main` is the first installable demo (four tabs + Help Now, live Nearby, interactive My Health, sourced Learn notes, on-device session questions). Local engineering demo is **Android** with live Nearby on. Flutter **web is not a ship target**. Status: [`docs/engineering/starting-release.md`](docs/engineering/starting-release.md).
 
 ## 2. Formal identity
 
@@ -43,7 +43,7 @@ CAB meets monthly; they shape recruitment, analysis, features, training, dissemi
 
 ## 4. Product (MVP) — behavior summary
 
-Authoritative detail + evidence tags: feature spec v0.4. Working names subject to CAB/[PENDING FG].
+Authoritative detail + evidence tags: feature spec v0.5. Working names subject to CAB/[PENDING FG].
 
 **IA:** Bottom tabs **Nearby | My Health | Learn | More** (no hamburger/drawer). Persistent **Help Now** in every header. Max two taps from a tab root to a core task. **My Health** is the default landing tab (P1 CWC feedback). First launch shows a one-time 911 / professional-care disclaimer.
 
