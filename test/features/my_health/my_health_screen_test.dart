@@ -246,6 +246,102 @@ void main() {
     expect(health.emergencyCard.showAppointmentNotes, isFalse);
   });
 
+  testWidgets('doctor prompt is visible when My Health is unlocked', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await health.eraseAll();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pcp-prompt')), findsOneWidget);
+    expect(find.text('Check with your doctor first'), findsOneWidget);
+    expect(
+      find.textContaining('does not give medical advice'),
+      findsOneWidget,
+    );
+    expect(find.text('Call my provider'), findsNothing);
+
+    final semantics = tester.ensureSemantics();
+    expect(
+      find.bySemanticsLabel(RegExp('Check with your doctor first')),
+      findsWidgets,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('Call my provider shows only when a provider is saved', (
+    tester,
+  ) async {
+    final health = await readyController();
+    final launched = <Uri>[];
+    await pumpHealthApp(
+      tester,
+      health: health,
+      launcher: (uri) async {
+        launched.add(uri);
+        return true;
+      },
+    );
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final call = find.byKey(const ValueKey('pcp-call'));
+    await tester.ensureVisible(call);
+    await tester.pumpAndSettle();
+    expect(find.text('Call my provider'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('pcp-prompt')),
+        matching: find.text('Test Provider'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(call);
+    await tester.pumpAndSettle();
+    expect(launched, isNotEmpty);
+    expect(launched.last.scheme, 'tel');
+    expect(launched.last.path, '5550100000');
+  });
+
+  testWidgets('helper mode hides provider details on the doctor prompt', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Helper Mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('helper-hide-switch')),
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final prompt = find.byKey(const ValueKey('pcp-prompt'));
+    expect(prompt, findsOneWidget);
+    expect(find.text('Check with your doctor first'), findsOneWidget);
+    expect(find.text('Call my provider'), findsNothing);
+    expect(
+      find.descendant(of: prompt, matching: find.textContaining('Test Provider')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: prompt, matching: find.textContaining('555')),
+      findsNothing,
+    );
+  });
+
   testWidgets('theme smoke for form fields', (tester) async {
     await tester.pumpWidget(
       MaterialApp(theme: buildCwcTheme(), home: const SizedBox()),

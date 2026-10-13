@@ -166,6 +166,13 @@ class MyHealthScreen extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
+            _DoctorFirstPrompt(
+              showCall: !hiding && health.providers.isNotEmpty,
+              onCall: health.providers.isEmpty
+                  ? null
+                  : () => _launch(healthTelUri(health.providers.first.phone)),
+            ),
+            const SizedBox(height: 12),
             _PrivacyBanner(
               hasPin: health.hasPin,
               onSetPin: () => _promptSetPin(context, health),
@@ -330,13 +337,81 @@ class MyHealthScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Works offline — show this at an appointment',
+              'Works offline. Show this at an appointment',
               textAlign: TextAlign.center,
               style: TextStyle(color: CwcColors.sub, fontSize: 16),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class _DoctorFirstPrompt extends StatelessWidget {
+  const _DoctorFirstPrompt({required this.showCall, this.onCall});
+
+  final bool showCall;
+  final VoidCallback? onCall;
+
+  static const title = 'Check with your doctor first';
+  static const body =
+      'Before you change a medicine or try something new, talk with your '
+      'doctor or primary care provider. This app helps you keep track. '
+      'It does not give medical advice.';
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      key: const ValueKey('pcp-prompt'),
+      container: true,
+      label: '$title. $body',
+      child: Card(
+        color: CwcColors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: CwcColors.ink, width: 2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: CwcColors.ink,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                body,
+                style: TextStyle(
+                  fontSize: 18,
+                  height: 1.4,
+                  color: CwcColors.ink,
+                ),
+              ),
+              if (showCall && onCall != null) ...[
+                const SizedBox(height: 12),
+                FilledButton(
+                  key: const ValueKey('pcp-call'),
+                  onPressed: onCall,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text(
+                    'Call my provider',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -495,7 +570,7 @@ class _PrivacyBanner extends StatelessWidget {
         children: [
           Text(
             hasPin
-                ? 'Protected by your PIN — stored encrypted on this phone.'
+                ? 'Protected by your PIN. Stored encrypted on this phone.'
                 : 'Your info stays encrypted on this phone. You can add an optional PIN.',
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
