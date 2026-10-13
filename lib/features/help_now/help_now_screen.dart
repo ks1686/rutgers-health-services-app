@@ -107,6 +107,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
       appBar: AppBar(
         title: const Text('Help Now'),
         leading: IconButton(
+          tooltip: 'Back',
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -122,7 +123,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
           Text(
             _config.liveCalls
                 ? 'One tap opens the phone number, filled in. You place the '
-                      'call yourself — this app never dials for you.'
+                      'call yourself. This app never dials for you.'
                 : 'One tap to reach support. Calling is turned off in this '
                       'build.',
             style: const TextStyle(
@@ -211,6 +212,7 @@ class _EmergencyCardBlock extends StatelessWidget {
       children: [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
+          minTileHeight: 48,
           title: const Text(
             'Show my emergency card here',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
@@ -249,6 +251,23 @@ class _EmergencyCardBlock extends StatelessWidget {
   }
 }
 
+/// Spoken name for a Help Now row. Visible text stays the same.
+String helpNowSemanticsLabel(HelpNowAction action) {
+  if (action.label == '911 Emergency') {
+    return 'Call 911, emergency. Opens your phone dialer.';
+  }
+  if (action.textUri != null && action.callUri == null) {
+    return '${action.label}. Opens your phone messages.';
+  }
+  if (action.callUri != null) {
+    final spoken = action.label.startsWith('Call ')
+        ? action.label
+        : 'Call ${action.label}';
+    return '$spoken. Opens your phone dialer.';
+  }
+  return '${action.label}. This number is not available yet.';
+}
+
 class _HelpActionButton extends StatelessWidget {
   const _HelpActionButton({required this.action, required this.onPressed});
 
@@ -285,29 +304,32 @@ class _HelpActionButton extends StatelessWidget {
       ),
     );
 
+    final Widget button;
     switch (action.style) {
       case HelpNowStyle.emergencyFilled:
-        return FilledButton(
+        button = FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
             backgroundColor: CwcColors.neutralEmphasis,
             foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(72),
+            minimumSize: const Size(48, 48),
+            tapTargetSize: MaterialTapTargetSize.padded,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           child: child,
         );
       case HelpNowStyle.primaryFilled:
-        return FilledButton(
+        button = FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(64),
+            minimumSize: const Size(48, 48),
+            tapTargetSize: MaterialTapTargetSize.padded,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           child: child,
         );
       case HelpNowStyle.blackOutline:
-        return OutlinedButton(
+        button = OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: CwcColors.neutralEmphasis,
@@ -315,21 +337,29 @@ class _HelpActionButton extends StatelessWidget {
               color: CwcColors.neutralEmphasis,
               width: 1.5,
             ),
-            minimumSize: const Size.fromHeight(64),
+            minimumSize: const Size(48, 48),
+            tapTargetSize: MaterialTapTargetSize.padded,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           child: child,
         );
       case HelpNowStyle.neutralOutline:
-        return OutlinedButton(
+        button = OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(64),
+            minimumSize: const Size(48, 48),
+            tapTargetSize: MaterialTapTargetSize.padded,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
           child: child,
         );
     }
+    return Semantics(
+      button: true,
+      label: helpNowSemanticsLabel(action),
+      excludeSemantics: true,
+      child: button,
+    );
   }
 
   Color _detailColor(HelpNowStyle style) {
