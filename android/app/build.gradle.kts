@@ -44,7 +44,8 @@ android {
         applicationId = "org.rutgers.cwc.cwc_health_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // local_auth needs Android SDK 24+. Flutter 3.44 already defaults to 24.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -86,4 +87,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // LaunchTheme parents Theme.AppCompat so the biometric prompt can show.
+    implementation("androidx.appcompat:appcompat:1.8.0")
 }

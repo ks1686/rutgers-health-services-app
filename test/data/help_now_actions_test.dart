@@ -138,6 +138,8 @@ void main() {
       // It must still be able to resolve a tel: intent on Android 11+.
       expect(manifest, contains('android.intent.action.DIAL'));
       expect(manifest, contains('android:scheme="tel"'));
+      expect(manifest, contains('android.permission.USE_BIOMETRIC'));
+      expect(manifest, isNot(contains('USE_FINGERPRINT')));
     });
 
     test('no help-now source file carries a placeholder 555 number', () {

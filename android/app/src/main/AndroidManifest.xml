@@ -11,6 +11,9 @@
          Coarse location is enough for a multi-kilometer place search, so no
          fine/GPS permission is requested. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Optional fingerprint unlock for My Health. Not USE_FINGERPRINT, and
+         not CALL_PHONE. The app still only prefills the dialer. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="CWC Health App"
         android:name="${applicationName}"
