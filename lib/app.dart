@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store_factory.dart';
@@ -63,7 +64,11 @@ class _CwcAppState extends State<CwcApp> {
     }
     try {
       final store = await HealthStoreFactory.openSecure();
-      _owned = HealthController(store, reminders: LocalReminderScheduler());
+      _owned = HealthController(
+        store,
+        reminders: LocalReminderScheduler(),
+        biometrics: LocalAuthBiometricAuthenticator(),
+      );
       _health = _owned;
       await _health!.setRemindersSuppressed(_prefs!.helperHiding);
       await _health!.load();

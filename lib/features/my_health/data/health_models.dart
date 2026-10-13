@@ -167,7 +167,7 @@ class HealthProvider {
   final String phone;
   final String? portalLabel;
 
-  /// Login page URL only — never credentials (MYH-3).
+  /// Login page URL only. Never credentials (MYH-3).
   final String? portalUrl;
 
   Map<String, dynamic> toJson() => {
@@ -414,6 +414,7 @@ class HealthSnapshot {
     this.wallet = const HealthWallet(),
     this.emergencyCard = const EmergencyCardChoices(),
     this.pinHash,
+    this.biometricEnabled = false,
     this.initialized = false,
   });
 
@@ -425,7 +426,10 @@ class HealthSnapshot {
   final EmergencyCardChoices emergencyCard;
   final String? pinHash;
 
-  /// True after first seed or erase — prevents re-seeding demo data.
+  /// Opt-in fingerprint unlock. Cleared with the PIN. Default off.
+  final bool biometricEnabled;
+
+  /// True after first seed or erase. Prevents re-seeding demo data.
   final bool initialized;
 
   bool get hasPin => pinHash != null && pinHash!.isNotEmpty;
@@ -438,6 +442,7 @@ class HealthSnapshot {
     'wallet': wallet.toJson(),
     'emergencyCard': emergencyCard.toJson(),
     if (pinHash != null) 'pinHash': pinHash,
+    'biometricEnabled': biometricEnabled,
     'initialized': initialized,
   };
 
@@ -474,6 +479,7 @@ class HealthSnapshot {
             : null,
       ),
       pinHash: json['pinHash'] as String?,
+      biometricEnabled: json['biometricEnabled'] == true,
       initialized: json['initialized'] as bool? ?? false,
     );
   }
@@ -486,6 +492,7 @@ class HealthSnapshot {
     HealthWallet? wallet,
     EmergencyCardChoices? emergencyCard,
     String? pinHash,
+    bool? biometricEnabled,
     bool? initialized,
     bool clearPinHash = false,
   }) {
@@ -497,6 +504,9 @@ class HealthSnapshot {
       wallet: wallet ?? this.wallet,
       emergencyCard: emergencyCard ?? this.emergencyCard,
       pinHash: clearPinHash ? null : (pinHash ?? this.pinHash),
+      biometricEnabled: clearPinHash
+          ? false
+          : (biometricEnabled ?? this.biometricEnabled),
       initialized: initialized ?? this.initialized,
     );
   }

@@ -6,6 +6,7 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../settings/app_preferences.dart';
 import 'appointment_form_screen.dart';
+import 'data/biometric_unlock.dart';
 import 'data/health_controller.dart';
 import 'data/health_launchers.dart';
 import 'data/health_models.dart';
@@ -161,7 +162,10 @@ class MyHealthScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!health.isUnlocked) {
-          return _PinLockView(onUnlock: () => _promptUnlock(context, health));
+          return _PinLockView(
+            health: health,
+            onEnterPin: () => _promptUnlock(context, health),
+          );
         }
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -190,6 +194,25 @@ class MyHealthScreen extends StatelessWidget {
                       }
                     }
                   : null,
+              showBiometricToggle: health.hasPin && health.biometricAvailable,
+              biometricEnabled: health.biometricEnabled,
+              onBiometricChanged: (on) async {
+                if (on) {
+                  final ok = await health.enableBiometricUnlock();
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Fingerprint was not turned on. Your PIN still works.',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } else {
+                  await health.disableBiometricUnlock();
+                }
+              },
             ),
             const SizedBox(height: 16),
             _SectionCard(
@@ -416,10 +439,42 @@ class _DoctorFirstPrompt extends StatelessWidget {
   }
 }
 
-class _PinLockView extends StatelessWidget {
-  const _PinLockView({required this.onUnlock});
+class _PinLockView extends StatefulWidget {
+  const _PinLockView({required this.health, required this.onEnterPin});
 
-  final VoidCallback onUnlock;
+  final HealthController health;
+  final VoidCallback onEnterPin;
+
+  @override
+  State<_PinLockView> createState() => _PinLockViewState();
+}
+
+class _PinLockViewState extends State<_PinLockView> {
+  var _offered = false;
+  String? _fallback;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _offerOnce();
+    });
+  }
+
+  bool get _showFingerprint =>
+      widget.health.biometricEnabled && widget.health.biometricAvailable;
+
+  Future<void> _offerOnce() async {
+    if (_offered || !mounted || !_showFingerprint) return;
+    _offered = true;
+    await _tryFingerprint();
+  }
+
+  Future<void> _tryFingerprint() async {
+    final result = await widget.health.unlockWithBiometric();
+    if (!mounted || result == BiometricResult.success) return;
+    setState(() => _fallback = 'Use your PIN instead.');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -440,10 +495,43 @@ class _PinLockView extends StatelessWidget {
             'Enter your PIN to see appointments, medications, and providers. '
             'Help Now stays available.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: CwcColors.sub),
+            style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.4),
           ),
+          if (_fallback != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _fallback!,
+              key: const ValueKey('biometric-fallback'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: CwcColors.ink,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
-          FilledButton(onPressed: onUnlock, child: const Text('Enter PIN')),
+          if (_showFingerprint) ...[
+            FilledButton(
+              key: const ValueKey('use-fingerprint'),
+              onPressed: _tryFingerprint,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              child: const Text(
+                'Use fingerprint',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          FilledButton(
+            onPressed: widget.onEnterPin,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+            child: const Text('Enter PIN'),
+          ),
         ],
       ),
     );
@@ -549,12 +637,18 @@ class _PrivacyBanner extends StatelessWidget {
     required this.onSetPin,
     this.onLock,
     this.onClearPin,
+    this.showBiometricToggle = false,
+    this.biometricEnabled = false,
+    this.onBiometricChanged,
   });
 
   final bool hasPin;
   final VoidCallback onSetPin;
   final VoidCallback? onLock;
   final VoidCallback? onClearPin;
+  final bool showBiometricToggle;
+  final bool biometricEnabled;
+  final ValueChanged<bool>? onBiometricChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -590,6 +684,31 @@ class _PrivacyBanner extends StatelessWidget {
                 ),
             ],
           ),
+          if (showBiometricToggle) ...[
+            const SizedBox(height: 4),
+            Material(
+              color: Colors.transparent,
+              child: SwitchListTile(
+                key: const ValueKey('biometric-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Use fingerprint to open My Health',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Your PIN always works too.',
+                  style: TextStyle(
+                    fontSize: 18,
+                    height: 1.35,
+                    color: CwcColors.sub,
+                  ),
+                ),
+                value: biometricEnabled,
+                activeThumbColor: CwcColors.primary,
+                onChanged: onBiometricChanged,
+              ),
+            ),
+          ],
         ],
       ),
     );
