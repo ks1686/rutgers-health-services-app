@@ -309,14 +309,20 @@ class HealthDocument {
 }
 
 class HealthWallet {
-  const HealthWallet({this.emergencyContact = '', this.conditions = ''});
+  const HealthWallet({
+    this.emergencyContact = '',
+    this.conditions = '',
+    this.serviceAnimal = '',
+  });
 
   final String emergencyContact;
   final String conditions;
+  final String serviceAnimal;
 
   Map<String, dynamic> toJson() => {
     'emergencyContact': emergencyContact,
     'conditions': conditions,
+    'serviceAnimal': serviceAnimal,
   };
 
   factory HealthWallet.fromJson(Map<String, dynamic>? json) {
@@ -324,13 +330,19 @@ class HealthWallet {
     return HealthWallet(
       emergencyContact: (json['emergencyContact'] as String?) ?? '',
       conditions: (json['conditions'] as String?) ?? '',
+      serviceAnimal: (json['serviceAnimal'] as String?) ?? '',
     );
   }
 
-  HealthWallet copyWith({String? emergencyContact, String? conditions}) {
+  HealthWallet copyWith({
+    String? emergencyContact,
+    String? conditions,
+    String? serviceAnimal,
+  }) {
     return HealthWallet(
       emergencyContact: emergencyContact ?? this.emergencyContact,
       conditions: conditions ?? this.conditions,
+      serviceAnimal: serviceAnimal ?? this.serviceAnimal,
     );
   }
 }
@@ -345,6 +357,7 @@ class EmergencyCardChoices {
     this.showProviders = false,
     this.showAppointmentNotes = false,
     this.showPsychiatricAdvanceDirective = false,
+    this.showServiceAnimal = false,
   });
 
   final bool showEmergencyContact;
@@ -353,6 +366,7 @@ class EmergencyCardChoices {
   final bool showProviders;
   final bool showAppointmentNotes;
   final bool showPsychiatricAdvanceDirective;
+  final bool showServiceAnimal;
 
   bool get sharesAnything =>
       showEmergencyContact ||
@@ -360,7 +374,8 @@ class EmergencyCardChoices {
       showMedications ||
       showProviders ||
       showAppointmentNotes ||
-      showPsychiatricAdvanceDirective;
+      showPsychiatricAdvanceDirective ||
+      showServiceAnimal;
 
   Map<String, dynamic> toJson() => {
     'showEmergencyContact': showEmergencyContact,
@@ -369,6 +384,7 @@ class EmergencyCardChoices {
     'showProviders': showProviders,
     'showAppointmentNotes': showAppointmentNotes,
     'showPsychiatricAdvanceDirective': showPsychiatricAdvanceDirective,
+    'showServiceAnimal': showServiceAnimal,
   };
 
   factory EmergencyCardChoices.fromJson(Map<String, dynamic>? json) {
@@ -381,6 +397,7 @@ class EmergencyCardChoices {
       showProviders: flag('showProviders'),
       showAppointmentNotes: flag('showAppointmentNotes'),
       showPsychiatricAdvanceDirective: flag('showPsychiatricAdvanceDirective'),
+      showServiceAnimal: flag('showServiceAnimal'),
     );
   }
 
@@ -391,6 +408,7 @@ class EmergencyCardChoices {
     bool? showProviders,
     bool? showAppointmentNotes,
     bool? showPsychiatricAdvanceDirective,
+    bool? showServiceAnimal,
   }) {
     return EmergencyCardChoices(
       showEmergencyContact: showEmergencyContact ?? this.showEmergencyContact,
@@ -401,6 +419,7 @@ class EmergencyCardChoices {
       showPsychiatricAdvanceDirective:
           showPsychiatricAdvanceDirective ??
           this.showPsychiatricAdvanceDirective,
+      showServiceAnimal: showServiceAnimal ?? this.showServiceAnimal,
     );
   }
 }

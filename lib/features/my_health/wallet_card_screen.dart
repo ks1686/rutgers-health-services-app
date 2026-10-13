@@ -24,6 +24,9 @@ class WalletCardScreen extends StatelessWidget {
     final health = HealthScope.of(context);
     final contact = TextEditingController(text: health.wallet.emergencyContact);
     final conditions = TextEditingController(text: health.wallet.conditions);
+    final serviceAnimal = TextEditingController(
+      text: health.wallet.serviceAnimal,
+    );
     final saved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -48,6 +51,17 @@ class WalletCardScreen extends StatelessWidget {
                 ),
                 maxLines: 2,
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: serviceAnimal,
+                decoration: const InputDecoration(
+                  labelText: 'Service or support animal',
+                  hintText:
+                      'Type of animal, name, anything a helper should know',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
             ],
           ),
         ),
@@ -68,11 +82,13 @@ class WalletCardScreen extends StatelessWidget {
         HealthWallet(
           emergencyContact: contact.text.trim(),
           conditions: conditions.text.trim(),
+          serviceAnimal: serviceAnimal.text.trim(),
         ),
       );
     }
     contact.dispose();
     conditions.dispose();
+    serviceAnimal.dispose();
   }
 
   @override
@@ -137,7 +153,7 @@ class WalletCardScreen extends StatelessWidget {
                             const Text('None saved yet')
                           else
                             for (final med in meds)
-                              Text('• ${med.name} — ${med.purpose}'),
+                              Text('• ${med.name} - ${med.purpose}'),
                           const SizedBox(height: 12),
                           const Text(
                             'Providers',
@@ -167,6 +183,16 @@ class WalletCardScreen extends StatelessWidget {
                             wallet.conditions.isEmpty
                                 ? 'None saved yet'
                                 : wallet.conditions,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Service or support animal',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            wallet.serviceAnimal.isEmpty
+                                ? 'None saved yet'
+                                : wallet.serviceAnimal,
                           ),
                         ],
                       ],

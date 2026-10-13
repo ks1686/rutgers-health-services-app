@@ -602,6 +602,11 @@ class _EmergencyCardChoices extends StatelessWidget {
               onChanged: (on) =>
                   _set((c) => c.copyWith(showPsychiatricAdvanceDirective: on)),
             ),
+            _ChoiceSwitch(
+              label: 'Show service or support animal',
+              value: choices.showServiceAnimal,
+              onChanged: (on) => _set((c) => c.copyWith(showServiceAnimal: on)),
+            ),
           ],
         ),
       ),

@@ -86,6 +86,39 @@ void main() {
     expect(emergencyCardPreview(snap), isNot(contains('Asthma')));
   });
 
+  test(
+    'service animal line follows the toggle and stays off the card when empty',
+    () {
+      final withAnimal = privateSnapshot().copyWith(
+        wallet: const HealthWallet(
+          emergencyContact: 'Jordan P.',
+          conditions: 'Asthma',
+          serviceAnimal: 'Service dog, Max. Please keep with me.',
+        ),
+        emergencyCard: const EmergencyCardChoices(showServiceAnimal: true),
+      );
+      expect(
+        emergencyCardPreview(withAnimal),
+        contains(
+          'Service or support animal: Service dog, Max. Please keep with me.',
+        ),
+      );
+
+      final hidden = withAnimal.copyWith(
+        emergencyCard: const EmergencyCardChoices(),
+      );
+      expect(emergencyCardPreview(hidden), isNot(contains('Service dog')));
+
+      final emptyText = privateSnapshot().copyWith(
+        emergencyCard: const EmergencyCardChoices(showServiceAnimal: true),
+      );
+      expect(
+        emergencyCardPreview(emptyText),
+        isNot(contains('Service or support animal:')),
+      );
+    },
+  );
+
   test('erase removes the card choices with the rest of My Health', () async {
     final store = InMemoryHealthStore();
     final health = HealthController(store);
