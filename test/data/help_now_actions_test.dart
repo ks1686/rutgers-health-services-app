@@ -139,7 +139,15 @@ void main() {
       expect(manifest, contains('android.intent.action.DIAL'));
       expect(manifest, contains('android:scheme="tel"'));
       expect(manifest, contains('android.permission.USE_BIOMETRIC'));
-      expect(manifest, isNot(contains('USE_FINGERPRINT')));
+      expect(
+        manifest,
+        contains(
+          'android:name="android.permission.USE_FINGERPRINT"\n'
+          '        tools:node="remove"',
+        ),
+        reason:
+            'androidx.biometric merges the legacy permission. The app removes it.',
+      );
     });
 
     test('no help-now source file carries a placeholder 555 number', () {
