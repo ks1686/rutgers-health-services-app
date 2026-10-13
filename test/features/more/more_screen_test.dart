@@ -101,6 +101,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final paragraph in kProtectsYouParagraphs) {
+      await tester.scrollUntilVisible(find.text(paragraph), 400);
       expect(find.text(paragraph), findsOneWidget);
     }
     expect(find.textContaining('not uploaded'), findsOneWidget);
