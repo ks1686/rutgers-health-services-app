@@ -21,6 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Session questions'), findsNothing);
     expect(find.text('About this app'), findsOneWidget);
     await tester.tap(find.text('About this app'));
     await tester.pumpAndSettle();

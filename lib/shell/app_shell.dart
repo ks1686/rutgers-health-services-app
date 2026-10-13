@@ -10,9 +10,17 @@ import '../widgets/help_now_button.dart';
 import '../widgets/link_launcher.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.linkLauncher, this.nearbyRepository});
+  const AppShell({
+    super.key,
+    this.linkLauncher,
+    this.nearbyRepository,
+    this.showSessionQuestions = kShowSessionQuestions,
+  });
 
   final LinkLauncher? linkLauncher;
+
+  /// Passed through so tests can open Session questions. Default is off.
+  final bool showSessionQuestions;
 
   /// Injected in tests. Nearby is always live, so widget tests supply a stub
   /// instead of letting the tab reach the network.
@@ -61,7 +69,10 @@ class _AppShellState extends State<AppShell> {
           NearbyScreen(repository: widget.nearbyRepository),
           MyHealthScreen(launcher: widget.linkLauncher),
           const LearnScreen(),
-          MoreScreen(launcher: widget.linkLauncher),
+          MoreScreen(
+            launcher: widget.linkLauncher,
+            showSessionQuestions: widget.showSessionQuestions,
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
