@@ -62,7 +62,7 @@ It prints the APK path, size, and sha256, then the short phone checklist. The fu
 flutter build apk --release
 ```
 
-Version is `1.0.0` (`pubspec.yaml` `1.0.0+1`). A local release is signed with an upload key that is not in this repo. GitHub Actions stays on the runner debug key and uploads `cwc-demo-apk-live-nearby-<sha>` (kept 30 days). That artifact is not the file to hand someone: it expires, it needs a GitHub login, and it will not upgrade an upload-key install. Uninstall first if you must try it.
+Version is `1.0.1` (`pubspec.yaml` `1.0.1+2`). A local release is signed with an upload key that is not in this repo. GitHub Actions stays on the runner debug key and uploads `cwc-demo-apk-live-nearby-<sha>` (kept 30 days). That artifact is not the file to hand someone: it expires, it needs a GitHub login, and it will not upgrade an upload-key install. Uninstall first if you must try it.
 
 The older [`study-build-2026-10`](https://github.com/ks1686/rutgers-health-services-app/releases/tag/study-build-2026-10) pre-release does not dial Help Now. Do not use it as v1.
 
