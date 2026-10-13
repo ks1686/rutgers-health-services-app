@@ -22,7 +22,7 @@ String emergencyCardPreview(HealthSnapshot snapshot) {
     } else {
       lines.add('Medications:');
       for (final med in snapshot.medications) {
-        lines.add('• ${med.name} — ${med.purpose}');
+        lines.add('• ${med.name} - ${med.purpose}');
       }
     }
   }
@@ -47,6 +47,12 @@ String emergencyCardPreview(HealthSnapshot snapshot) {
     } else {
       lines.add('Appointment notes:');
       lines.addAll(notes);
+    }
+  }
+  if (choices.showServiceAnimal) {
+    final animal = snapshot.wallet.serviceAnimal.trim();
+    if (animal.isNotEmpty) {
+      lines.add('Service or support animal: $animal');
     }
   }
   if (choices.showPsychiatricAdvanceDirective) {

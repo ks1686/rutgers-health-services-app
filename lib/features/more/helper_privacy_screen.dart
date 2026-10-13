@@ -25,8 +25,7 @@ class HelperPrivacyScreen extends StatelessWidget {
             'Turn this on before a family member or friend helps you use the app. '
             'While it is on, they do not see your conditions or other private '
             'health details. Turn it off and your own information shows again. '
-            'Your saved information stays on this phone. This does not replace '
-            'My Health with sample records.',
+            'Your saved information stays on this phone.',
             style: TextStyle(fontSize: 18, height: 1.4),
           ),
           const SizedBox(height: 16),

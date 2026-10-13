@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'features/more/more_screen.dart';
+import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store_factory.dart';
@@ -20,6 +22,7 @@ class CwcApp extends StatefulWidget {
     this.healthController,
     this.linkLauncher,
     this.nearbyRepository,
+    this.showSessionQuestions = kShowSessionQuestions,
   });
 
   /// Injected in tests. When null, opens Keystore/Keychain-backed store.
@@ -29,6 +32,9 @@ class CwcApp extends StatefulWidget {
   /// Injected in tests. Nearby is always live, so widget tests supply a stub
   /// instead of letting the tab reach the network.
   final NearbyRepository? nearbyRepository;
+
+  /// Default off. Research builds set SHOW_SESSION_QUESTIONS. Tests may pass true.
+  final bool showSessionQuestions;
 
   @override
   State<CwcApp> createState() => _CwcAppState();
@@ -63,7 +69,11 @@ class _CwcAppState extends State<CwcApp> {
     }
     try {
       final store = await HealthStoreFactory.openSecure();
-      _owned = HealthController(store, reminders: LocalReminderScheduler());
+      _owned = HealthController(
+        store,
+        reminders: LocalReminderScheduler(),
+        biometrics: LocalAuthBiometricAuthenticator(),
+      );
       _health = _owned;
       await _health!.setRemindersSuppressed(_prefs!.helperHiding);
       await _health!.load();
@@ -147,6 +157,7 @@ class _CwcAppState extends State<CwcApp> {
           ? AppShell(
               linkLauncher: widget.linkLauncher,
               nearbyRepository: widget.nearbyRepository,
+              showSessionQuestions: widget.showSessionQuestions,
             )
           : DisclaimerScreen(
               launcher: widget.linkLauncher,

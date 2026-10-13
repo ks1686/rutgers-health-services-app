@@ -225,4 +225,73 @@ void main() {
     expect(find.textContaining('Alex M.'), findsNothing);
     expect(find.textContaining('Diabetes'), findsNothing);
   });
+
+  testWidgets('large text keeps 48dp targets and semantics labels', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.binding.setSurfaceSize(const Size(360, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildCwcTheme(),
+          builder: (context, child) {
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: media.copyWith(textScaler: const TextScaler.linear(2)),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          home: const HelpNowScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      const labels = <String>[
+        'Call 911, emergency. Opens your phone dialer.',
+        'Call 988. Opens your phone dialer.',
+        'Text 988. Opens your phone messages.',
+        'Call Poison Control. Opens your phone dialer.',
+        'Call ReachNJ. Opens your phone dialer.',
+        'Call NJ Self-Help Group Clearinghouse. Opens your phone dialer.',
+      ];
+
+      for (final label in labels) {
+        final finder = find.bySemanticsLabel(label);
+        await tester.scrollUntilVisible(
+          finder,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        expect(finder, findsOneWidget);
+        final size = tester.getSize(finder);
+        expect(size.height, greaterThanOrEqualTo(48), reason: label);
+        expect(size.width, greaterThanOrEqualTo(48), reason: label);
+      }
+
+      final card = find.text('Show my emergency card here');
+      await tester.scrollUntilVisible(
+        card,
+        -400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final tile = find.ancestor(
+        of: card,
+        matching: find.byType(SwitchListTile),
+      );
+      final tileSize = tester.getSize(tile);
+      expect(tileSize.height, greaterThanOrEqualTo(48));
+      expect(tileSize.width, greaterThanOrEqualTo(48));
+
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
+  });
 }

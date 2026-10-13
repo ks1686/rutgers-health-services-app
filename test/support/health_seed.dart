@@ -1,3 +1,4 @@
+import 'package:cwc_health_app/features/my_health/data/biometric_unlock.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_models.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
@@ -11,10 +12,12 @@ import 'package:cwc_health_app/features/my_health/data/reminder_scheduler.dart';
 Future<HealthController> seededController({
   ReminderScheduler? reminders,
   HealthStore? store,
+  BiometricAuthenticator? biometrics,
 }) async {
   final controller = HealthController(
     store ?? InMemoryHealthStore(),
     reminders: reminders,
+    biometrics: biometrics,
   );
   await controller.load();
 

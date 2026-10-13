@@ -49,7 +49,7 @@ run_step() {
 if [ "$skip_build" -eq 1 ]; then TOTAL_STEPS=3; else TOTAL_STEPS=4; fi
 if [ "$with_ios" -eq 1 ]; then TOTAL_STEPS=$((TOTAL_STEPS + 1)); fi
 
-echo "CWC Health App — pre-CAB smoke"
+echo "CWC Health App: pre-CAB smoke"
 echo "repo:    $(git rev-parse --short HEAD 2>/dev/null || echo 'not a git checkout')"
 echo "flutter: $(flutter --version 2>/dev/null | head -1)"
 echo "defines: HELP_NOW_LIVE=$HELP_NOW_LIVE"
@@ -154,10 +154,11 @@ Phone walkthrough (full version: $SMOKE_DOC)
   [ ] Help Now: 911 Emergency is first. A tap opens the dialer with the number
       filled in. Back out. Do not place the call. Warmline and wellness-center
       rows are hidden until CSPNJ confirms the numbers.
-  [ ] More: Ask a Peer, Session questions, How This App Protects You, and
-      How to Use This App all open and return with the bottom tabs.
-  [ ] Answer one Session question, force-stop the app, reopen: the answer is
-      still selected.
+  [ ] More: Ask a Peer, How This App Protects You, Using this app (agreement),
+      and How to Use This App all open and return with the bottom tabs.
+      Session questions is hidden.
+  [ ] Saved session answers, if any, stay on the phone until Erase. The tile
+      is off unless the build set SHOW_SESSION_QUESTIONS.
 
 iOS Simulator (scripts/smoke.sh --ios, then see $IOS_DOC)
   [ ] App installs and opens on the booted simulator.

@@ -167,7 +167,7 @@ class HealthProvider {
   final String phone;
   final String? portalLabel;
 
-  /// Login page URL only — never credentials (MYH-3).
+  /// Login page URL only. Never credentials (MYH-3).
   final String? portalUrl;
 
   Map<String, dynamic> toJson() => {
@@ -309,14 +309,20 @@ class HealthDocument {
 }
 
 class HealthWallet {
-  const HealthWallet({this.emergencyContact = '', this.conditions = ''});
+  const HealthWallet({
+    this.emergencyContact = '',
+    this.conditions = '',
+    this.serviceAnimal = '',
+  });
 
   final String emergencyContact;
   final String conditions;
+  final String serviceAnimal;
 
   Map<String, dynamic> toJson() => {
     'emergencyContact': emergencyContact,
     'conditions': conditions,
+    'serviceAnimal': serviceAnimal,
   };
 
   factory HealthWallet.fromJson(Map<String, dynamic>? json) {
@@ -324,13 +330,19 @@ class HealthWallet {
     return HealthWallet(
       emergencyContact: (json['emergencyContact'] as String?) ?? '',
       conditions: (json['conditions'] as String?) ?? '',
+      serviceAnimal: (json['serviceAnimal'] as String?) ?? '',
     );
   }
 
-  HealthWallet copyWith({String? emergencyContact, String? conditions}) {
+  HealthWallet copyWith({
+    String? emergencyContact,
+    String? conditions,
+    String? serviceAnimal,
+  }) {
     return HealthWallet(
       emergencyContact: emergencyContact ?? this.emergencyContact,
       conditions: conditions ?? this.conditions,
+      serviceAnimal: serviceAnimal ?? this.serviceAnimal,
     );
   }
 }
@@ -345,6 +357,7 @@ class EmergencyCardChoices {
     this.showProviders = false,
     this.showAppointmentNotes = false,
     this.showPsychiatricAdvanceDirective = false,
+    this.showServiceAnimal = false,
   });
 
   final bool showEmergencyContact;
@@ -353,6 +366,7 @@ class EmergencyCardChoices {
   final bool showProviders;
   final bool showAppointmentNotes;
   final bool showPsychiatricAdvanceDirective;
+  final bool showServiceAnimal;
 
   bool get sharesAnything =>
       showEmergencyContact ||
@@ -360,7 +374,8 @@ class EmergencyCardChoices {
       showMedications ||
       showProviders ||
       showAppointmentNotes ||
-      showPsychiatricAdvanceDirective;
+      showPsychiatricAdvanceDirective ||
+      showServiceAnimal;
 
   Map<String, dynamic> toJson() => {
     'showEmergencyContact': showEmergencyContact,
@@ -369,6 +384,7 @@ class EmergencyCardChoices {
     'showProviders': showProviders,
     'showAppointmentNotes': showAppointmentNotes,
     'showPsychiatricAdvanceDirective': showPsychiatricAdvanceDirective,
+    'showServiceAnimal': showServiceAnimal,
   };
 
   factory EmergencyCardChoices.fromJson(Map<String, dynamic>? json) {
@@ -381,6 +397,7 @@ class EmergencyCardChoices {
       showProviders: flag('showProviders'),
       showAppointmentNotes: flag('showAppointmentNotes'),
       showPsychiatricAdvanceDirective: flag('showPsychiatricAdvanceDirective'),
+      showServiceAnimal: flag('showServiceAnimal'),
     );
   }
 
@@ -391,6 +408,7 @@ class EmergencyCardChoices {
     bool? showProviders,
     bool? showAppointmentNotes,
     bool? showPsychiatricAdvanceDirective,
+    bool? showServiceAnimal,
   }) {
     return EmergencyCardChoices(
       showEmergencyContact: showEmergencyContact ?? this.showEmergencyContact,
@@ -401,6 +419,7 @@ class EmergencyCardChoices {
       showPsychiatricAdvanceDirective:
           showPsychiatricAdvanceDirective ??
           this.showPsychiatricAdvanceDirective,
+      showServiceAnimal: showServiceAnimal ?? this.showServiceAnimal,
     );
   }
 }
@@ -414,6 +433,7 @@ class HealthSnapshot {
     this.wallet = const HealthWallet(),
     this.emergencyCard = const EmergencyCardChoices(),
     this.pinHash,
+    this.biometricEnabled = false,
     this.initialized = false,
   });
 
@@ -425,7 +445,10 @@ class HealthSnapshot {
   final EmergencyCardChoices emergencyCard;
   final String? pinHash;
 
-  /// True after first seed or erase — prevents re-seeding demo data.
+  /// Opt-in fingerprint unlock. Cleared with the PIN. Default off.
+  final bool biometricEnabled;
+
+  /// True after first seed or erase. Prevents re-seeding demo data.
   final bool initialized;
 
   bool get hasPin => pinHash != null && pinHash!.isNotEmpty;
@@ -438,6 +461,7 @@ class HealthSnapshot {
     'wallet': wallet.toJson(),
     'emergencyCard': emergencyCard.toJson(),
     if (pinHash != null) 'pinHash': pinHash,
+    'biometricEnabled': biometricEnabled,
     'initialized': initialized,
   };
 
@@ -474,6 +498,7 @@ class HealthSnapshot {
             : null,
       ),
       pinHash: json['pinHash'] as String?,
+      biometricEnabled: json['biometricEnabled'] == true,
       initialized: json['initialized'] as bool? ?? false,
     );
   }
@@ -486,6 +511,7 @@ class HealthSnapshot {
     HealthWallet? wallet,
     EmergencyCardChoices? emergencyCard,
     String? pinHash,
+    bool? biometricEnabled,
     bool? initialized,
     bool clearPinHash = false,
   }) {
@@ -497,6 +523,9 @@ class HealthSnapshot {
       wallet: wallet ?? this.wallet,
       emergencyCard: emergencyCard ?? this.emergencyCard,
       pinHash: clearPinHash ? null : (pinHash ?? this.pinHash),
+      biometricEnabled: clearPinHash
+          ? false
+          : (biometricEnabled ?? this.biometricEnabled),
       initialized: initialized ?? this.initialized,
     );
   }

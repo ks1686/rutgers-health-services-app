@@ -71,6 +71,22 @@
         "source": "MedlinePlus",
         "linkLabel": "Read more on MedlinePlus",
         "linkUrl": "https://medlineplus.gov/stress.html"
+      },
+      {
+        "title": "Making a wellness plan (WRAP)",
+        "summary": "A plan you write yourself to stay well.",
+        "body": "Wellness Recovery Action Plan (WRAP) is a process for creating the life and wellness you want. It helps you find simple, safe tools to stay well, make a daily plan, notice what throws you off track, and plan support if there is a crisis. Your WRAP is your own. WRAP peer groups are one way people build a plan. You can keep a copy in My Health under Personal papers. This note is not medical advice.",
+        "source": "Wellness Recovery Action Plan",
+        "linkLabel": "Read more on the WRAP site",
+        "linkUrl": "https://www.wellnessrecoveryactionplan.com/what-is-wrap/"
+      },
+      {
+        "title": "What a WRAP can include",
+        "summary": "Daily tools, stressors, warning signs, and a crisis plan.",
+        "body": "The WRAP site describes a wellness toolbox: simple, safe things you can do to stay well or feel better. A WRAP can include a daily plan, stressors (some people say triggers), early warning signs, signs that things are getting much worse, a crisis plan, and a post-crisis plan. The crisis plan is written ahead of time for you and the people who support you. If a crisis happens, the site says it is not your fault. This note is not medical advice.",
+        "source": "Wellness Recovery Action Plan",
+        "linkLabel": "Read more on the WRAP site",
+        "linkUrl": "https://www.wellnessrecoveryactionplan.com/what-is-wrap/"
       }
     ]
   },

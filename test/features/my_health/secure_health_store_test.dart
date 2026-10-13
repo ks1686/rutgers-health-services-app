@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -44,6 +46,53 @@ void main() {
     final withPaper = await store.read();
     expect(withPaper.documents.single.kind, HealthDocumentKind.livingWill);
     expect(withPaper.documents.single.body, 'My wishes.');
+  });
+
+  test('old JSON without service animal keys keeps the other data', () async {
+    final memory = MemorySecureStringStore();
+    await memory.write(
+      SecureHealthStore.dataKey,
+      jsonEncode({
+        'appointments': [
+          {
+            'id': 'a1',
+            'provider': 'Dr. Rivera',
+            'whenLabel': 'Thu',
+            'location': 'Clinic',
+            'phone': '555',
+          },
+        ],
+        'wallet': {'emergencyContact': 'Jordan', 'conditions': 'Asthma'},
+        'pinHash': 'abc123',
+        'initialized': true,
+      }),
+    );
+    final loaded = await SecureHealthStore(memory).read();
+    expect(loaded.appointments.single.provider, 'Dr. Rivera');
+    expect(loaded.wallet.emergencyContact, 'Jordan');
+    expect(loaded.wallet.conditions, 'Asthma');
+    expect(loaded.wallet.serviceAnimal, '');
+    expect(loaded.emergencyCard.showServiceAnimal, isFalse);
+    expect(loaded.pinHash, 'abc123');
+  });
+
+  test('service animal round-trips in secure storage', () async {
+    final store = SecureHealthStore(MemorySecureStringStore());
+    await store.write(
+      sample.copyWith(
+        wallet: const HealthWallet(
+          serviceAnimal: 'Service dog, Max. Please keep with me.',
+        ),
+        emergencyCard: const EmergencyCardChoices(showServiceAnimal: true),
+      ),
+    );
+    final loaded = await store.read();
+    expect(
+      loaded.wallet.serviceAnimal,
+      'Service dog, Max. Please keep with me.',
+    );
+    expect(loaded.emergencyCard.showServiceAnimal, isTrue);
+    expect(loaded.appointments.single.provider, 'Dr. Rivera');
   });
 
   test('migrates plaintext prefs into secure store and wipes prefs', () async {

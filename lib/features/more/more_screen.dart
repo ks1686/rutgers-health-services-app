@@ -9,16 +9,31 @@ import '../settings/app_preferences.dart';
 import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
+import 'using_this_app_page.dart';
 import 'ask_a_peer_screen.dart';
 import 'session_answers.dart';
 import 'session_questions_screen.dart';
 import 'helper_privacy_screen.dart';
 import 'protects_you_page.dart';
 
+/// Research builds can pass `--dart-define=SHOW_SESSION_QUESTIONS=true`.
+/// The screen and any saved answers stay in the app either way.
+const kShowSessionQuestions = bool.fromEnvironment(
+  'SHOW_SESSION_QUESTIONS',
+  defaultValue: false,
+);
+
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key, this.launcher});
+  const MoreScreen({
+    super.key,
+    this.launcher,
+    this.showSessionQuestions = kShowSessionQuestions,
+  });
 
   final LinkLauncher? launcher;
+
+  /// Tests pass true. The v1 menu leaves this off.
+  final bool showSessionQuestions;
 
   void _push(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -93,12 +108,14 @@ class MoreScreen extends StatelessWidget {
                 title: 'Ask a Peer',
                 onTap: () => _push(context, AskAPeerScreen(launcher: launcher)),
               ),
-              const Divider(height: 1),
-              _MoreTile(
-                icon: Icons.rate_review_outlined,
-                title: 'Session questions',
-                onTap: () => _push(context, const SessionQuestionsScreen()),
-              ),
+              if (showSessionQuestions) ...[
+                const Divider(height: 1),
+                _MoreTile(
+                  icon: Icons.rate_review_outlined,
+                  title: 'Session questions',
+                  onTap: () => _push(context, const SessionQuestionsScreen()),
+                ),
+              ],
               const Divider(height: 1),
               _MoreTile(
                 icon: Icons.flag_outlined,
@@ -122,6 +139,12 @@ class MoreScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const Divider(height: 1),
+              _MoreTile(
+                icon: Icons.article_outlined,
+                title: 'Using this app (agreement)',
+                onTap: () => _push(context, const UsingThisAppPage()),
               ),
               const Divider(height: 1),
               _MoreTile(

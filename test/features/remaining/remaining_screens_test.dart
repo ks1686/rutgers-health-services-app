@@ -1,6 +1,7 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/help_now/help_now_config.dart';
 import 'package:cwc_health_app/features/help_now/help_now_screen.dart';
+import 'package:cwc_health_app/features/my_health/my_health_screen.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
@@ -120,7 +121,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Helper Mode'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('sample records'), findsOneWidget);
+    expect(find.textContaining('stays on this phone'), findsOneWidget);
+    expect(find.textContaining('sample records'), findsNothing);
     expect(find.textContaining('sample data'), findsNothing);
 
     await tester.tap(
@@ -136,7 +138,7 @@ void main() {
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
     expect(find.text('Test Provider'), findsNothing);
-    expect(find.text('Test Medicine'), findsNothing);
+    expect(find.text('Test Medicine', skipOffstage: false), findsNothing);
     expect(
       find.textContaining('Hidden while someone is helping you.'),
       findsWidgets,
@@ -171,7 +173,16 @@ void main() {
     await tester.tap(find.text('My Health').last);
     await tester.pumpAndSettle();
     expect(find.text('Test Provider'), findsWidgets);
-    expect(find.text('Test Medicine'), findsOneWidget);
+    final medicine = find.text('Test Medicine');
+    await tester.scrollUntilVisible(
+      medicine,
+      -500,
+      scrollable: find.descendant(
+        of: find.byType(MyHealthScreen),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(medicine, findsOneWidget);
   });
 
   testWidgets('how-to steps work offline and Ask a Peer stays separate', (

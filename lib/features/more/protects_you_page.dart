@@ -5,9 +5,10 @@ import '../../widgets/help_now_button.dart';
 
 /// Plain-language privacy page (PRIV-3). Study-build wording, not a CAB sign-off.
 const kProtectsYouParagraphs = <String>[
-  'Appointments, medicines, providers, papers, reminders, your PIN, people '
-      'you save under Ask a Peer, and session question answers stay on this '
-      'phone. They are not uploaded. There is no cloud account for them.',
+  'Appointments, medicines, providers, papers, a service or support animal '
+      'note, reminders, your PIN, people you save under Ask a Peer, and '
+      'session question answers stay on this phone. They are not uploaded. '
+      'There is no cloud account for them.',
   'The phone stores them with its built-in secure storage. This app has no '
       'ads and does not track how you use it. You do not need an account.',
   'Nearby can use your location one time if you tap that choice. It sorts '
@@ -16,6 +17,9 @@ const kProtectsYouParagraphs = <String>[
       'Nearby, Learn, or Help Now.',
   'An optional PIN can hide My Health. It never blocks Nearby, Learn, or '
       'Help Now.',
+  'After a PIN is set, you can use a fingerprint to open My Health. The '
+      'phone checks the fingerprint. This app never sees it, and it does not '
+      'leave the phone. Your PIN always works.',
   'Erase my information deletes those personal items from this phone. You '
       'cannot undo that.',
   'The community can still change this wording.',

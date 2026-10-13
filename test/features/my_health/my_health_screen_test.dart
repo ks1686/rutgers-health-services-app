@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/features/my_health/data/biometric_unlock.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_models.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
@@ -6,6 +9,7 @@ import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../support/fake_biometric.dart';
 import '../../support/health_seed.dart';
 import '../../support/stub_nearby.dart';
 
@@ -245,6 +249,169 @@ void main() {
     expect(health.emergencyCard.showMedications, isFalse);
     expect(health.emergencyCard.showAppointmentNotes, isFalse);
   });
+
+  testWidgets('doctor prompt is visible when My Health is unlocked', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await health.eraseAll();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pcp-prompt')), findsOneWidget);
+    expect(find.text('Check with your doctor first'), findsOneWidget);
+    expect(find.textContaining('does not give medical advice'), findsOneWidget);
+    expect(find.text('Call my provider'), findsNothing);
+
+    final semantics = tester.ensureSemantics();
+    expect(
+      find.bySemanticsLabel(RegExp('Check with your doctor first')),
+      findsWidgets,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('Call my provider shows only when a provider is saved', (
+    tester,
+  ) async {
+    final health = await readyController();
+    final launched = <Uri>[];
+    await pumpHealthApp(
+      tester,
+      health: health,
+      launcher: (uri) async {
+        launched.add(uri);
+        return true;
+      },
+    );
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final call = find.byKey(const ValueKey('pcp-call'));
+    await tester.ensureVisible(call);
+    await tester.pumpAndSettle();
+    expect(find.text('Call my provider'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('pcp-prompt')),
+        matching: find.text('Test Provider'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(call);
+    await tester.pumpAndSettle();
+    expect(launched, isNotEmpty);
+    expect(launched.last.scheme, 'tel');
+    expect(launched.last.path, '5550100000');
+  });
+
+  testWidgets('helper mode hides provider details on the doctor prompt', (
+    tester,
+  ) async {
+    final health = await readyController();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Helper Mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('helper-hide-switch')),
+        matching: find.byType(Switch),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    final prompt = find.byKey(const ValueKey('pcp-prompt'));
+    expect(prompt, findsOneWidget);
+    expect(find.text('Check with your doctor first'), findsOneWidget);
+    expect(find.text('Call my provider'), findsNothing);
+    expect(
+      find.descendant(
+        of: prompt,
+        matching: find.textContaining('Test Provider'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: prompt, matching: find.textContaining('555')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('lock view shows PIN only when fingerprint is not available', (
+    tester,
+  ) async {
+    final health = await readyController();
+    expect(await health.setPin('1234'), isTrue);
+    health.lock();
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter PIN'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
+    expect(find.text('Use your PIN instead.'), findsNothing);
+    expect(find.text('Use fingerprint to open My Health'), findsNothing);
+  });
+
+  testWidgets('lock view offers fingerprint and still shows Enter PIN', (
+    tester,
+  ) async {
+    final fake = FakeBiometricAuthenticator(available: true);
+    final health = await seededController(biometrics: fake);
+    expect(await health.setPin('1234'), isTrue);
+    expect(await health.enableBiometricUnlock(), isTrue);
+    health.lock();
+    final gate = Completer<BiometricResult>();
+    fake.pending = gate.future;
+    await pumpHealthApp(tester, health: health);
+
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('use-fingerprint')), findsOneWidget);
+    expect(find.text('Enter PIN'), findsOneWidget);
+    expect(find.byKey(const ValueKey('biometric-fallback')), findsNothing);
+    expect(health.isUnlocked, isFalse);
+
+    gate.complete(BiometricResult.success);
+    await tester.pumpAndSettle();
+    expect(find.text('Appointments'), findsOneWidget);
+  });
+
+  testWidgets(
+    'fingerprint failure stays locked and PIN still opens My Health',
+    (tester) async {
+      final fake = FakeBiometricAuthenticator(available: true);
+      final health = await seededController(biometrics: fake);
+      expect(await health.setPin('1234'), isTrue);
+      expect(await health.enableBiometricUnlock(), isTrue);
+      health.lock();
+      fake.result = BiometricResult.lockout;
+      await pumpHealthApp(tester, health: health);
+
+      await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+      await tester.pumpAndSettle();
+      expect(find.text('Use your PIN instead.'), findsOneWidget);
+      expect(find.text('Enter PIN'), findsOneWidget);
+      expect(find.text('Appointments'), findsNothing);
+
+      await tester.tap(find.text('Enter PIN'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '1234');
+      await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('Appointments'), findsOneWidget);
+      expect(find.text('Use fingerprint to open My Health'), findsOneWidget);
+    },
+  );
 
   testWidgets('theme smoke for form fields', (tester) async {
     await tester.pumpWidget(

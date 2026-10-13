@@ -46,6 +46,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('tab-more')));
     await tester.pumpAndSettle();
     expect(find.text('Ask a Peer'), findsOneWidget);
+    expect(find.text('Session questions', skipOffstage: false), findsNothing);
     expect(find.text('Erase My Information'), findsOneWidget);
 
     await tester.tap(find.text('Help Now'));

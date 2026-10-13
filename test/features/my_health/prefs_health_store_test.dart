@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -73,6 +75,52 @@ void main() {
     expect(loaded.wallet.conditions, '');
     expect(loaded.pinHash, isNull);
     expect(loaded.initialized, isTrue);
+  });
+
+  test('old JSON without service animal keys keeps the other data', () async {
+    SharedPreferences.setMockInitialValues({
+      PrefsHealthStore.dataKey: jsonEncode({
+        'appointments': [],
+        'medications': [],
+        'providers': [],
+        'wallet': {'emergencyContact': 'Jordan', 'conditions': 'Asthma'},
+        'emergencyCard': {'showEmergencyContact': true},
+        'pinHash': 'abc123',
+        'initialized': true,
+      }),
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final loaded = await PrefsHealthStore(prefs).read();
+    expect(loaded.wallet.emergencyContact, 'Jordan');
+    expect(loaded.wallet.conditions, 'Asthma');
+    expect(loaded.wallet.serviceAnimal, '');
+    expect(loaded.emergencyCard.showEmergencyContact, isTrue);
+    expect(loaded.emergencyCard.showServiceAnimal, isFalse);
+    expect(loaded.pinHash, 'abc123');
+    expect(loaded.initialized, isTrue);
+  });
+
+  test('service animal round-trips in prefs', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final store = PrefsHealthStore(prefs);
+    await store.write(
+      sample.copyWith(
+        wallet: const HealthWallet(
+          emergencyContact: 'Alex M. · (732) 555-0100',
+          conditions: 'Diabetes · Anxiety',
+          serviceAnimal: 'Service dog, Max. Please keep with me.',
+        ),
+        emergencyCard: const EmergencyCardChoices(showServiceAnimal: true),
+      ),
+    );
+    final loaded = await PrefsHealthStore(prefs).read();
+    expect(
+      loaded.wallet.serviceAnimal,
+      'Service dog, Max. Please keep with me.',
+    );
+    expect(loaded.emergencyCard.showServiceAnimal, isTrue);
+    expect(loaded.providers.single.name, 'Dr. Rivera');
   });
 
   test('missing prefs reads as uninitialized empty snapshot', () async {

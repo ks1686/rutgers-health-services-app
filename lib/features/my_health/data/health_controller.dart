@@ -2,21 +2,28 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import 'biometric_unlock.dart';
 import 'health_models.dart';
 import 'health_store.dart';
 import 'reminder_scheduler.dart';
 
 /// Owns My Health state for the shell. Local-only; never syncs to a server.
 class HealthController extends ChangeNotifier {
-  HealthController(this._store, {ReminderScheduler? reminders})
-    : _reminders = reminders ?? const NoopReminderScheduler();
+  HealthController(
+    this._store, {
+    ReminderScheduler? reminders,
+    BiometricAuthenticator? biometrics,
+  }) : _reminders = reminders ?? const NoopReminderScheduler(),
+       _biometrics = biometrics ?? const UnavailableBiometricAuthenticator();
 
   final HealthStore _store;
   final ReminderScheduler _reminders;
+  final BiometricAuthenticator _biometrics;
 
   HealthSnapshot _snapshot = const HealthSnapshot();
   bool _ready = false;
   bool _unlocked = false;
+  bool _biometricAvailable = false;
   bool _suppressReminders = false;
   String? _error;
 
@@ -24,6 +31,8 @@ class HealthController extends ChangeNotifier {
   bool get ready => _ready;
   bool get hasPin => _snapshot.hasPin;
   bool get isUnlocked => !_snapshot.hasPin || _unlocked;
+  bool get biometricAvailable => _biometricAvailable;
+  bool get biometricEnabled => _snapshot.biometricEnabled;
   String? get error => _error;
 
   List<HealthAppointment> get appointments => _snapshot.appointments;
@@ -33,10 +42,10 @@ class HealthController extends ChangeNotifier {
   HealthWallet get wallet => _snapshot.wallet;
   EmergencyCardChoices get emergencyCard => _snapshot.emergencyCard;
 
-  /// App-local salt — not a secret; slows casual plaintext prefs snooping.
+  /// App-local salt, not a secret. Slows casual plaintext prefs snooping.
   static const _pinSalt = 'cwc-health-pin-v1';
 
-  /// Study-build PIN fingerprint (not keystore encryption — PRIV-4 follow-on).
+  /// Study-build PIN fingerprint (not keystore encryption, PRIV-4 follow-on).
   /// Uses 32-bit FNV-1a so dart2js / web compile stays valid (no >53-bit ints).
   static String hashPin(String pin) {
     final bytes = utf8.encode('$_pinSalt:$pin');
@@ -61,6 +70,7 @@ class HealthController extends ChangeNotifier {
       }
       _snapshot = snap;
       _unlocked = !snap.hasPin;
+      _biometricAvailable = await _biometrics.isAvailable();
       _ready = true;
       notifyListeners();
       await _syncReminders();
@@ -249,7 +259,43 @@ class HealthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// PRIV-5 — clears personal My Health data (and PIN). Does not re-seed.
+  /// Turns fingerprint unlock on only after one successful check.
+  ///
+  /// Failure, cancel, and lockout leave the toggle off. The PIN stays.
+  Future<bool> enableBiometricUnlock() async {
+    if (!hasPin) return false;
+    _biometricAvailable = await _biometrics.isAvailable();
+    if (!_biometricAvailable) {
+      notifyListeners();
+      return false;
+    }
+    final result = await _biometrics.authenticate();
+    if (result != BiometricResult.success) return false;
+    await _persist(_snapshot.copyWith(biometricEnabled: true));
+    return true;
+  }
+
+  Future<void> disableBiometricUnlock() async {
+    if (!_snapshot.biometricEnabled) return;
+    await _persist(_snapshot.copyWith(biometricEnabled: false));
+  }
+
+  /// Unlocks My Health when fingerprint is already enabled and the check works.
+  ///
+  /// Any other result leaves the tab locked so the PIN can still open it.
+  Future<BiometricResult> unlockWithBiometric() async {
+    if (!hasPin || !_snapshot.biometricEnabled) {
+      return BiometricResult.unavailable;
+    }
+    final result = await _biometrics.authenticate();
+    if (result == BiometricResult.success) {
+      _unlocked = true;
+      notifyListeners();
+    }
+    return result;
+  }
+
+  /// PRIV-5. Clears personal My Health data (and PIN). Does not re-seed.
   Future<void> eraseAll() async {
     await _store.erase();
     _snapshot = const HealthSnapshot(initialized: true);
