@@ -63,12 +63,14 @@ void main() {
 
       final stress = topics.firstWhere((t) => t.title == 'Stress Management');
       expect(stress.articlesHeading, isNull);
-      expect(stress.articles, hasLength(2));
+      expect(stress.articles, hasLength(4));
       expect(
         stress.articles.map((a) => a.title),
         containsAll([
           'Everyday ways to ease stress',
           'When stress feels like too much',
+          'Making a wellness plan (WRAP)',
+          'What a WRAP can include',
         ]),
       );
       expect(
