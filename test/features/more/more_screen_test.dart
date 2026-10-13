@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cwc_health_app/features/more/about_this_app_page.dart';
 import 'package:cwc_health_app/features/more/more_screen.dart';
 import 'package:cwc_health_app/features/more/protects_you_page.dart';
+import 'package:cwc_health_app/features/more/using_this_app_page.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 
 void main() {
@@ -27,6 +28,27 @@ void main() {
     for (final paragraph in kAboutThisAppParagraphs) {
       expect(find.text(paragraph), findsOneWidget);
     }
+  });
+
+  testWidgets('Using this app agreement opens the draft', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: const Scaffold(body: MoreScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tile = find.text('Using this app (agreement)');
+    await tester.scrollUntilVisible(tile, 300);
+    expect(tile, findsOneWidget);
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(find.text(kUsingThisAppParagraphs.first), findsOneWidget);
+    expect(find.text('Using this app'), findsOneWidget);
   });
 
   testWidgets('Erase dialog mentions Ask a Peer contacts on this phone', (

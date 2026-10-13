@@ -9,6 +9,7 @@ import '../settings/app_preferences.dart';
 import '../settings/settings_screen.dart';
 import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
+import 'using_this_app_page.dart';
 import 'ask_a_peer_screen.dart';
 import 'session_answers.dart';
 import 'session_questions_screen.dart';
@@ -122,6 +123,12 @@ class MoreScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const Divider(height: 1),
+              _MoreTile(
+                icon: Icons.article_outlined,
+                title: 'Using this app (agreement)',
+                onTap: () => _push(context, const UsingThisAppPage()),
               ),
               const Divider(height: 1),
               _MoreTile(

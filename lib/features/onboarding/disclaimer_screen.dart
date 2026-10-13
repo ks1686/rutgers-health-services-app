@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
+import '../more/using_this_app_page.dart';
 
 /// First-launch gate (#19). Shown once; stored on-device after acknowledge.
 class DisclaimerScreen extends StatelessWidget {
@@ -60,6 +61,23 @@ class DisclaimerScreen extends StatelessWidget {
               const Text(
                 'Talk with your healthcare providers about your own health.',
                 style: TextStyle(fontSize: 18, height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const UsingThisAppPage(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Read the full agreement in More',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
               ),
               const Spacer(),
               OutlinedButton(
