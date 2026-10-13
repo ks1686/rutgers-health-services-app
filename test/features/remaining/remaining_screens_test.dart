@@ -120,7 +120,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Helper Mode'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('sample records'), findsOneWidget);
+    expect(find.textContaining('stays on this phone'), findsOneWidget);
+    expect(find.textContaining('sample records'), findsNothing);
     expect(find.textContaining('sample data'), findsNothing);
 
     await tester.tap(
