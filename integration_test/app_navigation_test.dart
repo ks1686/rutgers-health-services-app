@@ -21,6 +21,7 @@ void main() {
 
     await tester.pumpWidget(
       CwcApp(
+        disclaimerAcknowledged: true,
         // Nearby is always live. A stub keeps this smoke off the network.
         nearbyRepository: StubNearbyRepository(
           result: stubNearbyResult(

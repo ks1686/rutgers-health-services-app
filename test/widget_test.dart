@@ -29,6 +29,7 @@ void main() {
     await tester.pumpWidget(
       CwcApp(
         healthController: health,
+        disclaimerAcknowledged: prefs.containsKey(disclaimerAckPref),
         nearbyRepository: StubNearbyRepository(
           result: stubNearbyResult(
             resources: [
@@ -41,6 +42,33 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('cold start shows the care warning before My Health', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
+    final health = await seededController();
+    await tester.binding.setSurfaceSize(const Size(400, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      CwcApp(
+        healthController: health,
+        nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Before you continue'), findsOneWidget);
+    expect(find.text('Appointments'), findsNothing);
+
+    await tester.tap(find.text('I understand'));
+    await tester.pumpAndSettle();
+    expect(find.text('Appointments'), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      1,
+    );
+  });
 
   testWidgets('cold start lands on My Health after disclaimer', (tester) async {
     await pumpApp(tester);

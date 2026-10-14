@@ -5,7 +5,9 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../more/using_this_app_page.dart';
 
-/// First-launch gate (#19). Shown once; stored on-device after acknowledge.
+/// Care warning shown at the start of every process (#19).
+///
+/// Acknowledging it lasts until the app is fully closed. It is not stored.
 class DisclaimerScreen extends StatelessWidget {
   const DisclaimerScreen({
     super.key,

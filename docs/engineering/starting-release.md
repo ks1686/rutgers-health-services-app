@@ -17,7 +17,7 @@ Uninstall any older copy first. Each Actions runner signs with a new debug key. 
 
 | Area | In the build |
 |------|----------------|
-| Shell | Nearby, My Health, Learn, More. My Health is the landing tab. First launch asks for the care disclaimer once. Help Now stays in the header. |
+| Shell | Nearby, My Health, Learn, More. My Health is the landing tab. Each cold start shows the care disclaimer, then opens My Health. Help Now stays in the header. |
 | Nearby | Live OpenStreetMap places on the demo APK, with the unvetted disclaimer, walk time, town memory, optional one-shot coarse location, and an opt-in map. |
 | My Health | Appointments, medicines, providers, papers, reminders, wallet card, optional PIN, erase. Data stays on the phone. |
 | Learn | Six tiles. Two original notes each. Each note links a public page that returned HTTP 200 on 2026-10-07. See [`learn-content.md`](learn-content.md). |
