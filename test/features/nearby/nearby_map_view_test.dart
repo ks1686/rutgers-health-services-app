@@ -46,6 +46,11 @@ void main() {
 
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.textContaining('OpenStreetMap'), findsOneWidget);
+    expect(find.textContaining('CARTO'), findsOneWidget);
+    expect(
+      tester.widget<TileLayer>(find.byType(TileLayer)).urlTemplate,
+      kCartoTileUrlTemplate,
+    );
     expect(find.byIcon(Icons.location_on), findsOneWidget);
     expect(find.byIcon(Icons.my_location), findsOneWidget);
   });
@@ -68,5 +73,36 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.location_on));
     expect(tapped, 'p1');
+  });
+
+  test('carto tile url keeps the key out unless one is passed', () {
+    expect(cartoTileUrlTemplate(''), kCartoTileUrlTemplate);
+    expect(cartoTileUrlTemplate('  '), kCartoTileUrlTemplate);
+    expect(
+      cartoTileUrlTemplate('test-key'),
+      '$kCartoTileUrlTemplate?key=test-key',
+    );
+    expect(cartoTileUrlTemplate('a&b'), '$kCartoTileUrlTemplate?key=a%26b');
+  });
+
+  testWidgets('passed CARTO key is added to the tile url', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: Scaffold(
+          body: NearbyMapView(
+            preferGoogleMaps: false,
+            cartoBasemapApiKey: 'test-key',
+            resources: [_resource(id: 'p1', name: 'Corner Pharmacy')],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester.widget<TileLayer>(find.byType(TileLayer)).urlTemplate,
+      '$kCartoTileUrlTemplate?key=test-key',
+    );
   });
 }

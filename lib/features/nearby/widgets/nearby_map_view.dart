@@ -8,6 +8,21 @@ import '../../../theme/cwc_theme.dart';
 import '../data/nearby_resource.dart';
 import '../data/sources/geo_point.dart';
 
+/// CARTO raster style used for the study-default map picture.
+///
+/// CARTO's keyed raster service. `light_all` without a key now returns the
+/// "API key required" picture.
+const kCartoTileUrlTemplate =
+    'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+
+/// Tile URL for [kCartoTileUrlTemplate]. An empty [apiKey] omits `key`,
+/// which is what CARTO answers with the "API key required" picture.
+String cartoTileUrlTemplate(String apiKey) {
+  final key = apiKey.trim();
+  if (key.isEmpty) return kCartoTileUrlTemplate;
+  return '$kCartoTileUrlTemplate?key=${Uri.encodeQueryComponent(key)}';
+}
+
 /// Opt-in overhead map for live Nearby (FIND-4).
 ///
 /// Google Maps when [preferGoogleMaps] is true and not on web; otherwise
@@ -17,6 +32,7 @@ class NearbyMapView extends StatelessWidget {
     super.key,
     required this.resources,
     required this.preferGoogleMaps,
+    this.cartoBasemapApiKey = '',
     this.origin,
     this.selectedId,
     this.onMarkerTap,
@@ -30,6 +46,9 @@ class NearbyMapView extends StatelessWidget {
 
   /// From [NearbyConfig.preferGoogleMaps]. Ignored on web (always OSM).
   final bool preferGoogleMaps;
+
+  /// From [NearbyConfig.cartoBasemapApiKey]. Ignored on the Google Maps path.
+  final String cartoBasemapApiKey;
 
   final double height;
 
@@ -72,6 +91,7 @@ class NearbyMapView extends StatelessWidget {
                       origin: origin,
                       selectedId: selectedId,
                       onMarkerTap: onMarkerTap,
+                      cartoBasemapApiKey: cartoBasemapApiKey,
                     ),
             ),
           ),
@@ -79,7 +99,7 @@ class NearbyMapView extends StatelessWidget {
         if (!_useGoogle) ...[
           const SizedBox(height: 4),
           const Text(
-            'Map data © OpenStreetMap',
+            '© OpenStreetMap contributors, © CARTO',
             style: TextStyle(color: CwcColors.sub, fontSize: 14),
           ),
         ],
@@ -95,6 +115,7 @@ class _OsmNearbyMap extends StatelessWidget {
     required this.origin,
     required this.selectedId,
     required this.onMarkerTap,
+    required this.cartoBasemapApiKey,
   });
 
   final LatLng center;
@@ -102,6 +123,7 @@ class _OsmNearbyMap extends StatelessWidget {
   final GeoPoint? origin;
   final String? selectedId;
   final ValueChanged<String>? onMarkerTap;
+  final String cartoBasemapApiKey;
 
   @override
   Widget build(BuildContext context) {
@@ -144,8 +166,7 @@ class _OsmNearbyMap extends StatelessWidget {
       options: MapOptions(initialCenter: center, initialZoom: 14),
       children: [
         TileLayer(
-          urlTemplate:
-              'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+          urlTemplate: cartoTileUrlTemplate(cartoBasemapApiKey),
           userAgentPackageName: 'org.rutgers.cwc.cwc_health_app',
         ),
         MarkerLayer(markers: markers),

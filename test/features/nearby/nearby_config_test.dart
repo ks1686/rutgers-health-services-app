@@ -10,6 +10,7 @@ void main() {
       final config = NearbyConfig.fromEnvironment();
       expect(config.googlePlacesApiKey, isEmpty);
       expect(config.googleMapsApiKey, isEmpty);
+      expect(config.cartoBasemapApiKey, isEmpty);
       expect(config.preferGoogleMaps, isFalse);
     });
 

@@ -11,6 +11,7 @@ class NearbyConfig {
   const NearbyConfig({
     this.googlePlacesApiKey = '',
     this.googleMapsApiKey = '',
+    this.cartoBasemapApiKey = '',
   });
 
   /// Optional Google Places attempt. The study build has no billing, so this
@@ -19,6 +20,10 @@ class NearbyConfig {
 
   /// Empty (study default) → OSM map soft-fail. Never commit a real key.
   final String googleMapsApiKey;
+
+  /// CARTO basemap key for the OpenStreetMap-style map picture.
+  /// Empty leaves CARTO's "API key required" tiles. Never commit a real key.
+  final String cartoBasemapApiKey;
 
   /// Google Maps SDK path when a key is present and this is not Flutter web.
   bool get preferGoogleMaps => googleMapsApiKey.isNotEmpty;
@@ -31,6 +36,10 @@ class NearbyConfig {
       ),
       googleMapsApiKey: String.fromEnvironment(
         'GOOGLE_MAPS_API_KEY',
+        defaultValue: '',
+      ),
+      cartoBasemapApiKey: String.fromEnvironment(
+        'CARTO_BASEMAP_API_KEY',
         defaultValue: '',
       ),
     );

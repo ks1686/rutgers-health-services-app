@@ -464,6 +464,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             key: const ValueKey('nearby-map-view'),
             resources: rows,
             preferGoogleMaps: widget.config.preferGoogleMaps,
+            cartoBasemapApiKey: widget.config.cartoBasemapApiKey,
             origin: result.origin,
             selectedId: _selectedResourceId,
             onMarkerTap: _onMarkerTap,
