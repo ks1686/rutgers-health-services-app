@@ -8,7 +8,6 @@ import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/data/local_reminder_scheduler.dart';
 import 'features/my_health/health_scope.dart';
-import 'features/onboarding/disclaimer_prefs.dart';
 import 'features/onboarding/disclaimer_screen.dart';
 import 'features/settings/app_preferences.dart';
 import 'features/settings/shared_preferences_store.dart';
@@ -23,6 +22,7 @@ class CwcApp extends StatefulWidget {
     this.linkLauncher,
     this.nearbyRepository,
     this.showSessionQuestions = kShowSessionQuestions,
+    this.disclaimerAcknowledged = false,
   });
 
   /// Injected in tests. When null, opens Keystore/Keychain-backed store.
@@ -36,6 +36,11 @@ class CwcApp extends StatefulWidget {
   /// Default off. Research builds set SHOW_SESSION_QUESTIONS. Tests may pass true.
   final bool showSessionQuestions;
 
+  /// Tests pass true to open the tabs directly. A real launch leaves this
+  /// false: the care warning is for this process only, so closing the app
+  /// shows it again. It is not stored on the phone.
+  final bool disclaimerAcknowledged;
+
   @override
   State<CwcApp> createState() => _CwcAppState();
 }
@@ -45,7 +50,7 @@ class _CwcAppState extends State<CwcApp> {
   HealthController? _health;
   AppPreferences? _prefs;
   bool _booting = true;
-  bool _disclaimerAck = false;
+  late bool _disclaimerAck;
   String? _bootError;
 
   @override
@@ -59,7 +64,7 @@ class _CwcAppState extends State<CwcApp> {
     final prefs = await SharedPreferences.getInstance();
     _prefs = AppPreferences.fromStore(SharedPreferencesStore(prefs));
     _prefs!.addListener(_onPreferencesChanged);
-    _disclaimerAck = prefs.getBool(disclaimerAckPref) ?? false;
+    _disclaimerAck = widget.disclaimerAcknowledged;
     if (injected != null) {
       _health = injected;
       await _health!.setRemindersSuppressed(_prefs!.helperHiding);
@@ -166,9 +171,7 @@ class _CwcAppState extends State<CwcApp> {
     );
   }
 
-  Future<void> _acknowledgeDisclaimer() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(disclaimerAckPref, true);
-    if (mounted) setState(() => _disclaimerAck = true);
+  void _acknowledgeDisclaimer() {
+    setState(() => _disclaimerAck = true);
   }
 }

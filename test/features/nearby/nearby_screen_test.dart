@@ -466,7 +466,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('nearby-map-view')), findsOneWidget);
-      expect(find.textContaining('Map data'), findsOneWidget);
+      expect(find.textContaining('OpenStreetMap contributors'), findsOneWidget);
+      expect(find.textContaining('CARTO'), findsOneWidget);
 
       // Shared chips still filter the list (and therefore map pins).
       await tester.tap(find.widgetWithText(FilterChip, 'Clinic'));

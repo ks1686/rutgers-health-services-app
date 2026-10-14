@@ -21,6 +21,7 @@ void main() {
     await tester.pumpWidget(
       CwcApp(
         healthController: health,
+        disclaimerAcknowledged: true,
         showSessionQuestions: true,
         // Nearby is always live, so keep this test off the network.
         nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),

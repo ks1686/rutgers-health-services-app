@@ -101,7 +101,8 @@ flutter run -d android
 | `HELP_NOW_LIVE` | `true` | `false` keeps the Help Now rows from opening the dialer. Warmline and wellness-center rows stay hidden either way |
 | `HELP_NOW_UNCONFIRMED` | `false` | `true` shows NJ Peer Warmline and My Wellness Center. Those rows have no number and do not dial |
 | `GOOGLE_PLACES_API_KEY` | empty | Optional. Empty, unauthorized, or unbilled keys soft-fail to OpenStreetMap. Never commit keys |
-| `GOOGLE_MAPS_API_KEY` | empty | Optional map. Empty uses OSM tiles. Non-empty on Android/iOS uses Google Maps |
+| `GOOGLE_MAPS_API_KEY` | empty | Optional map. Empty uses the CARTO/OpenStreetMap picture. Non-empty on Android/iOS uses Google Maps |
+| `CARTO_BASEMAP_API_KEY` | empty | Picture for that OpenStreetMap-style map. Empty shows CARTO's "API key required" tiles. Never commit the key |
 | `SHOW_SESSION_QUESTIONS` | `false` | `true` shows the Session questions tile in More. Saved answers stay on the phone either way |
 
 **Never commit API keys.** Pass them per native build with `--dart-define` only if needed. Empty key is the correct v1 default.

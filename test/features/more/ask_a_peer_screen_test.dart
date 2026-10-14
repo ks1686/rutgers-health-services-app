@@ -25,6 +25,7 @@ void main() {
     await tester.pumpWidget(
       CwcApp(
         healthController: health,
+        disclaimerAcknowledged: true,
         linkLauncher: (uri) async {
           launched.add(uri);
           return true;

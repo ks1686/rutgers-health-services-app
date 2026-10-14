@@ -21,6 +21,7 @@ void main() {
     await tester.pumpWidget(
       CwcApp(
         healthController: health,
+        disclaimerAcknowledged: true,
         nearbyRepository: StubNearbyRepository(result: stubNearbyResult()),
       ),
     );

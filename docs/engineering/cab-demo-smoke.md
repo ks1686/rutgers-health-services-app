@@ -14,7 +14,7 @@ Pass `HELP_NOW_LIVE=false` only when a tap in the room must not open the dialer.
 
 Do this on a phone with a network connection. Stop if a step does not match.
 
-1. Open the app. First launch shows **Before you continue**. Tap **I understand**. The app lands on **My Health**. Appointments, medicines, and providers start empty. Help Now is in the header.
+1. Open the app from closed. **Before you continue** shows every time the process starts. Tap **I understand**. The app lands on **My Health**. Appointments, medicines, and providers start empty. Help Now is in the header.
 2. Open **Nearby**. Confirm **They are not checked by our team.** The list is live places for the remembered town (default New Brunswick). Wait for rows. If the network fails, the screen says the list is unavailable. That is a fail for this check.
 3. On one live card, tap **Call**, then back out of the dialer without placing the call. Tap **Text**, then back out. Tap **Directions**, then back out. A card with no phone shows **Phone not listed** and still has Directions.
 4. Open **Learn**. Count six tiles: Physical Health, Mental Health, Stress Management, Nutrition, Preventive Care, Sleep. There is no Medications tile and no Exercise tile. Open Physical Health and one short note. The note names a source (MedlinePlus, NIMH, USDA, or NHLBI). A tile says **From: CWC Health App team**.

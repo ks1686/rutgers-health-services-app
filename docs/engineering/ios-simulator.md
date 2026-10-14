@@ -34,7 +34,7 @@ The app icon set is the Flutter template set, including the 1024px store icon. R
 
 ## What the simulator can and cannot prove
 
-The first launch shows **Before you continue**, then **I understand**. Tabs, empty My Health, Learn, and More behave as on Android.
+Each time the app is opened from closed, **Before you continue** shows, then **I understand**. Tabs, empty My Health, Learn, and More behave as on Android.
 
 A Help Now tap uses `tel:`. The simulator has no cell radio, so it cannot place the call. Do not treat a simulator dialer sheet as proof that a phone would dial. That check stays on Android, where the tap fills the number and the member presses call.
 
