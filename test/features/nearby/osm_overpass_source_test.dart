@@ -35,7 +35,7 @@ void main() {
 
     expect(
       resources.map((r) => r.category),
-      containsAll(['Pharmacy', 'Clinic', 'Urgent care']),
+      containsAll(['Pharmacy', 'Clinic', 'Urgent care', 'Hospital']),
     );
     expect(resources.map((r) => r.name), contains('Main Street Pharmacy'));
     expect(resources.map((r) => r.name), contains('Community Health Clinic'));
@@ -69,6 +69,6 @@ void main() {
   test('fixture itself is valid JSON with expected tags', () {
     final decoded = jsonDecode(fixture) as Map<String, dynamic>;
     final elements = decoded['elements'] as List<dynamic>;
-    expect(elements, hasLength(4));
+    expect(elements, hasLength(5));
   });
 }

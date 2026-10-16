@@ -222,7 +222,8 @@ void main() {
         _result(
           resources: const [],
           status: NearbySourceStatus.osm,
-          message: 'No pharmacies or clinics found near New Brunswick.',
+          message:
+              'No pharmacies, clinics, urgent care, or hospitals found near New Brunswick.',
         ),
       );
 
@@ -236,7 +237,9 @@ void main() {
       );
 
       expect(
-        find.text('No pharmacies or clinics found near New Brunswick.'),
+        find.text(
+          'No pharmacies, clinics, urgent care, or hospitals found near New Brunswick.',
+        ),
         findsOneWidget,
       );
       expect(find.text('Check your connection, then try again.'), findsNothing);
@@ -493,10 +496,50 @@ void main() {
         );
 
         expect(find.text('Phone not listed'), findsOneWidget);
+        expect(
+          tester.widget<Text>(find.text('Phone not listed')).style?.color,
+          CwcColors.ink,
+        );
         expect(find.text('Call'), findsNothing);
         expect(find.text('Directions'), findsOneWidget);
       },
     );
+
+    testWidgets('saving a place moves it above the others', (tester) async {
+      final repository = _StubRepository(
+        _result(
+          resources: [
+            _resource(name: 'Alpha Pharmacy'),
+            _resource(name: 'Beta Clinic', category: 'Clinic'),
+          ],
+        ),
+      );
+
+      await pumpScreen(
+        tester,
+        NearbyScreen(
+          config: _liveConfig,
+          repository: repository,
+          clock: () => DateTime.utc(2026, 8, 11, 14, 42),
+        ),
+      );
+
+      expect(
+        tester.getTopLeft(find.text('Alpha Pharmacy')).dy,
+        lessThan(tester.getTopLeft(find.text('Beta Clinic')).dy),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('nearby-favorite-Beta Clinic')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saved'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Beta Clinic')).dy,
+        lessThan(tester.getTopLeft(find.text('Alpha Pharmacy')).dy),
+      );
+    });
 
     testWidgets('rows without a phone hide Call and Text', (tester) async {
       final repository = _StubRepository(

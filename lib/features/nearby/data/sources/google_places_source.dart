@@ -197,8 +197,8 @@ class GooglePlacesSource {
     if (set.contains('urgent_care_center') || set.contains('urgent_care')) {
       return NearbyCategory.urgentCare;
     }
+    if (set.contains('hospital')) return NearbyCategory.hospital;
     if (set.contains('doctor') ||
-        set.contains('hospital') ||
         set.contains('medical_clinic') ||
         set.contains('dental_clinic')) {
       return NearbyCategory.clinic;

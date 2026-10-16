@@ -5,13 +5,15 @@ enum NearbySourceStatus { google, osm, cache, unavailable }
 enum NearbyCategory {
   pharmacy,
   clinic,
-  urgentCare;
+  urgentCare,
+  hospital;
 
   /// Labels must match demo filter chips where they overlap.
   String get label => switch (this) {
     NearbyCategory.pharmacy => 'Pharmacy',
     NearbyCategory.clinic => 'Clinic',
     NearbyCategory.urgentCare => 'Urgent care',
+    NearbyCategory.hospital => 'Hospital',
   };
 }
 

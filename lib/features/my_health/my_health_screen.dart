@@ -322,7 +322,8 @@ class MyHealthScreen extends StatelessWidget {
               children: [
                 const Text(
                   'Only on this phone. A psychiatric advance directive, '
-                  'living will, service or support animal note, RAT plan, '
+                  'living will, service or support animal note, rapid '
+                  'assessment and treatment plan, '
                   'or Charge It workbook.',
                   style: TextStyle(color: CwcColors.sub),
                 ),

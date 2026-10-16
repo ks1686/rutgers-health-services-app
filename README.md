@@ -72,10 +72,10 @@ Do not publish a new GitHub release until Karim says so.
 
 | Tab / screen | What ships |
 |--------------|------------|
-| Nearby | Live OSM pharmacies, clinics, and urgent care. Unvetted disclaimer. Opt-in map (Google when `GOOGLE_MAPS_API_KEY` is set, otherwise OSM tiles). Category chips filter the list and the pins. Open now / Closed. Remembered North/Central/South town. Optional one-shot location sorts nearest-first |
+| Nearby | Live OSM pharmacies, clinics, urgent care, and hospitals. Unvetted disclaimer. Opt-in map (Google when `GOOGLE_MAPS_API_KEY` is set, otherwise OSM tiles). Category chips filter the list and the pins. Open now / Closed. Save keeps a place on this phone and lists it first. Remembered North/Central/South town. Optional one-shot location sorts nearest-first |
 | My Health | Starts empty. On-device appointments, medicines, and providers (Keystore/Keychain). Optional PIN, with an optional fingerprint unlock after the PIN is set. Check with your doctor first. Wallet card, including an optional service or support animal line. Erase from More |
-| Learn | Six offline topics from `assets/content/learn.json`. Most topics have two notes. Stress Management also has two WRAP notes. Each note has a source and a link. No Medications or Exercise tile. Tile line is **From: CWC Health App team**. Notes cite MedlinePlus, NIMH, USDA, NHLBI, or Wellness Recovery Action Plan |
-| More | How to Use (steps and captions; no video file), Ask a Peer, Wellness goals, Helper Mode, About, Using this app (agreement), Notifications, Settings, How This App Protects You, Erase. Session questions stay hidden unless `SHOW_SESSION_QUESTIONS` is true |
+| Learn | Six offline topics from `assets/content/learn.json`. Most topics have two notes. Mental Health also has a slow-breathing note. Stress Management also has two WRAP notes. Each note has a source and a link. No Medications or Exercise tile. Tile line is **From: CWC Health App team**. Notes cite MedlinePlus, NIMH, USDA, NHLBI, or Wellness Recovery Action Plan |
+| More | How to Use (steps and captions; no video file), Ask a Peer, Helper Mode, About, Using this app (agreement), Notifications, Settings, How This App Protects You, Erase. Session questions stay hidden unless `SHOW_SESSION_QUESTIONS` is true. Wellness goals is not on this list |
 | Help Now | 911 first, then 988 (call and text), Poison Control, ReachNJ, Clearinghouse. Each opens `tel:` or `sms:` and the member places the call. NJ Peer Warmline and My Wellness Center stay hidden until CSPNJ confirms the numbers |
 
 ## Project docs

@@ -28,6 +28,7 @@ void main() {
       expect(NearbyCategory.pharmacy.label, 'Pharmacy');
       expect(NearbyCategory.clinic.label, 'Clinic');
       expect(NearbyCategory.urgentCare.label, 'Urgent care');
+      expect(NearbyCategory.hospital.label, 'Hospital');
     });
   });
 

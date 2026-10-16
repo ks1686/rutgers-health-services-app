@@ -45,6 +45,17 @@
     },
     {
       "type": "node",
+      "id": 5005,
+      "lat": 40.4950,
+      "lon": -74.4480,
+      "tags": {
+        "amenity": "hospital",
+        "name": "Riverside Hospital",
+        "addr:full": "254 Easton Ave, New Brunswick, NJ"
+      }
+    },
+    {
+      "type": "node",
       "id": 4004,
       "lat": 42.3601,
       "lon": -71.0589,

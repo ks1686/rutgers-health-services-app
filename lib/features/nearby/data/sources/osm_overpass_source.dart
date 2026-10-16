@@ -183,6 +183,10 @@ class OsmOverpassSource {
   way["healthcare"="clinic"](AREA);
   node["healthcare"="urgent_care"](AREA);
   way["healthcare"="urgent_care"](AREA);
+  node["amenity"="hospital"](AREA);
+  way["amenity"="hospital"](AREA);
+  node["healthcare"="hospital"](AREA);
+  way["healthcare"="hospital"](AREA);
 ''';
 
     if (area.hasBbox && !forceAround) {
@@ -250,6 +254,9 @@ out center tags;
     final healthcare = tags['healthcare'];
 
     if (amenity == 'pharmacy') return NearbyCategory.pharmacy;
+    if (amenity == 'hospital' || healthcare == 'hospital') {
+      return NearbyCategory.hospital;
+    }
     if (amenity == 'clinic' || healthcare == 'clinic') {
       return NearbyCategory.clinic;
     }

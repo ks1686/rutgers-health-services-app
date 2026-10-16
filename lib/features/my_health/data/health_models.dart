@@ -226,7 +226,7 @@ extension HealthDocumentKindLabel on HealthDocumentKind {
     HealthDocumentKind.pad => 'Psychiatric advance directive',
     HealthDocumentKind.livingWill => 'Living will',
     HealthDocumentKind.serviceAnimal => 'Service or support animal',
-    HealthDocumentKind.ratPlan => 'RAT plan',
+    HealthDocumentKind.ratPlan => 'Rapid assessment and treatment plan',
     HealthDocumentKind.chargeIt => 'Charge It workbook',
     HealthDocumentKind.otherPaper => 'Other personal paper',
   };

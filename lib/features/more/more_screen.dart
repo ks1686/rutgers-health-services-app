@@ -5,9 +5,9 @@ import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
+import '../nearby/data/nearby_favorites.dart';
 import '../settings/app_preferences.dart';
 import '../settings/settings_screen.dart';
-import '../wellness/wellness_goals_screen.dart';
 import 'about_this_app_page.dart';
 import 'using_this_app_page.dart';
 import 'ask_a_peer_screen.dart';
@@ -49,7 +49,8 @@ class MoreScreen extends StatelessWidget {
         content: const Text(
           'This deletes appointments, medications, providers, wallet details, '
           'reminders, your My Health PIN, people you saved under Ask a Peer, '
-          'and session question answers from this phone. It cannot be undone.',
+          'saved nearby places, and session question answers from this phone. '
+          'It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -78,6 +79,7 @@ class MoreScreen extends StatelessWidget {
     }
     await health.eraseAll();
     await prefs?.setPeerContacts([]);
+    await clearNearbyFavorites();
     await prefs?.setSessionAnswers(const SessionAnswers());
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -116,12 +118,6 @@ class MoreScreen extends StatelessWidget {
                   onTap: () => _push(context, const SessionQuestionsScreen()),
                 ),
               ],
-              const Divider(height: 1),
-              _MoreTile(
-                icon: Icons.flag_outlined,
-                title: 'Wellness goals',
-                onTap: () => _push(context, const WellnessGoalsScreen()),
-              ),
               const Divider(height: 1),
               _MoreTile(
                 icon: Icons.handshake_outlined,
