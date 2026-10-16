@@ -28,8 +28,9 @@ class MyHealthScreen extends StatelessWidget {
   }
 
   Future<void> _openForm(BuildContext context, Widget page) {
-    return Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => page));
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   Future<void> _promptSetPin(
@@ -668,7 +669,9 @@ class _PrivacyBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            hasPin ? 'Protected by your PIN. Stored encrypted on this phone.' : 'Your info stays encrypted on this phone. You can add an optional PIN.',
+            hasPin
+                ? 'Protected by your PIN. Stored encrypted on this phone.'
+                : 'Your info stays encrypted on this phone. You can add an optional PIN.',
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
           const SizedBox(height: 8),

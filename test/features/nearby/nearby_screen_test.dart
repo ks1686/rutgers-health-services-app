@@ -222,7 +222,8 @@ void main() {
         _result(
           resources: const [],
           status: NearbySourceStatus.osm,
-          message: 'No pharmacies, clinics, urgent care, or hospitals found near New Brunswick.',
+          message:
+              'No pharmacies, clinics, urgent care, or hospitals found near New Brunswick.',
         ),
       );
 
