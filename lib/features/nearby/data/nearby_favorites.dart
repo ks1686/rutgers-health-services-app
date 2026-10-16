@@ -63,8 +63,8 @@ Future<NearbyFavoriteStore> nearbyFavoriteStore({
 }
 
 Future<void> clearNearbyFavorites() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove(nearbyFavoritesPref);
+  final store = await nearbyFavoriteStore();
+  await store.clear();
 }
 
 /// Saved places stay in their relative order and move ahead of the rest.

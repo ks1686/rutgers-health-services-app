@@ -14,10 +14,10 @@ class PrefsNearbyCache implements NearbyCache {
   final SharedPreferences _prefs;
 
   static String resultKey(NearbyQuery query) =>
-      'nearby.v1.result.${InMemoryNearbyCache.keyFor(query)}';
+      'nearby.v1.result.${nearbyCacheKey(query)}';
 
   static String pointKey(NearbyQuery query) =>
-      'nearby.v1.point.${InMemoryNearbyCache.keyFor(query)}';
+      'nearby.v1.point.${nearbyCacheKey(query)}';
 
   @override
   Future<NearbyFetchResult?> read(NearbyQuery query) async {

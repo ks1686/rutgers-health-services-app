@@ -130,92 +130,99 @@ class HealthController extends ChangeNotifier {
     }
   }
 
-  Future<void> upsertAppointment(HealthAppointment appointment) async {
-    final list = [..._snapshot.appointments];
-    final i = list.indexWhere((a) => a.id == appointment.id);
-    if (i >= 0) {
-      list[i] = appointment;
-    } else {
-      list.add(appointment);
-    }
-    await _persist(_snapshot.copyWith(appointments: list));
-  }
-
-  Future<void> deleteAppointment(String id) async {
-    await _persist(
+  Future<void> upsertAppointment(HealthAppointment appointment) {
+    return _persist(
       _snapshot.copyWith(
-        appointments: [
-          for (final a in _snapshot.appointments)
-            if (a.id != id) a,
-        ],
+        appointments: _withItem(
+          _snapshot.appointments,
+          appointment,
+          (row) => row.id,
+        ),
       ),
     );
   }
 
-  Future<void> upsertMedication(HealthMedication medication) async {
-    final list = [..._snapshot.medications];
-    final i = list.indexWhere((m) => m.id == medication.id);
-    if (i >= 0) {
-      list[i] = medication;
-    } else {
-      list.add(medication);
-    }
-    await _persist(_snapshot.copyWith(medications: list));
-  }
-
-  Future<void> deleteMedication(String id) async {
-    await _persist(
+  Future<void> deleteAppointment(String id) {
+    return _persist(
       _snapshot.copyWith(
-        medications: [
-          for (final m in _snapshot.medications)
-            if (m.id != id) m,
-        ],
+        appointments: _withoutId(_snapshot.appointments, id, (row) => row.id),
       ),
     );
   }
 
-  Future<void> upsertProvider(HealthProvider provider) async {
-    final list = [..._snapshot.providers];
-    final i = list.indexWhere((p) => p.id == provider.id);
-    if (i >= 0) {
-      list[i] = provider;
-    } else {
-      list.add(provider);
-    }
-    await _persist(_snapshot.copyWith(providers: list));
-  }
-
-  Future<void> deleteProvider(String id) async {
-    await _persist(
+  Future<void> upsertMedication(HealthMedication medication) {
+    return _persist(
       _snapshot.copyWith(
-        providers: [
-          for (final p in _snapshot.providers)
-            if (p.id != id) p,
-        ],
+        medications: _withItem(
+          _snapshot.medications,
+          medication,
+          (row) => row.id,
+        ),
       ),
     );
   }
 
-  Future<void> upsertDocument(HealthDocument document) async {
-    final list = [..._snapshot.documents];
-    final i = list.indexWhere((d) => d.id == document.id);
-    if (i >= 0) {
-      list[i] = document;
-    } else {
-      list.add(document);
-    }
-    await _persist(_snapshot.copyWith(documents: list));
-  }
-
-  Future<void> deleteDocument(String id) async {
-    await _persist(
+  Future<void> deleteMedication(String id) {
+    return _persist(
       _snapshot.copyWith(
-        documents: [
-          for (final d in _snapshot.documents)
-            if (d.id != id) d,
-        ],
+        medications: _withoutId(_snapshot.medications, id, (row) => row.id),
       ),
     );
+  }
+
+  Future<void> upsertProvider(HealthProvider provider) {
+    return _persist(
+      _snapshot.copyWith(
+        providers: _withItem(_snapshot.providers, provider, (row) => row.id),
+      ),
+    );
+  }
+
+  Future<void> deleteProvider(String id) {
+    return _persist(
+      _snapshot.copyWith(
+        providers: _withoutId(_snapshot.providers, id, (row) => row.id),
+      ),
+    );
+  }
+
+  Future<void> upsertDocument(HealthDocument document) {
+    return _persist(
+      _snapshot.copyWith(
+        documents: _withItem(_snapshot.documents, document, (row) => row.id),
+      ),
+    );
+  }
+
+  Future<void> deleteDocument(String id) {
+    return _persist(
+      _snapshot.copyWith(
+        documents: _withoutId(_snapshot.documents, id, (row) => row.id),
+      ),
+    );
+  }
+
+  List<T> _withItem<T>(List<T> current, T item, String Function(T row) idOf) {
+    final list = [...current];
+    final id = idOf(item);
+    final index = list.indexWhere((row) => idOf(row) == id);
+    if (index >= 0) {
+      list[index] = item;
+    } else {
+      list.add(item);
+    }
+    return list;
+  }
+
+  List<T> _withoutId<T>(
+    List<T> current,
+    String id,
+    String Function(T row) idOf,
+  ) {
+    return [
+      for (final row in current)
+        if (idOf(row) != id) row,
+    ];
   }
 
   Future<void> updateWallet(HealthWallet wallet) async {

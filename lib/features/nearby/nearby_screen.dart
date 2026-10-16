@@ -225,24 +225,13 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     final store = _placeStore;
     if (store == null || !_repositoryReady || _reloadQueued) return;
     final picked = await showNearbyTownPicker(context, current: _place);
-    if (picked == null || !mounted) return;
+    if (picked == null || !mounted || _reloadQueued) return;
     await store.save(picked);
     if (!mounted || _reloadQueued) return;
-    _reloadQueued = true;
-    setState(() {
-      _place = picked;
-      _query = NearbyQuery(town: picked.town);
-      _deviceMode = false;
-      _devicePending = false;
-      _infoLine = null;
-      _selectedResourceId = null;
-      _pending = _repository.fetch(_query).whenComplete(() {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() => _reloadQueued = false);
-        });
-      });
-    });
+    _place = picked;
+    _query = NearbyQuery(town: picked.town);
+    _selectedResourceId = null;
+    _beginLookup(_repository.fetch(_query), resetToTown: true);
     await _publishRememberedTown(context, picked);
   }
 
@@ -252,52 +241,60 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       _useMyLocation();
       return;
     }
-    _reloadQueued = true;
-    setState(() {
-      _deviceMode = false;
-      _devicePending = false;
-      _infoLine = null;
-      _pending = _repository.fetch(_query).whenComplete(() {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() => _reloadQueued = false);
-        });
-      });
-    });
+    _beginLookup(_repository.fetch(_query), resetToTown: true);
   }
 
   /// One-shot device location. Coordinates stay in memory for this lookup only.
   void _useMyLocation() {
     if (_reloadQueued || !_canUseDeviceLocation) return;
+    _beginLookup(
+      _applyDeviceResult(_repository.fetchNearDevice(_query)),
+      devicePending: true,
+    );
+  }
+
+  /// Owns the reload lock. The flag drops on the next frame so a finished
+  /// lookup cannot re-enable the button in the same frame it completes.
+  void _beginLookup(
+    Future<NearbyFetchResult> next, {
+    bool resetToTown = false,
+    bool devicePending = false,
+  }) {
+    if (_reloadQueued) return;
     _reloadQueued = true;
     setState(() {
-      _devicePending = true;
-      _pending = _trackDeviceLookup(_repository.fetchNearDevice(_query));
+      if (resetToTown) {
+        _deviceMode = false;
+        _devicePending = false;
+        _infoLine = null;
+      }
+      if (devicePending) _devicePending = true;
+      _pending = next.whenComplete(_releaseReload);
     });
   }
 
-  Future<NearbyFetchResult> _trackDeviceLookup(
+  void _releaseReload() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _reloadQueued = false);
+    });
+  }
+
+  Future<NearbyFetchResult> _applyDeviceResult(
     Future<NearbyFetchResult> pending,
   ) {
-    return pending
-        .then((result) {
-          final usedDevice = result.origin != null;
-          if (!mounted) return result;
-          setState(() {
-            _deviceMode = usedDevice;
-            _devicePending = false;
-            // On success the empty-state copy carries its own message; only a
-            // fallback keeps a reason line visible.
-            _infoLine = usedDevice ? null : result.message;
-          });
-          return result;
-        })
-        .whenComplete(() {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            setState(() => _reloadQueued = false);
-          });
-        });
+    return pending.then((result) {
+      final usedDevice = result.origin != null;
+      if (!mounted) return result;
+      setState(() {
+        _deviceMode = usedDevice;
+        _devicePending = false;
+        // On success the empty-state copy carries its own message; only a
+        // fallback keeps a reason line visible.
+        _infoLine = usedDevice ? null : result.message;
+      });
+      return result;
+    });
   }
 
   void _onMarkerTap(String resourceId) {

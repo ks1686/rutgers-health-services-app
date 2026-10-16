@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -296,7 +294,13 @@ class NearbyRepository {
     if (a.name.trim().toLowerCase() != b.name.trim().toLowerCase()) {
       return false;
     }
-    return _metersBetween(a.lat, a.lng, b.lat, b.lng) <= kNearbyDedupeMeters;
+    return nearbyDistanceMeters(
+          fromLat: a.lat,
+          fromLng: a.lng,
+          toLat: b.lat,
+          toLng: b.lng,
+        ) <=
+        kNearbyDedupeMeters;
   }
 
   NearbyResource _stamped(NearbyResource row, DateTime when) {
@@ -313,17 +317,4 @@ class NearbyRepository {
       fetchedAt: when,
     );
   }
-
-  double _metersBetween(double lat1, double lng1, double lat2, double lng2) {
-    const earthRadiusMeters = 6371000.0;
-    final dLat = _toRadians(lat2 - lat1);
-    final dLng = _toRadians(lng2 - lng1);
-    final meanLat = _toRadians((lat1 + lat2) / 2);
-
-    // Equirectangular approximation: accurate well past the 50 m threshold.
-    final x = dLng * math.cos(meanLat);
-    return earthRadiusMeters * math.sqrt(x * x + dLat * dLat);
-  }
-
-  double _toRadians(double degrees) => degrees * math.pi / 180;
 }

@@ -328,21 +328,28 @@ class MyHealthScreen extends StatelessWidget {
                   style: TextStyle(color: CwcColors.sub),
                 ),
                 const SizedBox(height: 8),
-                if (health.documents.isEmpty)
-                  const _EmptyHint('No personal papers yet. Tap Add.'),
-                for (final paper in health.documents)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(paper.title),
-                    subtitle: Text(
-                      paper.hasFile
-                          ? '${paper.kind.label}\n${paper.fileName}'
-                          : paper.kind.label,
-                    ),
-                    isThreeLine: paper.hasFile,
-                    onTap: () =>
-                        _openForm(context, DocumentFormScreen(existing: paper)),
-                  ),
+                ..._visibleRecords(
+                  hiding: hiding,
+                  isEmpty: health.documents.isEmpty,
+                  emptyHint: 'No personal papers yet. Tap Add.',
+                  records: [
+                    for (final paper in health.documents)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(paper.title),
+                        subtitle: Text(
+                          paper.hasFile
+                              ? '${paper.kind.label}\n${paper.fileName}'
+                              : paper.kind.label,
+                        ),
+                        isThreeLine: paper.hasFile,
+                        onTap: () => _openForm(
+                          context,
+                          DocumentFormScreen(existing: paper),
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),

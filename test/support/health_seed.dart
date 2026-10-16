@@ -47,6 +47,14 @@ Future<HealthController> seededController({
       phone: '(555) 010-0000',
     ),
   );
+  await controller.upsertDocument(
+    const HealthDocument(
+      id: 'test-paper-1',
+      kind: HealthDocumentKind.otherPaper,
+      title: 'Test Paper',
+      body: 'Test paper body',
+    ),
+  );
   await controller.updateWallet(
     const HealthWallet(
       emergencyContact: 'Test Contact · (555) 010-0000',

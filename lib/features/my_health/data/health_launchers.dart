@@ -1,12 +1,11 @@
+import '../../../links/phone_links.dart';
+
 /// External-link helpers for My Health call / text / portal (MYH-3).
-String healthDigitsOnly(String phone) =>
-    phone.replaceAll(RegExp(r'[^0-9]'), '');
+String healthDigitsOnly(String phone) => phoneDigitsOnly(phone);
 
-Uri healthTelUri(String phone) =>
-    Uri(scheme: 'tel', path: healthDigitsOnly(phone));
+Uri healthTelUri(String phone) => phoneTelUri(phone);
 
-Uri healthSmsUri(String phone) =>
-    Uri(scheme: 'sms', path: healthDigitsOnly(phone));
+Uri healthSmsUri(String phone) => phoneSmsUri(phone);
 
 /// Returns an http(s) URI or null if the string is missing / unsafe for link-out.
 Uri? healthPortalUri(String? raw) {

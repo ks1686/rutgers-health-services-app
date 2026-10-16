@@ -1,12 +1,11 @@
+import '../../../links/phone_links.dart';
+
 /// External-link helpers for live Nearby cards.
-String nearbyDigitsOnly(String phone) =>
-    phone.replaceAll(RegExp(r'[^0-9]'), '');
+String nearbyDigitsOnly(String phone) => phoneDigitsOnly(phone);
 
-Uri nearbyTelUri(String phone) =>
-    Uri(scheme: 'tel', path: nearbyDigitsOnly(phone));
+Uri nearbyTelUri(String phone) => phoneTelUri(phone);
 
-Uri nearbySmsUri(String phone) =>
-    Uri(scheme: 'sms', path: nearbyDigitsOnly(phone));
+Uri nearbySmsUri(String phone) => phoneSmsUri(phone);
 
 Uri nearbyDirectionsUri({
   required double lat,
