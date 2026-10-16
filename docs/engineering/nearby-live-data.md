@@ -77,7 +77,7 @@ Verified on then-`main` with `LIVE_NEARBY=true` (historical Chrome web bundle; w
 | Map toggle | Opt-in FIND-4 overhead map on the live list (Google when keyed; OSM `flutter_map` study default). Demo list still has the placeholder switch. |
 | GPS | Live tab asks for a one-shot coarse fix on load; sorts nearest-first; town is fallback only |
 | Call / Text | Hidden when OSM has no phone; Directions always shown |
-| Categories | Live chips: All / Pharmacy / Clinic / Urgent care. No CWC or Wellness rows |
+| Categories | Live chips: All / Pharmacy / Clinic / Urgent care / Hospital. A heart marked **Save** keeps that place on this phone and lists it first. No CWC or Wellness rows |
 
 ## OSM category mapping caveats (Task 7)
 
@@ -88,7 +88,8 @@ Verified on then-`main` with `LIVE_NEARBY=true` (historical Chrome web bundle; w
 | `amenity=pharmacy` | Pharmacy |
 | `amenity=clinic` or `healthcare=clinic` | Clinic |
 | `healthcare=urgent_care` only | Urgent care |
-| hospital, doctors, dentist, `healthcare=yes`, CWC, wellness | **Dropped** (under-claim) |
+| `amenity=hospital` or `healthcare=hospital` | Hospital |
+| doctors, dentist, `healthcare=yes`, CWC, wellness | **Dropped** (under-claim) |
 
 Hours: OSM `opening_hours` is stored on `NearbyResource.openingHoursRaw` and parsed on the live card into **Open now** / **Closed** (tap to expand Mon–Sun). Unparseable or missing tags: **Hours not listed**. Google Places live rows currently always get **Hours not listed** (`openingHoursRaw: null`). Spec FIND-1 (curated directory) is unchanged.
 

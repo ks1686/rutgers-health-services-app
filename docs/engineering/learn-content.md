@@ -106,6 +106,14 @@ Two notes were added under Stress Management. Nothing was pasted from the linked
 
 The page copyright line names Wellness Recovery Action Plan, Inc. It does not name a Copeland Center, so that label was not used. SAMHSA store and library URLs for WRAP returned 403. `https://www.samhsa.gov/mental-health/recovery` returned 404. `https://www.samhsa.gov/substance-use/recovery` returned 200 and the visible text did not describe WRAP, so it was not linked.
 
+## Slow-breathing note (2026-10-15)
+
+One note was added under Mental Health after the October 14 demo. Kelly asked for a short breathing example, such as box breathing. The linked MedlinePlus page describes a slow belly breath (in, pause, out), not a four-count box breath, so the note follows that page. Nothing was pasted from it. Checked HTTP 200 on 2026-10-15. This note is not a CAB-final text. [CAB 2026-10-14]
+
+| Note | Result | Page |
+| --- | --- | --- |
+| A slow breath you can try | 200 | [MedlinePlus: Relaxation techniques for stress](https://medlineplus.gov/ency/patientinstructions/000874.htm) |
+
 ## CAB / content update path
 
 1. Draft or revise copy offline (plain language; name the source).

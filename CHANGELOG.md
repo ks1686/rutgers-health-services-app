@@ -5,6 +5,23 @@ All notable changes to the CWC Health App are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Nearby includes hospitals as their own category, from OpenStreetMap and from Google Places when a key is set.
+- Nearby has a Save button. A saved place stays on this phone and shows first in the current list. Erase my information clears saved places.
+- Mental Health has a short note, "A slow breath you can try," linked to MedlinePlus.
+
+### Changed
+
+- "Hours not listed" and "Phone not listed" use the main text color so they are easier to read.
+- The personal-paper choice "RAT plan" is spelled out as "Rapid assessment and treatment plan."
+
+### Removed
+
+- Wellness goals is no longer on the More list. The October 14 meeting asked for it to come off.
+
 ## [1.0.1] - 2026-10-13
 
 ### Added

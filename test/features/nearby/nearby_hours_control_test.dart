@@ -37,6 +37,10 @@ void main() {
       tester.getSize(find.text('Hours not listed')).height,
       greaterThanOrEqualTo(18),
     );
+    expect(
+      tester.widget<Text>(find.text('Hours not listed')).style?.color,
+      CwcColors.ink,
+    );
   });
 
   testWidgets('open now starts collapsed and expands then collapses', (

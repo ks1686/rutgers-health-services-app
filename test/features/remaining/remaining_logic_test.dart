@@ -4,7 +4,6 @@ import 'package:cwc_health_app/features/how_to/caption_cue.dart';
 import 'package:cwc_health_app/features/how_to/how_to_catalog.dart';
 import 'package:cwc_health_app/features/how_to/tutorial_video_cache.dart';
 import 'package:cwc_health_app/features/settings/app_preferences.dart';
-import 'package:cwc_health_app/features/wellness/wellness_goals.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,38 +24,6 @@ void main() {
     expect(nearbyTownFromPreference(null), 'New Brunswick');
     expect(nearbyTownFromPreference('  '), 'New Brunswick');
     expect(nearbyTownFromPreference('Trenton'), 'Trenton');
-  });
-
-  test('wellness nudges stay off until each one is turned on', () {
-    const goals = WellnessGoals();
-    expect(goals.water, isFalse);
-    expect(goals.breath, isFalse);
-    expect(goals.steps, isFalse);
-    expect(goals.steadySleep, isFalse);
-    expect(goals.nudgeWhenClose, isFalse);
-    expect(goals.showCloseNudge, isFalse);
-
-    final close = goals.copyWith(
-      steps: true,
-      nudgeWhenClose: true,
-      stepGoal: 4000,
-      stepsToday: 3200,
-    );
-    expect(close.showCloseNudge, isTrue);
-    expect(close.copyWith(stepsToday: 4000).showCloseNudge, isFalse);
-    expect(close.copyWith(steps: false).showCloseNudge, isFalse);
-  });
-
-  test('wellness goals round-trip in the preference store', () async {
-    final memory = MemoryPreferenceStore();
-    final store = WellnessGoalsStore(memory);
-    store.load();
-    expect(store.goals.water, isFalse);
-    await store.update(store.goals.copyWith(water: true, breath: false));
-    final again = WellnessGoalsStore(memory)..load();
-    expect(again.goals.water, isTrue);
-    expect(again.goals.breath, isFalse);
-    expect(again.goals.steps, isFalse);
   });
 
   test('how-to steps are bundled and videos stay within 90 seconds', () {

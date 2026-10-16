@@ -18,10 +18,10 @@ Uninstall any older copy first. Each Actions runner signs with a new debug key. 
 | Area | In the build |
 |------|----------------|
 | Shell | Nearby, My Health, Learn, More. My Health is the landing tab. Each cold start shows the care disclaimer, then opens My Health. Help Now stays in the header. |
-| Nearby | Live OpenStreetMap places on the demo APK, with the unvetted disclaimer, walk time, town memory, optional one-shot coarse location, and an opt-in map. |
+| Nearby | Live OpenStreetMap pharmacies, clinics, urgent care, and hospitals, with the unvetted disclaimer, walk time, town memory, optional one-shot coarse location, an opt-in map, and a Save button that keeps a place on this phone. |
 | My Health | Appointments, medicines, providers, papers, reminders, wallet card, optional PIN, erase. Data stays on the phone. |
-| Learn | Six tiles. Two original notes each. Each note links a public page that returned HTTP 200 on 2026-10-07. See [`learn-content.md`](learn-content.md). |
-| More | How to Use (steps and captions; no video file), Ask a Peer, Session questions, Wellness goals, Helper Mode, About, Notifications, Settings, How This App Protects You, Erase. |
+| Learn | Six tiles. Mental Health has three notes, including a slow-breathing note. Stress Management has four, including two WRAP notes. The other tiles have two notes each. See [`learn-content.md`](learn-content.md). |
+| More | How to Use (steps and captions; no video file), Ask a Peer, Session questions, Helper Mode, About, Notifications, Settings, How This App Protects You, Erase. Wellness goals is not on this list. |
 | Help Now | 911 first, then 988, Poison Control, ReachNJ, and the Clearinghouse. On the shared APK those buttons are demo-only and do not dial. The peer warmline and “My Wellness Center” rows stay samples until CSPNJ confirms the numbers. |
 
 Session question answers stay on the phone. Erase deletes them. They are not uploaded.

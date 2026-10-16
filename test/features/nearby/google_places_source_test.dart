@@ -84,6 +84,13 @@ void main() {
               'types': ['urgent_care_center', 'health'],
             },
             {
+              'id': 'places/ChIJhospital',
+              'displayName': {'text': 'Riverside Hospital'},
+              'formattedAddress': '254 Easton Ave, New Brunswick, NJ',
+              'location': {'latitude': 40.495, 'longitude': -74.448},
+              'types': ['hospital', 'health', 'point_of_interest'],
+            },
+            {
               'id': 'places/ChIJcafe',
               'displayName': {'text': 'Coffee Spot'},
               'formattedAddress': '1 College Ave, New Brunswick, NJ',
@@ -102,10 +109,10 @@ void main() {
 
     expect(outcome, isA<GooglePlacesOk>());
     final resources = (outcome as GooglePlacesOk).resources;
-    expect(resources, hasLength(3));
+    expect(resources, hasLength(4));
     expect(
       resources.map((r) => r.category),
-      containsAll(['Pharmacy', 'Clinic', 'Urgent care']),
+      containsAll(['Pharmacy', 'Clinic', 'Urgent care', 'Hospital']),
     );
     expect(resources.map((r) => r.source), everyElement('google'));
     expect(resources.map((r) => r.name), isNot(contains('Coffee Spot')));

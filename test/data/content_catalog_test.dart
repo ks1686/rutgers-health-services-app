@@ -41,7 +41,6 @@ void main() {
 
       final padded = [
         physical,
-        topics.firstWhere((t) => t.title == 'Mental Health'),
         topics.firstWhere((t) => t.title == 'Nutrition'),
         topics.firstWhere((t) => t.title == 'Preventive Care'),
       ];
@@ -53,13 +52,22 @@ void main() {
           expect(article.link!.scheme, 'https');
         }
       }
-      expect(
-        topics
-            .firstWhere((t) => t.title == 'Mental Health')
-            .articles
-            .map((a) => a.link!.host),
-        ['www.nimh.nih.gov', 'medlineplus.gov'],
-      );
+      final mental = topics.firstWhere((t) => t.title == 'Mental Health');
+      expect(mental.articles, hasLength(3));
+      expect(mental.articles.map((a) => a.title), [
+        'Small ways to care for your mood',
+        'When to ask for more help',
+        'A slow breath you can try',
+      ]);
+      expect(mental.articles.map((a) => a.link!.host), [
+        'www.nimh.nih.gov',
+        'medlineplus.gov',
+        'medlineplus.gov',
+      ]);
+      for (final article in mental.articles) {
+        expect(article.source, isNotEmpty, reason: article.title);
+        expect(article.link!.scheme, 'https');
+      }
 
       final stress = topics.firstWhere((t) => t.title == 'Stress Management');
       expect(stress.articlesHeading, isNull);

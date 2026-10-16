@@ -9,6 +9,7 @@ import '../settings/app_preferences.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
+import 'data/nearby_favorites.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
 import 'data/nearby_place_preference.dart';
@@ -35,6 +36,7 @@ class NearbyScreen extends StatelessWidget {
     this.launcher,
     this.clock,
     this.placePreference,
+    this.favoriteStore,
   });
 
   final NearbyConfig? config;
@@ -42,6 +44,7 @@ class NearbyScreen extends StatelessWidget {
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
   final NearbyPlacePreferenceStore? placePreference;
+  final NearbyFavoriteStore? favoriteStore;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +54,7 @@ class NearbyScreen extends StatelessWidget {
       launcher: launcher,
       clock: clock,
       placePreference: placePreference,
+      favoriteStore: favoriteStore,
     );
   }
 }
@@ -71,6 +75,7 @@ class _NearbyLiveView extends StatefulWidget {
     this.launcher,
     this.clock,
     this.placePreference,
+    this.favoriteStore,
   });
 
   final NearbyConfig config;
@@ -78,6 +83,7 @@ class _NearbyLiveView extends StatefulWidget {
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
   final NearbyPlacePreferenceStore? placePreference;
+  final NearbyFavoriteStore? favoriteStore;
 
   @override
   State<_NearbyLiveView> createState() => _NearbyLiveViewState();
@@ -87,6 +93,8 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   NearbyQuery _query = const NearbyQuery();
   NearbyPlacePreference _place = NearbyPlacePreference.fallback;
   NearbyPlacePreferenceStore? _placeStore;
+  NearbyFavoriteStore? _favoriteStore;
+  Set<String> _favoriteIds = {};
 
   /// Derived from the source enum so a renamed category cannot silently stop
   /// matching the chip that filters it.
@@ -147,6 +155,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   /// Remembered town is the lookup. Device location stays an optional shortcut.
   Future<NearbyFetchResult> _start() async {
     await _loadPlace();
+    await _loadFavorites();
     final injected = widget.repository;
     if (injected != null) {
       _repository = injected;
@@ -154,6 +163,20 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       return _lookupTown();
     }
     return _boot();
+  }
+
+  Future<void> _loadFavorites() async {
+    final store = await nearbyFavoriteStore(injected: widget.favoriteStore);
+    _favoriteStore = store;
+    _favoriteIds = await store.read();
+  }
+
+  Future<void> _toggleFavorite(String id) async {
+    final store = _favoriteStore;
+    if (store == null) return;
+    final next = await store.toggle(id);
+    if (!mounted) return;
+    setState(() => _favoriteIds = next);
   }
 
   Future<void> _loadPlace() async {
@@ -419,9 +442,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Widget _buildResults(NearbyFetchResult result) {
-    final rows = _category == 'All'
+    final filtered = _category == 'All'
         ? result.resources
         : result.resources.where((r) => r.category == _category).toList();
+    final rows = nearbyFavoritesFirst(filtered, _favoriteIds);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -515,7 +539,17 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
 
   List<Widget> _actionsFor(NearbyResource resource) {
     final phone = resource.phone;
+    final saved = _favoriteIds.contains(resource.id);
     return [
+      OutlinedButton.icon(
+        key: ValueKey('nearby-favorite-${resource.id}'),
+        onPressed: () => _toggleFavorite(resource.id),
+        icon: Icon(
+          saved ? Icons.favorite : Icons.favorite_border,
+          color: saved ? CwcColors.primary : null,
+        ),
+        label: Text(saved ? 'Saved' : 'Save'),
+      ),
       if (phone != null) ...[
         OutlinedButton(
           onPressed: () => _open(nearbyTelUri(phone)),
@@ -645,7 +679,14 @@ class _PlaceCard extends StatelessWidget {
             hours,
             if (description != null) ...[
               const SizedBox(height: 8),
-              Text(description!),
+              Text(
+                description!,
+                style: const TextStyle(
+                  color: CwcColors.ink,
+                  fontSize: 18,
+                  height: 1.3,
+                ),
+              ),
             ],
             if (badges.isNotEmpty) ...[
               const SizedBox(height: 8),

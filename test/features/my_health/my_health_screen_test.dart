@@ -9,6 +9,7 @@ import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../support/fake_biometric.dart';
 import '../../support/health_seed.dart';
 import '../../support/stub_nearby.dart';
@@ -160,9 +161,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Add a paper'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('RAT plan'));
+    await tester.ensureVisible(
+      find.text('Rapid assessment and treatment plan'),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('RAT plan'));
+    await tester.tap(find.text('Rapid assessment and treatment plan'));
     await tester.pumpAndSettle();
 
     final fields = find.byType(TextFormField);

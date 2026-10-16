@@ -21,7 +21,7 @@ class _NearbyHoursControlState extends State<NearbyHoursControl> {
     if (view.kind == OpeningHoursKind.unknown) {
       return const Text(
         'Hours not listed',
-        style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.3),
+        style: TextStyle(color: CwcColors.ink, fontSize: 18, height: 1.3),
       );
     }
 

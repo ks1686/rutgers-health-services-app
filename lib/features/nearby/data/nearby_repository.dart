@@ -108,7 +108,8 @@ class NearbyRepository {
           status: NearbySourceStatus.osm,
           fetchedAt: when,
           message: osmRows.isEmpty
-              ? 'No pharmacies or clinics found near ${query.town}.'
+              ? 'No pharmacies, clinics, urgent care, or hospitals found near '
+                    '${query.town}.'
               : null,
         ),
       );

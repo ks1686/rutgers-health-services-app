@@ -7,6 +7,7 @@ import 'package:cwc_health_app/theme/cwc_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../support/health_seed.dart';
 import '../../support/stub_nearby.dart';
 
@@ -65,50 +66,18 @@ void main() {
     expect(find.text('Trenton ▾'), findsOneWidget);
   });
 
-  testWidgets('wellness goals are optional and stay out of Learn', (
-    tester,
-  ) async {
+  testWidgets('More does not offer wellness goals', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.text('Learn').last);
     await tester.pumpAndSettle();
     expect(find.text('Wellness goals'), findsNothing);
     expect(find.text('Physical Health'), findsOneWidget);
-    expect(find.text('Drink water'), findsNothing);
 
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Wellness goals'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Drink water'), findsOneWidget);
-    expect(find.text('Pause for a breath'), findsOneWidget);
-    expect(find.text('A steady bedtime and wake time'), findsOneWidget);
-    expect(find.textContaining('not medication'), findsOneWidget);
-
-    Switch water() => tester.widget<Switch>(
-      find.descendant(
-        of: find.byKey(const ValueKey('wellness-water')),
-        matching: find.byType(Switch),
-      ),
-    );
-    Switch breath() => tester.widget<Switch>(
-      find.descendant(
-        of: find.byKey(const ValueKey('wellness-breath')),
-        matching: find.byType(Switch),
-      ),
-    );
-
-    expect(water().value, isFalse);
-    expect(breath().value, isFalse);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('wellness-water')),
-        matching: find.byType(Switch),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(water().value, isTrue);
-    expect(breath().value, isFalse);
+    expect(find.text('Wellness goals'), findsNothing);
+    expect(find.text('Helper Mode'), findsOneWidget);
+    expect(find.text('Drink water'), findsNothing);
   });
 
   testWidgets('helper switch hides real health details and restores them', (

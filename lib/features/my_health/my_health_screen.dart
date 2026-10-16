@@ -28,9 +28,8 @@ class MyHealthScreen extends StatelessWidget {
   }
 
   Future<void> _openForm(BuildContext context, Widget page) {
-    return Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => page));
+    return Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   Future<void> _promptSetPin(
@@ -322,7 +321,8 @@ class MyHealthScreen extends StatelessWidget {
               children: [
                 const Text(
                   'Only on this phone. A psychiatric advance directive, '
-                  'living will, service or support animal note, RAT plan, '
+                  'living will, service or support animal note, rapid '
+                  'assessment and treatment plan, '
                   'or Charge It workbook.',
                   style: TextStyle(color: CwcColors.sub),
                 ),
@@ -668,9 +668,7 @@ class _PrivacyBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            hasPin
-                ? 'Protected by your PIN. Stored encrypted on this phone.'
-                : 'Your info stays encrypted on this phone. You can add an optional PIN.',
+            hasPin ? 'Protected by your PIN. Stored encrypted on this phone.' : 'Your info stays encrypted on this phone. You can add an optional PIN.',
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
           const SizedBox(height: 8),
