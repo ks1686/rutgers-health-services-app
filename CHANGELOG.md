@@ -17,6 +17,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - "Hours not listed" and "Phone not listed" use the main text color so they are easier to read.
 - The personal-paper choice "RAT plan" is spelled out as "Rapid assessment and treatment plan."
+- While Helper Mode hides details, My Health does not show the Add buttons.
+- After Erase my information, the Nearby list stops showing places as Saved right away.
+- When Nearby finds nothing with "All" picked, it says "No places found near" the town.
 
 ### Removed
 
