@@ -2,6 +2,7 @@ import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/more/peer_contact.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_favorites.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:cwc_health_app/links/phone_links.dart';
@@ -17,7 +18,10 @@ void main() {
     WidgetTester tester, {
     required List<Uri> launched,
   }) async {
-    SharedPreferences.setMockInitialValues({disclaimerAckPref: true});
+    SharedPreferences.setMockInitialValues({
+      disclaimerAckPref: true,
+      nearbyFavoritesPref: ['stub-Saved Pharmacy'],
+    });
     final health = HealthController(InMemoryHealthStore());
     await health.load();
     await tester.binding.setSurfaceSize(const Size(400, 2000));
@@ -169,6 +173,7 @@ void main() {
       peerContactsFromStored(stored.getString(kPeerContactsPref)),
       isEmpty,
     );
+    expect(stored.getStringList(nearbyFavoritesPref), isNull);
 
     await tester.tap(find.text('Ask a Peer'));
     await tester.pumpAndSettle();

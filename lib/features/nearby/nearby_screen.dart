@@ -87,6 +87,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   AppPreferences? _ownedPrefs;
   bool _started = false;
   NearbyFavoriteStore? _favoriteStore;
+
+  /// Set only when no store was injected or provided by [NearbyFavoritesScope].
+  NearbyFavoriteStore? _ownedFavoriteStore;
   Set<String> _favoriteIds = {};
 
   /// Derived from the source enum so a renamed category cannot silently stop
@@ -130,7 +133,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     final scoped = AppPreferencesScope.maybeOf(context);
     if (scoped != null) _prefs = scoped;
     if (!_started) {
-      // Started here, not in initState, so the scope can be read first.
+      // Started here, not in initState, so the scopes can be read first.
+      _favoriteStore =
+          widget.favoriteStore ?? NearbyFavoritesScope.maybeOf(context);
       _started = true;
       _pending = _start();
       return;
@@ -166,9 +171,17 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<void> _loadFavorites() async {
-    final store = await nearbyFavoriteStore(injected: widget.favoriteStore);
-    _favoriteStore = store;
+    final store = _favoriteStore ??= _ownedFavoriteStore =
+        PrefsNearbyFavoriteStore(await SharedPreferences.getInstance());
+    store.addListener(_onFavoritesChanged);
     _favoriteIds = await store.read();
+  }
+
+  /// Erase (or another screen) changed the saved places.
+  Future<void> _onFavoritesChanged() async {
+    final ids = await _favoriteStore?.read();
+    if (ids == null || !mounted) return;
+    setState(() => _favoriteIds = ids);
   }
 
   Future<void> _toggleFavorite(String id) async {
@@ -196,6 +209,8 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   void dispose() {
     _ownedClient?.close();
     _ownedPrefs?.dispose();
+    _favoriteStore?.removeListener(_onFavoritesChanged);
+    _ownedFavoriteStore?.dispose();
     super.dispose();
   }
 

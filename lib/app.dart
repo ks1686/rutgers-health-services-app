@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/more/more_screen.dart';
 import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
+import 'features/nearby/data/nearby_favorites.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/data/local_reminder_scheduler.dart';
@@ -49,6 +50,7 @@ class _CwcAppState extends State<CwcApp> {
   HealthController? _owned;
   HealthController? _health;
   AppPreferences? _prefs;
+  NearbyFavoriteStore? _favorites;
   bool _booting = true;
   late bool _disclaimerAck;
   String? _bootError;
@@ -64,6 +66,7 @@ class _CwcAppState extends State<CwcApp> {
     final prefs = await SharedPreferences.getInstance();
     _prefs = AppPreferences.fromStore(SharedPreferencesStore(prefs));
     _prefs!.addListener(_onPreferencesChanged);
+    _favorites = PrefsNearbyFavoriteStore(prefs);
     _disclaimerAck = widget.disclaimerAcknowledged;
     if (injected != null) {
       _health = injected;
@@ -97,6 +100,7 @@ class _CwcAppState extends State<CwcApp> {
   void dispose() {
     _prefs?.removeListener(_onPreferencesChanged);
     _prefs?.dispose();
+    _favorites?.dispose();
     _owned?.dispose();
     super.dispose();
   }
@@ -142,16 +146,19 @@ class _CwcAppState extends State<CwcApp> {
             final media = MediaQuery.of(context);
             return AppPreferencesScope(
               preferences: preferences,
-              child: HealthScope(
-                controller: _health!,
-                child: MediaQuery(
-                  data: media.copyWith(
-                    textScaler: combineTextScaler(
-                      media.textScaler,
-                      preferences.textSize,
+              child: NearbyFavoritesScope(
+                store: _favorites!,
+                child: HealthScope(
+                  controller: _health!,
+                  child: MediaQuery(
+                    data: media.copyWith(
+                      textScaler: combineTextScaler(
+                        media.textScaler,
+                        preferences.textSize,
+                      ),
                     ),
+                    child: child ?? const SizedBox.shrink(),
                   ),
-                  child: child ?? const SizedBox.shrink(),
                 ),
               ),
             );

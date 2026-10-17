@@ -42,6 +42,7 @@ class MoreScreen extends StatelessWidget {
   Future<void> _erase(BuildContext context) async {
     final health = HealthScope.maybeOf(context);
     final prefs = AppPreferencesScope.maybeOf(context);
+    final favorites = NearbyFavoritesScope.maybeOf(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -79,7 +80,7 @@ class MoreScreen extends StatelessWidget {
     }
     await health.eraseAll();
     await prefs?.setPeerContacts([]);
-    await clearNearbyFavorites();
+    await favorites?.clear();
     await prefs?.setSessionAnswers(const SessionAnswers());
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

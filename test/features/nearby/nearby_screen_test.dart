@@ -8,6 +8,7 @@ import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
 import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_favorites.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
@@ -540,6 +541,30 @@ void main() {
         tester.getTopLeft(find.text('Beta Clinic')).dy,
         lessThan(tester.getTopLeft(find.text('Alpha Pharmacy')).dy),
       );
+    });
+
+    testWidgets('clearing the shared store redraws the saved stars', (
+      tester,
+    ) async {
+      final store = MemoryNearbyFavoriteStore(['Beta Clinic']);
+      await pumpScreen(
+        tester,
+        NearbyFavoritesScope(
+          store: store,
+          child: NearbyScreen(
+            config: _liveConfig,
+            repository: _StubRepository(
+              _result(resources: [_resource(name: 'Beta Clinic')]),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Saved'), findsOneWidget);
+
+      await store.clear();
+      await tester.pumpAndSettle();
+      expect(find.text('Saved'), findsNothing);
+      expect(find.text('Save'), findsOneWidget);
     });
 
     testWidgets('rows without a phone hide Call and Text', (tester) async {
