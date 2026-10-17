@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../more/peer_contact.dart';
 import '../more/session_answers.dart';
-import '../nearby/data/nearby_place_preference.dart';
 import '../nearby/data/nj_places.dart';
 
 /// In-app text size on top of the phone's own text size (ACC-1).
@@ -10,8 +9,12 @@ enum TextSizeChoice { system, large, extraLarge }
 
 const kTextSizePref = 'cwc_settings_text_scale';
 
-/// Town Nearby uses when location is off. Same key as the Nearby town picker.
-const kRememberedTownPref = PrefsNearbyPlacePreferenceStore.townPref;
+/// Town Nearby uses when location is off. Settings and the Nearby town picker
+/// both write it through [AppPreferences].
+const kRememberedTownPref = 'nearby.v1.place.town';
+
+/// North, Central, or South for [kRememberedTownPref].
+const kRememberedRegionPref = 'nearby.v1.place.region';
 
 const kHelperHidingPref = 'cwc_settings_helper_hiding';
 
@@ -50,16 +53,6 @@ TextScaler combineTextScaler(TextScaler platform, TextSizeChoice choice) {
   return TextScaler.linear(platform.scale(1) * textScaleFactor(choice));
 }
 
-/// Empty or blank means Nearby keeps its default town.
-String nearbyTownFromPreference(
-  String? remembered, {
-  String fallback = 'New Brunswick',
-}) {
-  final trimmed = remembered?.trim() ?? '';
-  if (trimmed.isEmpty) return fallback;
-  return trimmed;
-}
-
 /// On-device settings that are not My Health records.
 class AppPreferences extends ChangeNotifier {
   AppPreferences(this._values);
@@ -78,6 +71,12 @@ class AppPreferences extends ChangeNotifier {
 
   String get rememberedTown => (_values[kRememberedTownPref] as String?) ?? '';
 
+  /// Region and town the Nearby tab looks up. Blank means the default town.
+  NearbyPlacePreference get nearbyPlace => NearbyPlacePreference.resolve(
+    regionName: _values[kRememberedRegionPref] as String?,
+    town: rememberedTown,
+  );
+
   bool get helperHiding => (_values[kHelperHidingPref] as bool?) ?? false;
 
   List<PeerContact> get peerContacts =>
@@ -90,13 +89,22 @@ class AppPreferences extends ChangeNotifier {
     return _set(kTextSizePref, textSizeToStored(choice));
   }
 
-  Future<void> setRememberedTown(String town) async {
+  /// Typed in Settings. A town on the picker list also saves its region.
+  Future<void> setRememberedTown(String town) {
     final trimmed = town.trim();
-    await _set(kRememberedTownPref, trimmed);
     final region = regionForTown(trimmed);
-    if (region != null) {
-      await _set(PrefsNearbyPlacePreferenceStore.regionPref, region.name);
-    }
+    return _setAll({
+      kRememberedTownPref: trimmed,
+      if (region != null) kRememberedRegionPref: region.name,
+    });
+  }
+
+  /// Picked on the Nearby tab.
+  Future<void> setNearbyPlace(NearbyPlacePreference place) {
+    return _setAll({
+      kRememberedRegionPref: place.region.name,
+      kRememberedTownPref: place.town,
+    });
   }
 
   Future<void> setHelperHiding(bool value) {
@@ -111,9 +119,14 @@ class AppPreferences extends ChangeNotifier {
     return _set(kSessionAnswersPref, sessionAnswersToStored(answers));
   }
 
-  Future<void> _set(String key, Object value) async {
-    _values[key] = value;
-    await _store?.write(key, value);
+  Future<void> _set(String key, Object value) => _setAll({key: value});
+
+  /// Writes every pair, then notifies once so listeners never see half.
+  Future<void> _setAll(Map<String, Object> entries) async {
+    _values.addAll(entries);
+    for (final entry in entries.entries) {
+      await _store?.write(entry.key, entry.value);
+    }
     notifyListeners();
   }
 }

@@ -3,12 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_launchers.dart';
 
 void main() {
-  test('sms and tel strip decoration', () {
-    expect(nearbyTelUri('(732) 555-0142').toString(), 'tel:7325550142');
-    expect(nearbySmsUri('+1-732-555-0142').scheme, 'sms');
-    expect(nearbySmsUri('+1-732-555-0142').path, '17325550142');
-  });
-
   test('web directions use OSM, not Google', () {
     final uri = nearbyDirectionsUri(
       lat: 40.4862,

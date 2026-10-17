@@ -118,7 +118,7 @@ class _FakeOverpass implements OsmOverpassSource {
 NearbyResource _resource({
   required String id,
   required String name,
-  String category = 'Pharmacy',
+  NearbyCategory category = NearbyCategory.pharmacy,
   String source = 'osm',
   double lat = 40.4862,
   double lng = -74.4518,

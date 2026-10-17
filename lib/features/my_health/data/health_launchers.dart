@@ -1,13 +1,4 @@
-/// External-link helpers for My Health call / text / portal (MYH-3).
-String healthDigitsOnly(String phone) =>
-    phone.replaceAll(RegExp(r'[^0-9]'), '');
-
-Uri healthTelUri(String phone) =>
-    Uri(scheme: 'tel', path: healthDigitsOnly(phone));
-
-Uri healthSmsUri(String phone) =>
-    Uri(scheme: 'sms', path: healthDigitsOnly(phone));
-
+/// External-link helper for My Health portal link-outs (MYH-3).
 /// Returns an http(s) URI or null if the string is missing / unsafe for link-out.
 Uri? healthPortalUri(String? raw) {
   if (raw == null) return null;

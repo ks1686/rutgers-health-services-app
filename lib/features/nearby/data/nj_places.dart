@@ -81,11 +81,16 @@ class NearbyPlacePreference {
     town: 'New Brunswick',
   );
 
+  /// The one read path for a saved place. Blank means [fallback]. A town on
+  /// the picker list takes its own region. A town typed in Settings that is
+  /// not on the short list is still the lookup, under the saved region.
   static NearbyPlacePreference resolve({String? regionName, String? town}) {
-    final region = NjRegion.tryParse(regionName);
-    if (region == null || town == null) return fallback;
-    final towns = kNjTowns[region];
-    if (towns == null || !towns.contains(town)) return fallback;
-    return NearbyPlacePreference(region: region, town: town);
+    final trimmed = town?.trim() ?? '';
+    if (trimmed.isEmpty) return fallback;
+    final region =
+        regionForTown(trimmed) ??
+        NjRegion.tryParse(regionName) ??
+        fallback.region;
+    return NearbyPlacePreference(region: region, town: trimmed);
   }
 }

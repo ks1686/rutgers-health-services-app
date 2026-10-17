@@ -4,15 +4,16 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../settings/app_preferences.dart';
+import '../settings/shared_preferences_store.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_favorites.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
-import 'data/nearby_place_preference.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
@@ -35,7 +36,6 @@ class NearbyScreen extends StatelessWidget {
     this.repository,
     this.launcher,
     this.clock,
-    this.placePreference,
     this.favoriteStore,
   });
 
@@ -43,7 +43,6 @@ class NearbyScreen extends StatelessWidget {
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
-  final NearbyPlacePreferenceStore? placePreference;
   final NearbyFavoriteStore? favoriteStore;
 
   @override
@@ -53,19 +52,9 @@ class NearbyScreen extends StatelessWidget {
       repository: repository,
       launcher: launcher,
       clock: clock,
-      placePreference: placePreference,
       favoriteStore: favoriteStore,
     );
   }
-}
-
-Future<void> _publishRememberedTown(
-  BuildContext context,
-  NearbyPlacePreference picked,
-) async {
-  final prefs = AppPreferencesScope.maybeOf(context);
-  if (prefs == null || prefs.rememberedTown == picked.town) return;
-  await prefs.setRememberedTown(picked.town);
 }
 
 class _NearbyLiveView extends StatefulWidget {
@@ -74,7 +63,6 @@ class _NearbyLiveView extends StatefulWidget {
     this.repository,
     this.launcher,
     this.clock,
-    this.placePreference,
     this.favoriteStore,
   });
 
@@ -82,7 +70,6 @@ class _NearbyLiveView extends StatefulWidget {
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
-  final NearbyPlacePreferenceStore? placePreference;
   final NearbyFavoriteStore? favoriteStore;
 
   @override
@@ -92,22 +79,25 @@ class _NearbyLiveView extends StatefulWidget {
 class _NearbyLiveViewState extends State<_NearbyLiveView> {
   NearbyQuery _query = const NearbyQuery();
   NearbyPlacePreference _place = NearbyPlacePreference.fallback;
-  NearbyPlacePreferenceStore? _placeStore;
-  NearbyFavoriteStore? _favoriteStore;
-  Set<String> _favoriteIds = {};
 
-  /// Derived from the source enum so a renamed category cannot silently stop
-  /// matching the chip that filters it.
-  static final _categories = [
-    'All',
-    ...NearbyCategory.values.map((category) => category.label),
-  ];
+  /// The only owner of the remembered town. From [AppPreferencesScope] in the
+  /// app; a widget test that pumps this tab alone gets one read from the
+  /// phone's saved settings, which [_ownedPrefs] then disposes.
+  AppPreferences? _prefs;
+  AppPreferences? _ownedPrefs;
+  bool _started = false;
+  NearbyFavoriteStore? _favoriteStore;
+
+  /// Set only when no store was injected or provided by [NearbyFavoritesScope].
+  NearbyFavoriteStore? _ownedFavoriteStore;
+  Set<String> _favoriteIds = {};
 
   http.Client? _ownedClient;
   late final NearbyRepository _repository;
   late Future<NearbyFetchResult> _pending;
 
-  String _category = 'All';
+  /// Null means All.
+  NearbyCategory? _category;
   bool _reloadQueued = false;
 
   /// True once [_boot] has finished wiring the default stack. Build and
@@ -134,27 +124,36 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final remembered = AppPreferencesScope.maybeOf(context)?.rememberedTown;
-    if (remembered == null) return;
-    final town = nearbyTownFromPreference(remembered);
-    if (town == _query.town && town == _place.town) return;
-    final listed = regionForTown(town);
-    _place = NearbyPlacePreference(region: listed ?? _place.region, town: town);
-    _query = NearbyQuery(town: town);
+    final scoped = AppPreferencesScope.maybeOf(context);
+    if (scoped != null) _prefs = scoped;
+    if (!_started) {
+      // Started here, not in initState, so the scopes can be read first.
+      _favoriteStore =
+          widget.favoriteStore ?? NearbyFavoritesScope.maybeOf(context);
+      _started = true;
+      _pending = _start();
+      return;
+    }
+    _followRememberedPlace();
+  }
+
+  /// Settings (or another screen) changed the town while this tab was open.
+  void _followRememberedPlace() {
+    final place = _prefs?.nearbyPlace;
+    if (place == null) return;
+    if (place.town == _place.town && place.region == _place.region) return;
+    _place = place;
+    _query = NearbyQuery(town: place.town);
     if (_repositoryReady && !_deviceMode && !_reloadQueued) {
       _reload();
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _pending = _start();
-  }
-
   /// Remembered town is the lookup. Device location stays an optional shortcut.
   Future<NearbyFetchResult> _start() async {
-    await _loadPlace();
+    final prefs = _prefs ?? await _openOwnPrefs();
+    _place = prefs.nearbyPlace;
+    _query = NearbyQuery(town: _place.town);
     await _loadFavorites();
     final injected = widget.repository;
     if (injected != null) {
@@ -166,9 +165,17 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<void> _loadFavorites() async {
-    final store = await nearbyFavoriteStore(injected: widget.favoriteStore);
-    _favoriteStore = store;
+    final store = _favoriteStore ??= _ownedFavoriteStore =
+        PrefsNearbyFavoriteStore(await SharedPreferences.getInstance());
+    store.addListener(_onFavoritesChanged);
     _favoriteIds = await store.read();
+  }
+
+  /// Erase (or another screen) changed the saved places.
+  Future<void> _onFavoritesChanged() async {
+    final ids = await _favoriteStore?.read();
+    if (ids == null || !mounted) return;
+    setState(() => _favoriteIds = ids);
   }
 
   Future<void> _toggleFavorite(String id) async {
@@ -179,17 +186,12 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     setState(() => _favoriteIds = next);
   }
 
-  Future<void> _loadPlace() async {
-    final store = await nearbyPlacePreferenceStore(
-      injected: widget.placePreference,
-    );
-    final place = await store.read();
-    if (!mounted) return;
-    setState(() {
-      _placeStore = store;
-      _place = place;
-      _query = NearbyQuery(town: place.town);
-    });
+  Future<AppPreferences> _openOwnPrefs() async {
+    final shared = await SharedPreferences.getInstance();
+    final own = AppPreferences.fromStore(SharedPreferencesStore(shared));
+    _ownedPrefs = own;
+    _prefs = own;
+    return own;
   }
 
   /// One-shot device fix is available when a source is wired.
@@ -200,6 +202,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   @override
   void dispose() {
     _ownedClient?.close();
+    _ownedPrefs?.dispose();
+    _favoriteStore?.removeListener(_onFavoritesChanged);
+    _ownedFavoriteStore?.dispose();
     super.dispose();
   }
 
@@ -222,28 +227,16 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<void> _pickTown() async {
-    final store = _placeStore;
-    if (store == null || !_repositoryReady || _reloadQueued) return;
+    final prefs = _prefs;
+    if (prefs == null || !_repositoryReady || _reloadQueued) return;
     final picked = await showNearbyTownPicker(context, current: _place);
-    if (picked == null || !mounted) return;
-    await store.save(picked);
-    if (!mounted || _reloadQueued) return;
-    _reloadQueued = true;
-    setState(() {
-      _place = picked;
-      _query = NearbyQuery(town: picked.town);
-      _deviceMode = false;
-      _devicePending = false;
-      _infoLine = null;
-      _selectedResourceId = null;
-      _pending = _repository.fetch(_query).whenComplete(() {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() => _reloadQueued = false);
-        });
-      });
-    });
-    await _publishRememberedTown(context, picked);
+    if (picked == null || !mounted || _reloadQueued) return;
+    // Local state first, so the save's notify finds nothing new to follow.
+    _place = picked;
+    _query = NearbyQuery(town: picked.town);
+    _selectedResourceId = null;
+    _beginLookup(_repository.fetch(_query), resetToTown: true);
+    await prefs.setNearbyPlace(picked);
   }
 
   void _reload() {
@@ -252,52 +245,60 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       _useMyLocation();
       return;
     }
-    _reloadQueued = true;
-    setState(() {
-      _deviceMode = false;
-      _devicePending = false;
-      _infoLine = null;
-      _pending = _repository.fetch(_query).whenComplete(() {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() => _reloadQueued = false);
-        });
-      });
-    });
+    _beginLookup(_repository.fetch(_query), resetToTown: true);
   }
 
   /// One-shot device location. Coordinates stay in memory for this lookup only.
   void _useMyLocation() {
     if (_reloadQueued || !_canUseDeviceLocation) return;
+    _beginLookup(
+      _applyDeviceResult(_repository.fetchNearDevice(_query)),
+      devicePending: true,
+    );
+  }
+
+  /// Owns the reload lock. The flag drops on the next frame so a finished
+  /// lookup cannot re-enable the button in the same frame it completes.
+  void _beginLookup(
+    Future<NearbyFetchResult> next, {
+    bool resetToTown = false,
+    bool devicePending = false,
+  }) {
+    if (_reloadQueued) return;
     _reloadQueued = true;
     setState(() {
-      _devicePending = true;
-      _pending = _trackDeviceLookup(_repository.fetchNearDevice(_query));
+      if (resetToTown) {
+        _deviceMode = false;
+        _devicePending = false;
+        _infoLine = null;
+      }
+      if (devicePending) _devicePending = true;
+      _pending = next.whenComplete(_releaseReload);
     });
   }
 
-  Future<NearbyFetchResult> _trackDeviceLookup(
+  void _releaseReload() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _reloadQueued = false);
+    });
+  }
+
+  Future<NearbyFetchResult> _applyDeviceResult(
     Future<NearbyFetchResult> pending,
   ) {
-    return pending
-        .then((result) {
-          final usedDevice = result.origin != null;
-          if (!mounted) return result;
-          setState(() {
-            _deviceMode = usedDevice;
-            _devicePending = false;
-            // On success the empty-state copy carries its own message; only a
-            // fallback keeps a reason line visible.
-            _infoLine = usedDevice ? null : result.message;
-          });
-          return result;
-        })
-        .whenComplete(() {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            setState(() => _reloadQueued = false);
-          });
-        });
+    return pending.then((result) {
+      final usedDevice = result.origin != null;
+      if (!mounted) return result;
+      setState(() {
+        _deviceMode = usedDevice;
+        _devicePending = false;
+        // On success the empty-state copy carries its own message; only a
+        // fallback keeps a reason line visible.
+        _infoLine = usedDevice ? null : result.message;
+      });
+      return result;
+    });
   }
 
   void _onMarkerTap(String resourceId) {
@@ -442,9 +443,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Widget _buildResults(NearbyFetchResult result) {
-    final filtered = _category == 'All'
+    final category = _category;
+    final filtered = category == null
         ? result.resources
-        : result.resources.where((r) => r.category == _category).toList();
+        : result.resources.where((r) => r.category == category).toList();
     final rows = nearbyFavoritesFirst(filtered, _favoriteIds);
 
     return ListView(
@@ -467,7 +469,6 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         ],
         const SizedBox(height: 12),
         _CategoryChips(
-          categories: _categories,
           selected: _category,
           onSelected: (category) => setState(() {
             _category = category;
@@ -501,7 +502,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             child: Text(
               _deviceMode
                   ? (result.message ?? kNearbyNoPlacesNearYou)
-                  : 'No ${_category.toLowerCase()} places found near '
+                  : category == null
+                  ? 'No places found near ${_query.town}.'
+                  : 'No ${category.label.toLowerCase()} places found near '
                         '${_query.town}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: CwcColors.sub, height: 1.4),
@@ -521,7 +524,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
                 ),
               ),
               badges: [
-                resource.category,
+                resource.category.label,
                 if (result.origin != null) ...[
                   '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
                 ],
@@ -552,11 +555,11 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       ),
       if (phone != null) ...[
         OutlinedButton(
-          onPressed: () => _open(nearbyTelUri(phone)),
+          onPressed: () => _open(phoneTelUri(phone)),
           child: const Text('Call'),
         ),
         OutlinedButton(
-          onPressed: () => _open(nearbySmsUri(phone)),
+          onPressed: () => _open(phoneSmsUri(phone)),
           child: const Text('Text'),
         ),
       ],
@@ -576,15 +579,13 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
 }
 
 class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
-    required this.categories,
-    required this.selected,
-    required this.onSelected,
-  });
+  const _CategoryChips({required this.selected, required this.onSelected});
 
-  final List<String> categories;
-  final String selected;
-  final ValueChanged<String> onSelected;
+  /// Null is All. Every source category gets a chip.
+  static const categories = <NearbyCategory?>[null, ...NearbyCategory.values];
+
+  final NearbyCategory? selected;
+  final ValueChanged<NearbyCategory?> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -596,7 +597,7 @@ class _CategoryChips extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: Text(category),
+                label: Text(category?.label ?? 'All'),
                 selected: selected == category,
                 onSelected: (_) => onSelected(category),
               ),

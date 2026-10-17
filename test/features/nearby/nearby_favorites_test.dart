@@ -8,7 +8,7 @@ void main() {
     return NearbyResource(
       id: id,
       name: id,
-      category: 'Pharmacy',
+      category: NearbyCategory.pharmacy,
       address: '1 Main St',
       lat: 40.4,
       lng: -74.4,
@@ -31,14 +31,17 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final store = PrefsNearbyFavoriteStore(prefs);
+    var notified = 0;
+    store.addListener(() => notified++);
 
     expect(await store.read(), isEmpty);
     expect(await store.toggle('osm-1'), {'osm-1'});
     expect(await store.toggle('osm-2'), {'osm-1', 'osm-2'});
     expect(await store.toggle('osm-1'), {'osm-2'});
 
-    await clearNearbyFavorites();
+    await store.clear();
     expect(prefs.getStringList(nearbyFavoritesPref), isNull);
     expect(await store.read(), isEmpty);
+    expect(notified, 4);
   });
 }

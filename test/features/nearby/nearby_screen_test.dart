@@ -8,6 +8,7 @@ import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_config.dart';
 import 'package:cwc_health_app/features/nearby/data/device_location.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_errors.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_favorites.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_fetch_result.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_query.dart';
 import 'package:cwc_health_app/features/nearby/data/nearby_repository.dart';
@@ -19,6 +20,7 @@ import 'package:cwc_health_app/features/nearby/data/sources/osm_overpass_source.
 import 'package:cwc_health_app/features/nearby/nearby_screen.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
+import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 
 const _liveConfig = NearbyConfig(googlePlacesApiKey: '');
@@ -102,7 +104,7 @@ class _DelayedStubRepository extends _StubRepository {
 
 NearbyResource _resource({
   required String name,
-  String category = 'Pharmacy',
+  NearbyCategory category = NearbyCategory.pharmacy,
   String? phone = '+1-732-555-0142',
   double lat = 40.4862,
   double lng = -74.4518,
@@ -164,7 +166,10 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Highland Pharmacy'),
-            _resource(name: 'Riverside Clinic', category: 'Clinic'),
+            _resource(
+              name: 'Riverside Clinic',
+              category: NearbyCategory.clinic,
+            ),
           ],
         ),
       );
@@ -354,7 +359,10 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Highland Pharmacy'),
-            _resource(name: 'Riverside Clinic', category: 'Clinic'),
+            _resource(
+              name: 'Riverside Clinic',
+              category: NearbyCategory.clinic,
+            ),
           ],
         ),
       );
@@ -410,10 +418,7 @@ void main() {
         _result(
           resources: [
             for (final category in NearbyCategory.values)
-              _resource(
-                name: 'Place ${category.label}',
-                category: category.label,
-              ),
+              _resource(name: 'Place ${category.label}', category: category),
           ],
         ),
       );
@@ -445,7 +450,7 @@ void main() {
             _resource(name: 'Highland Pharmacy'),
             _resource(
               name: 'Central Clinic',
-              category: 'Clinic',
+              category: NearbyCategory.clinic,
               lat: 40.49,
               lng: -74.45,
             ),
@@ -510,7 +515,7 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Alpha Pharmacy'),
-            _resource(name: 'Beta Clinic', category: 'Clinic'),
+            _resource(name: 'Beta Clinic', category: NearbyCategory.clinic),
           ],
         ),
       );
@@ -539,6 +544,30 @@ void main() {
         tester.getTopLeft(find.text('Beta Clinic')).dy,
         lessThan(tester.getTopLeft(find.text('Alpha Pharmacy')).dy),
       );
+    });
+
+    testWidgets('clearing the shared store redraws the saved stars', (
+      tester,
+    ) async {
+      final store = MemoryNearbyFavoriteStore(['Beta Clinic']);
+      await pumpScreen(
+        tester,
+        NearbyFavoritesScope(
+          store: store,
+          child: NearbyScreen(
+            config: _liveConfig,
+            repository: _StubRepository(
+              _result(resources: [_resource(name: 'Beta Clinic')]),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Saved'), findsOneWidget);
+
+      await store.clear();
+      await tester.pumpAndSettle();
+      expect(find.text('Saved'), findsNothing);
+      expect(find.text('Save'), findsOneWidget);
     });
 
     testWidgets('rows without a phone hide Call and Text', (tester) async {
@@ -603,7 +632,7 @@ void main() {
               _resource(name: 'Highland Pharmacy', openingHoursRaw: hours),
               _resource(
                 name: 'Riverside Clinic',
-                category: 'Clinic',
+                category: NearbyCategory.clinic,
                 openingHoursRaw: hours,
               ),
             ],
@@ -707,6 +736,58 @@ void main() {
       expect(second.queries.single.town, 'Camden');
       expect(find.text('Camden Pharmacy'), findsOneWidget);
       expect(second.nearDeviceCalls, 0);
+    });
+
+    testWidgets('a town saved under the prefs key is used with no scope', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({kRememberedTownPref: 'Hoboken'});
+      final repository = _TownFollowingRepository();
+      await pumpScreen(
+        tester,
+        NearbyScreen(config: _liveConfig, repository: repository),
+      );
+      expect(repository.queries.single.town, 'Hoboken');
+      expect(find.text('Hoboken ▾'), findsOneWidget);
+    });
+
+    testWidgets('picker and Settings share one remembered town', (
+      tester,
+    ) async {
+      final prefs = AppPreferences.fromStore(MemoryPreferenceStore());
+      final repository = _TownFollowingRepository();
+      await pumpScreen(
+        tester,
+        ListenableBuilder(
+          listenable: prefs,
+          builder: (context, _) => AppPreferencesScope(
+            preferences: prefs,
+            child: NearbyScreen(config: _liveConfig, repository: repository),
+          ),
+        ),
+      );
+      expect(repository.queries.single.town, 'New Brunswick');
+
+      await tester.tap(find.byKey(const ValueKey('nearby-town-chip')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-region-south')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-town-Camden')));
+      await tester.pumpAndSettle();
+
+      expect(prefs.rememberedTown, 'Camden');
+      expect(prefs.nearbyPlace.region.name, 'south');
+      expect(repository.queries.map((q) => q.town), [
+        'New Brunswick',
+        'Camden',
+      ]);
+
+      // A town typed in Settings that is not on the picker list.
+      await prefs.setRememberedTown('Frenchtown');
+      await tester.pumpAndSettle();
+      expect(repository.queries.last.town, 'Frenchtown');
+      expect(repository.queries, hasLength(3));
+      expect(find.text('Frenchtown Pharmacy'), findsOneWidget);
     });
   });
 

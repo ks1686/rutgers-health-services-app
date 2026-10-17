@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/geo_point.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/osm_overpass_source.dart';
 
@@ -35,7 +36,7 @@ void main() {
 
     expect(
       resources.map((r) => r.category),
-      containsAll(['Pharmacy', 'Clinic', 'Urgent care', 'Hospital']),
+      containsAll(NearbyCategory.values),
     );
     expect(resources.map((r) => r.name), contains('Main Street Pharmacy'));
     expect(resources.map((r) => r.name), contains('Community Health Clinic'));

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
-import '../my_health/data/health_launchers.dart';
 import '../settings/app_preferences.dart';
 import 'peer_contact.dart';
 
@@ -55,12 +55,12 @@ class AskAPeerScreen extends StatelessWidget {
           for (final contact in contacts) ...[
             _PeerTile(
               contact: contact,
-              onCall: _digits(contact.phone).isEmpty
+              onCall: phoneDigitsOnly(contact.phone).isEmpty
                   ? null
-                  : () => _open(context, healthTelUri(contact.phone)),
-              onText: _digits(contact.phone).isEmpty
+                  : () => _open(context, phoneTelUri(contact.phone)),
+              onText: phoneDigitsOnly(contact.phone).isEmpty
                   ? null
-                  : () => _open(context, healthSmsUri(contact.phone)),
+                  : () => _open(context, phoneSmsUri(contact.phone)),
               onEdit: () => _edit(context, prefs, contact),
               onRemove: () => _remove(prefs, contact.id),
             ),
@@ -103,8 +103,6 @@ class AskAPeerScreen extends StatelessWidget {
     ]);
   }
 }
-
-String _digits(String phone) => healthDigitsOnly(phone);
 
 Future<bool> _launchExternal(Uri uri) {
   return launchUrl(uri, mode: LaunchMode.externalApplication);

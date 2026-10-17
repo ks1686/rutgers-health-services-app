@@ -348,6 +348,11 @@ void main() {
       find.descendant(of: prompt, matching: find.textContaining('555')),
       findsNothing,
     );
+    expect(find.text('Add', skipOffstage: false), findsNothing);
+    expect(
+      find.byKey(const ValueKey('add-personal-paper'), skipOffstage: false),
+      findsNothing,
+    );
   });
 
   testWidgets('lock view shows PIN only when fingerprint is not available', (

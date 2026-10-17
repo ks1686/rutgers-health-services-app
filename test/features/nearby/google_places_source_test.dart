@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/geo_point.dart';
 import 'package:cwc_health_app/features/nearby/data/sources/google_places_source.dart';
 
@@ -112,7 +113,7 @@ void main() {
     expect(resources, hasLength(4));
     expect(
       resources.map((r) => r.category),
-      containsAll(['Pharmacy', 'Clinic', 'Urgent care', 'Hospital']),
+      containsAll(NearbyCategory.values),
     );
     expect(resources.map((r) => r.source), everyElement('google'));
     expect(resources.map((r) => r.name), isNot(contains('Coffee Spot')));

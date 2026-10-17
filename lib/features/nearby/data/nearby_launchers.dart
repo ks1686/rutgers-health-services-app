@@ -1,13 +1,4 @@
-/// External-link helpers for live Nearby cards.
-String nearbyDigitsOnly(String phone) =>
-    phone.replaceAll(RegExp(r'[^0-9]'), '');
-
-Uri nearbyTelUri(String phone) =>
-    Uri(scheme: 'tel', path: nearbyDigitsOnly(phone));
-
-Uri nearbySmsUri(String phone) =>
-    Uri(scheme: 'sms', path: nearbyDigitsOnly(phone));
-
+/// External-link helper for live Nearby cards.
 Uri nearbyDirectionsUri({
   required double lat,
   required double lng,

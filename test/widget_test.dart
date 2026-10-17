@@ -1,6 +1,7 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/data/content_catalog.dart';
 import 'package:cwc_health_app/features/learn/learn_screen.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_resource.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
@@ -34,7 +35,10 @@ void main() {
           result: stubNearbyResult(
             resources: [
               stubResource(name: 'Highland Pharmacy'),
-              stubResource(name: 'Riverside Clinic', category: 'Clinic'),
+              stubResource(
+                name: 'Riverside Clinic',
+                category: NearbyCategory.clinic,
+              ),
             ],
           ),
         ),

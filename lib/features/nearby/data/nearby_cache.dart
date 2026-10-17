@@ -16,6 +16,10 @@ abstract class NearbyCache {
   Future<void> writePoint(NearbyQuery query, GeoPoint point);
 }
 
+/// Shared cache key. Prefs and the in-memory cache must stay on the same shape.
+String nearbyCacheKey(NearbyQuery query) =>
+    '${query.town.trim().toLowerCase()}|${query.stateCode.trim().toUpperCase()}';
+
 /// Process-lifetime cache. Survives tab switches, not app restarts.
 ///
 /// App code uses [PrefsNearbyCache]; this class stays for tests and as a
@@ -24,26 +28,23 @@ class InMemoryNearbyCache implements NearbyCache {
   final Map<String, NearbyFetchResult> _entries = {};
   final Map<String, GeoPoint> _points = {};
 
-  static String keyFor(NearbyQuery query) =>
-      '${query.town.trim().toLowerCase()}|${query.stateCode.trim().toUpperCase()}';
-
   @override
   Future<NearbyFetchResult?> read(NearbyQuery query) async {
-    return _entries[keyFor(query)];
+    return _entries[nearbyCacheKey(query)];
   }
 
   @override
   Future<void> write(NearbyQuery query, NearbyFetchResult result) async {
-    _entries[keyFor(query)] = result;
+    _entries[nearbyCacheKey(query)] = result;
   }
 
   @override
   Future<GeoPoint?> readPoint(NearbyQuery query) async {
-    return _points[keyFor(query)];
+    return _points[nearbyCacheKey(query)];
   }
 
   @override
   Future<void> writePoint(NearbyQuery query, GeoPoint point) async {
-    _points[keyFor(query)] = point;
+    _points[nearbyCacheKey(query)] = point;
   }
 }

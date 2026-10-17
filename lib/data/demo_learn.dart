@@ -18,49 +18,30 @@ class LearnArticle {
 
   /// Https link-out, or null when missing or unsafe.
   Uri? get link => learnHttpsUri(linkUrl);
-
-  DemoLearnTopic toTopic() {
-    return DemoLearnTopic(
-      title: title,
-      iconLabel: 'article',
-      summary: summary,
-      body: body,
-      source: source,
-      linkLabel: linkLabel,
-      linkUrl: linkUrl,
-    );
-  }
 }
 
-/// Learn area. Runtime content comes from `assets/content/learn.json`
-/// via [loadLearnTopics] / [parseLearnTopics].
-class DemoLearnTopic {
-  const DemoLearnTopic({
-    required this.title,
+/// Learn area: a grid tile with its own [note] and any further notes.
+/// Runtime content comes from `assets/content/learn.json` via
+/// [loadLearnTopics] / [parseLearnTopics].
+class LearnTopic {
+  const LearnTopic({
     required this.iconLabel,
-    required this.summary,
-    required this.body,
-    required this.source,
-    this.linkLabel,
-    this.linkUrl,
+    required this.note,
     this.articlesHeading,
     this.articles = const [],
   });
 
-  final String title;
   final String iconLabel;
-  final String summary;
-  final String body;
-  final String source;
-  final String? linkLabel;
-  final String? linkUrl;
+
+  /// The area's own text, shown first on its page.
+  final LearnArticle note;
 
   /// Section title for [articles], when this area holds more than one note.
   final String? articlesHeading;
   final List<LearnArticle> articles;
 
-  /// Https link-out, or null when missing or unsafe.
-  Uri? get link => learnHttpsUri(linkUrl);
+  String get title => note.title;
+  String get summary => note.summary;
 }
 
 /// Returns an https URI, or null if [raw] is missing or not https.

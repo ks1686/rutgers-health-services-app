@@ -15,6 +15,14 @@ enum NearbyCategory {
     NearbyCategory.urgentCare => 'Urgent care',
     NearbyCategory.hospital => 'Hospital',
   };
+
+  /// Reads a [label] back, as cached JSON stores it. Null when unknown.
+  static NearbyCategory? fromLabel(String? label) {
+    for (final category in values) {
+      if (category.label == label) return category;
+    }
+    return null;
+  }
 }
 
 /// Normalized place row for list UI (demo or live).
@@ -35,8 +43,8 @@ class NearbyResource {
   final String id;
   final String name;
 
-  /// Display label matching Nearby filter chips (e.g. `Pharmacy`).
-  final String category;
+  /// Chips filter on this. Its [NearbyCategory.label] is display only.
+  final NearbyCategory category;
   final String address;
   final String? phone;
   final double lat;
@@ -52,7 +60,7 @@ class NearbyResource {
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
-    'category': category,
+    'category': category.label,
     'address': address,
     'phone': phone,
     'lat': lat,
@@ -62,11 +70,18 @@ class NearbyResource {
     'fetchedAt': fetchedAt.toUtc().toIso8601String(),
   };
 
+  /// Throws [FormatException] for an unknown category, so a stale cache
+  /// entry is dropped and fetched again.
   static NearbyResource fromJson(Map<String, dynamic> json) {
+    final label = json['category'] as String?;
+    final category = NearbyCategory.fromLabel(label);
+    if (category == null) {
+      throw FormatException('Unknown Nearby category', label);
+    }
     return NearbyResource(
       id: json['id'] as String,
       name: json['name'] as String,
-      category: json['category'] as String,
+      category: category,
       address: json['address'] as String,
       phone: json['phone'] as String?,
       lat: (json['lat'] as num).toDouble(),

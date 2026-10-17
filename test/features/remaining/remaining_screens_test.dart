@@ -109,6 +109,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Test Provider'), findsNothing);
     expect(find.text('Test Medicine', skipOffstage: false), findsNothing);
+    expect(find.text('Test Paper', skipOffstage: false), findsNothing);
     expect(
       find.textContaining('Hidden while someone is helping you.'),
       findsWidgets,
@@ -153,6 +154,7 @@ void main() {
       ),
     );
     expect(medicine, findsOneWidget);
+    expect(find.text('Test Paper', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('how-to steps work offline and Ask a Peer stays separate', (
