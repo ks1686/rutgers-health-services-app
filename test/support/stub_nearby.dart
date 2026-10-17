@@ -61,7 +61,7 @@ NearbyFetchResult stubNearbyResult({
 
 NearbyResource stubResource({
   required String name,
-  String category = 'Pharmacy',
+  NearbyCategory category = NearbyCategory.pharmacy,
   String phone = '(555) 010-0000',
 }) {
   return NearbyResource(

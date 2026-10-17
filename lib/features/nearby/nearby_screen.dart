@@ -92,18 +92,12 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   NearbyFavoriteStore? _ownedFavoriteStore;
   Set<String> _favoriteIds = {};
 
-  /// Derived from the source enum so a renamed category cannot silently stop
-  /// matching the chip that filters it.
-  static final _categories = [
-    'All',
-    ...NearbyCategory.values.map((category) => category.label),
-  ];
-
   http.Client? _ownedClient;
   late final NearbyRepository _repository;
   late Future<NearbyFetchResult> _pending;
 
-  String _category = 'All';
+  /// Null means All.
+  NearbyCategory? _category;
   bool _reloadQueued = false;
 
   /// True once [_boot] has finished wiring the default stack. Build and
@@ -449,9 +443,10 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Widget _buildResults(NearbyFetchResult result) {
-    final filtered = _category == 'All'
+    final category = _category;
+    final filtered = category == null
         ? result.resources
-        : result.resources.where((r) => r.category == _category).toList();
+        : result.resources.where((r) => r.category == category).toList();
     final rows = nearbyFavoritesFirst(filtered, _favoriteIds);
 
     return ListView(
@@ -474,7 +469,6 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
         ],
         const SizedBox(height: 12),
         _CategoryChips(
-          categories: _categories,
           selected: _category,
           onSelected: (category) => setState(() {
             _category = category;
@@ -508,7 +502,9 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
             child: Text(
               _deviceMode
                   ? (result.message ?? kNearbyNoPlacesNearYou)
-                  : 'No ${_category.toLowerCase()} places found near '
+                  : category == null
+                  ? 'No places found near ${_query.town}.'
+                  : 'No ${category.label.toLowerCase()} places found near '
                         '${_query.town}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: CwcColors.sub, height: 1.4),
@@ -528,7 +524,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
                 ),
               ),
               badges: [
-                resource.category,
+                resource.category.label,
                 if (result.origin != null) ...[
                   '~${nearbyWalkMinutes(nearbyDistanceMeters(fromLat: result.origin!.lat, fromLng: result.origin!.lng, toLat: resource.lat, toLng: resource.lng))} min walk',
                 ],
@@ -583,15 +579,13 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
 }
 
 class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
-    required this.categories,
-    required this.selected,
-    required this.onSelected,
-  });
+  const _CategoryChips({required this.selected, required this.onSelected});
 
-  final List<String> categories;
-  final String selected;
-  final ValueChanged<String> onSelected;
+  /// Null is All. Every source category gets a chip.
+  static const categories = <NearbyCategory?>[null, ...NearbyCategory.values];
+
+  final NearbyCategory? selected;
+  final ValueChanged<NearbyCategory?> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -603,7 +597,7 @@ class _CategoryChips extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: Text(category),
+                label: Text(category?.label ?? 'All'),
                 selected: selected == category,
                 onSelected: (_) => onSelected(category),
               ),

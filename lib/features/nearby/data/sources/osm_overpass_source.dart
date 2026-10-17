@@ -238,7 +238,7 @@ out center tags;
     return NearbyResource(
       id: id,
       name: name,
-      category: category.label,
+      category: category,
       address: _addressFrom(tagMap),
       phone: phone,
       lat: coords.$1,

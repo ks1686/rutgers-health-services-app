@@ -104,7 +104,7 @@ class _DelayedStubRepository extends _StubRepository {
 
 NearbyResource _resource({
   required String name,
-  String category = 'Pharmacy',
+  NearbyCategory category = NearbyCategory.pharmacy,
   String? phone = '+1-732-555-0142',
   double lat = 40.4862,
   double lng = -74.4518,
@@ -166,7 +166,10 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Highland Pharmacy'),
-            _resource(name: 'Riverside Clinic', category: 'Clinic'),
+            _resource(
+              name: 'Riverside Clinic',
+              category: NearbyCategory.clinic,
+            ),
           ],
         ),
       );
@@ -356,7 +359,10 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Highland Pharmacy'),
-            _resource(name: 'Riverside Clinic', category: 'Clinic'),
+            _resource(
+              name: 'Riverside Clinic',
+              category: NearbyCategory.clinic,
+            ),
           ],
         ),
       );
@@ -412,10 +418,7 @@ void main() {
         _result(
           resources: [
             for (final category in NearbyCategory.values)
-              _resource(
-                name: 'Place ${category.label}',
-                category: category.label,
-              ),
+              _resource(name: 'Place ${category.label}', category: category),
           ],
         ),
       );
@@ -447,7 +450,7 @@ void main() {
             _resource(name: 'Highland Pharmacy'),
             _resource(
               name: 'Central Clinic',
-              category: 'Clinic',
+              category: NearbyCategory.clinic,
               lat: 40.49,
               lng: -74.45,
             ),
@@ -512,7 +515,7 @@ void main() {
         _result(
           resources: [
             _resource(name: 'Alpha Pharmacy'),
-            _resource(name: 'Beta Clinic', category: 'Clinic'),
+            _resource(name: 'Beta Clinic', category: NearbyCategory.clinic),
           ],
         ),
       );
@@ -629,7 +632,7 @@ void main() {
               _resource(name: 'Highland Pharmacy', openingHoursRaw: hours),
               _resource(
                 name: 'Riverside Clinic',
-                category: 'Clinic',
+                category: NearbyCategory.clinic,
                 openingHoursRaw: hours,
               ),
             ],

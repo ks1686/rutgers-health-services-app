@@ -8,7 +8,7 @@ void main() {
     return NearbyResource(
       id: id,
       name: id,
-      category: 'Pharmacy',
+      category: NearbyCategory.pharmacy,
       address: '1 Main St',
       lat: 40.4,
       lng: -74.4,

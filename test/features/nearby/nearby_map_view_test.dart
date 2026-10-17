@@ -16,7 +16,7 @@ NearbyResource _resource({
   return NearbyResource(
     id: id,
     name: name,
-    category: 'Pharmacy',
+    category: NearbyCategory.pharmacy,
     address: '1 Test St',
     lat: lat,
     lng: lng,

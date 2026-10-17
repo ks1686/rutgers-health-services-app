@@ -178,7 +178,7 @@ class GooglePlacesSource {
     return NearbyResource(
       id: id,
       name: name,
-      category: category.label,
+      category: category,
       address: (address == null || address.isEmpty)
           ? 'Address not listed'
           : address,

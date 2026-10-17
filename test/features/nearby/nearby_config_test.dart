@@ -46,7 +46,7 @@ void main() {
       final resource = NearbyResource(
         id: 'osm-1',
         name: 'Test Pharmacy',
-        category: NearbyCategory.pharmacy.label,
+        category: NearbyCategory.pharmacy,
         address: '1 College Ave, New Brunswick, NJ',
         lat: 40.4862,
         lng: -74.4518,
