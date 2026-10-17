@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
-import '../settings/app_preferences.dart';
 import 'appointment_form_screen.dart';
 import 'data/biometric_unlock.dart';
 import 'data/health_controller.dart';
@@ -15,6 +14,7 @@ import 'document_form_screen.dart';
 import 'health_scope.dart';
 import 'medication_form_screen.dart';
 import 'provider_form_screen.dart';
+import 'visible_health.dart';
 import 'wallet_card_screen.dart';
 
 class MyHealthScreen extends StatelessWidget {
@@ -139,23 +139,20 @@ class MyHealthScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _visibleRecords({
-    required bool hiding,
-    required bool isEmpty,
+  /// Records come from [VisibleHealth], so they are already empty while
+  /// Helper Mode is on. Only the hint text depends on [hidden].
+  List<Widget> _recordsOrHint({
+    required bool hidden,
     required String emptyHint,
     required List<Widget> records,
   }) {
-    if (hiding) {
-      return const [_EmptyHint('Hidden while someone is helping you.')];
-    }
-    if (isEmpty) return [_EmptyHint(emptyHint)];
-    return records;
+    if (records.isNotEmpty) return records;
+    return [_EmptyHint(hidden ? kHelperHiddenHint : emptyHint)];
   }
 
   @override
   Widget build(BuildContext context) {
     final health = HealthScope.of(context);
-    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
     return ListenableBuilder(
       listenable: health,
       builder: (context, _) {
@@ -168,14 +165,16 @@ class MyHealthScreen extends StatelessWidget {
             onEnterPin: () => _promptUnlock(context, health),
           );
         }
+        final visible = VisibleHealth.of(context);
+        final hidden = visible.hidden;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             _DoctorFirstPrompt(
-              showCall: !hiding && health.providers.isNotEmpty,
-              onCall: health.providers.isEmpty
+              showCall: visible.providers.isNotEmpty,
+              onCall: visible.providers.isEmpty
                   ? null
-                  : () => _launch(phoneTelUri(health.providers.first.phone)),
+                  : () => _launch(phoneTelUri(visible.providers.first.phone)),
             ),
             const SizedBox(height: 12),
             _PrivacyBanner(
@@ -218,13 +217,14 @@ class MyHealthScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _SectionCard(
               title: 'Appointments',
-              onAdd: () => _openForm(context, const AppointmentFormScreen()),
-              children: _visibleRecords(
-                hiding: hiding,
-                isEmpty: health.appointments.isEmpty,
+              onAdd: hidden
+                  ? null
+                  : () => _openForm(context, const AppointmentFormScreen()),
+              children: _recordsOrHint(
+                hidden: hidden,
                 emptyHint: 'No appointments yet. Tap Add.',
                 records: [
-                  for (final appt in health.appointments)
+                  for (final appt in visible.appointments)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(appt.provider),
@@ -250,13 +250,14 @@ class MyHealthScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Medications',
-              onAdd: () => _openForm(context, const MedicationFormScreen()),
-              children: _visibleRecords(
-                hiding: hiding,
-                isEmpty: health.medications.isEmpty,
+              onAdd: hidden
+                  ? null
+                  : () => _openForm(context, const MedicationFormScreen()),
+              children: _recordsOrHint(
+                hidden: hidden,
                 emptyHint: 'No medications yet. Tap Add.',
                 records: [
-                  for (final med in health.medications)
+                  for (final med in visible.medications)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(med.name),
@@ -279,13 +280,14 @@ class MyHealthScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Providers & Portals',
-              onAdd: () => _openForm(context, const ProviderFormScreen()),
-              children: _visibleRecords(
-                hiding: hiding,
-                isEmpty: health.providers.isEmpty,
+              onAdd: hidden
+                  ? null
+                  : () => _openForm(context, const ProviderFormScreen()),
+              children: _recordsOrHint(
+                hidden: hidden,
                 emptyHint: 'No providers yet. Tap Add.',
                 records: [
-                  for (final provider in health.providers)
+                  for (final provider in visible.providers)
                     _ProviderTile(
                       provider: provider,
                       onEdit: () => _openForm(
@@ -318,7 +320,9 @@ class MyHealthScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _SectionCard(
               title: 'Personal papers',
-              onAdd: () => _openForm(context, const DocumentFormScreen()),
+              onAdd: hidden
+                  ? null
+                  : () => _openForm(context, const DocumentFormScreen()),
               addButtonKey: const ValueKey('add-personal-paper'),
               children: [
                 const Text(
@@ -329,12 +333,11 @@ class MyHealthScreen extends StatelessWidget {
                   style: TextStyle(color: CwcColors.sub),
                 ),
                 const SizedBox(height: 8),
-                ..._visibleRecords(
-                  hiding: hiding,
-                  isEmpty: health.documents.isEmpty,
+                ..._recordsOrHint(
+                  hidden: hidden,
                   emptyHint: 'No personal papers yet. Tap Add.',
                   records: [
-                    for (final paper in health.documents)
+                    for (final paper in visible.documents)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(paper.title),
@@ -807,7 +810,9 @@ class _SectionCard extends StatelessWidget {
   });
 
   final String title;
-  final VoidCallback onAdd;
+
+  /// Null while Helper Mode hides details, so Add is not offered.
+  final VoidCallback? onAdd;
   final List<Widget> children;
   final Key? addButtonKey;
 
@@ -830,12 +835,13 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                TextButton.icon(
-                  key: addButtonKey,
-                  onPressed: onAdd,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add'),
-                ),
+                if (onAdd != null)
+                  TextButton.icon(
+                    key: addButtonKey,
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add'),
+                  ),
               ],
             ),
             ...children,

@@ -5,9 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../my_health/data/emergency_card.dart';
-import '../my_health/data/health_models.dart';
-import '../my_health/health_scope.dart';
-import '../settings/app_preferences.dart';
+import '../my_health/visible_health.dart';
 import 'help_now_actions.dart';
 import 'help_now_config.dart';
 
@@ -100,8 +98,7 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
       for (final action in actions)
         if (action.section == HelpNowSection.additional) action,
     ];
-    final health = HealthScope.maybeOf(context);
-    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
+    final visible = VisibleHealth.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -137,10 +134,8 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
             _EmergencyCardBlock(
               showCard: _showEmergencyCard,
               onChanged: _setShowCard,
-              detailsHidden: hiding,
-              preview: emergencyCardPreview(
-                health?.snapshot ?? const HealthSnapshot(),
-              ),
+              detailsHidden: visible.hidden,
+              preview: emergencyCardPreview(visible.snapshot),
             ),
           const SizedBox(height: 20),
           const _SectionLabel('Emergency'),
@@ -242,7 +237,7 @@ class _EmergencyCardBlock extends StatelessWidget {
               border: Border.all(color: CwcColors.line),
             ),
             child: Text(
-              detailsHidden ? 'Hidden while someone is helping you.' : preview,
+              detailsHidden ? kHelperHiddenHint : preview,
               style: const TextStyle(height: 1.4, fontSize: 18),
             ),
           ),

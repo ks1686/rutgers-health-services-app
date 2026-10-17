@@ -5,9 +5,9 @@ import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
-import '../settings/app_preferences.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
+import 'visible_health.dart';
 
 class WalletCardScreen extends StatelessWidget {
   const WalletCardScreen({super.key, this.launcher});
@@ -94,13 +94,14 @@ class WalletCardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final health = HealthScope.of(context);
-    final hiding = AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
     return ListenableBuilder(
       listenable: health,
       builder: (context, _) {
-        final meds = health.medications;
-        final providers = health.providers;
-        final wallet = health.wallet;
+        final visible = VisibleHealth.of(context);
+        final hiding = visible.hidden;
+        final meds = visible.medications;
+        final providers = visible.providers;
+        final wallet = visible.wallet;
         return Scaffold(
           appBar: AppBar(
             title: const Text('Wallet Card'),
@@ -141,7 +142,7 @@ class WalletCardScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         if (hiding)
                           const Text(
-                            'Hidden while someone is helping you. Your own information is still saved on this phone.',
+                            '$kHelperHiddenHint Your own information is still saved on this phone.',
                             style: TextStyle(fontSize: 18, height: 1.4),
                           )
                         else ...[
@@ -200,7 +201,7 @@ class WalletCardScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (!hiding && providers.isNotEmpty) ...[
+              if (providers.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 const Text(
                   'Quick call',

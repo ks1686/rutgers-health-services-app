@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
-import '../settings/app_preferences.dart';
 import 'data/health_models.dart';
 import 'data/reminder_plan.dart';
 import 'health_scope.dart';
 import 'reminder_pickers.dart';
+import 'visible_health.dart';
 
 /// Notification controls for reminders already saved in My Health.
 class NotificationSettingsScreen extends StatefulWidget {
@@ -128,10 +128,9 @@ class _NotificationSettingsScreenState
       body: ListenableBuilder(
         listenable: health,
         builder: (context, _) {
-          final hiding =
-              AppPreferencesScope.maybeOf(context)?.helperHiding ?? false;
-          final meds = health.medications;
-          final appointments = health.appointments;
+          final visible = VisibleHealth.of(context);
+          final meds = visible.medications;
+          final appointments = visible.appointments;
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
@@ -166,88 +165,78 @@ class _NotificationSettingsScreenState
                 'Medications',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              if (hiding)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Hidden while someone is helping you.'),
-                )
-              else if (meds.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Save a medication in My Health first.'),
+              if (meds.isEmpty)
+                _ListHint(
+                  visible.hidden
+                      ? kHelperHiddenHint
+                      : 'Save a medication in My Health first.',
                 ),
-              if (!hiding)
-                for (final med in meds) ...[
-                  SwitchListTile(
-                    key: ValueKey('reminder-med-${med.id}'),
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(med.name),
-                    subtitle: Text(med.schedule),
-                    value: med.remind,
-                    onChanged: (on) => _setMedication(med, on),
-                  ),
-                  if (med.remind)
-                    for (final minute in _minutes(med))
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(formatMinuteOfDay(minute)),
-                        trailing: IconButton(
-                          tooltip: 'Change time',
-                          onPressed: () => _changeMedicationTime(med, minute),
-                          icon: const Icon(Icons.schedule),
-                        ),
-                      ),
-                  if (med.remind)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => _addMedicationTime(med),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add another time'),
+              for (final med in meds) ...[
+                SwitchListTile(
+                  key: ValueKey('reminder-med-${med.id}'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(med.name),
+                  subtitle: Text(med.schedule),
+                  value: med.remind,
+                  onChanged: (on) => _setMedication(med, on),
+                ),
+                if (med.remind)
+                  for (final minute in _minutes(med))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(formatMinuteOfDay(minute)),
+                      trailing: IconButton(
+                        tooltip: 'Change time',
+                        onPressed: () => _changeMedicationTime(med, minute),
+                        icon: const Icon(Icons.schedule),
                       ),
                     ),
-                ],
+                if (med.remind)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _addMedicationTime(med),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add another time'),
+                    ),
+                  ),
+              ],
               const SizedBox(height: 8),
               Text(
                 'Appointments',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              if (hiding)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Hidden while someone is helping you.'),
-                )
-              else if (appointments.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('Save an appointment in My Health first.'),
+              if (appointments.isEmpty)
+                _ListHint(
+                  visible.hidden
+                      ? kHelperHiddenHint
+                      : 'Save an appointment in My Health first.',
                 ),
-              if (!hiding)
-                for (final appt in appointments) ...[
-                  SwitchListTile(
-                    key: ValueKey('reminder-appt-${appt.id}'),
+              for (final appt in appointments) ...[
+                SwitchListTile(
+                  key: ValueKey('reminder-appt-${appt.id}'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(appt.provider),
+                  subtitle: Text(appt.whenLabel),
+                  value: appt.remind,
+                  onChanged: (on) => _setAppointment(appt, on),
+                ),
+                if (appt.remind)
+                  ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(appt.provider),
-                    subtitle: Text(appt.whenLabel),
-                    value: appt.remind,
-                    onChanged: (on) => _setAppointment(appt, on),
-                  ),
-                  if (appt.remind)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        _appointmentFireLabel(appt) ?? 'Choose a reminder time',
-                      ),
-                      subtitle: const Text(
-                        'Change when the alert fires. The visit stays as saved.',
-                      ),
-                      trailing: IconButton(
-                        tooltip: 'Change reminder time',
-                        onPressed: () => _changeAppointmentTime(appt),
-                        icon: const Icon(Icons.schedule),
-                      ),
+                    title: Text(
+                      _appointmentFireLabel(appt) ?? 'Choose a reminder time',
                     ),
-                ],
+                    subtitle: const Text(
+                      'Change when the alert fires. The visit stays as saved.',
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Change reminder time',
+                      onPressed: () => _changeAppointmentTime(appt),
+                      icon: const Icon(Icons.schedule),
+                    ),
+                  ),
+              ],
             ],
           );
         },
@@ -260,5 +249,19 @@ class _NotificationSettingsScreenState
         appt.remindAt ?? appt.when ?? parseAppointmentWhen(appt.whenLabel);
     if (fire == null) return null;
     return formatAppointmentWhen(fire);
+  }
+}
+
+class _ListHint extends StatelessWidget {
+  const _ListHint(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(text),
+    );
   }
 }
