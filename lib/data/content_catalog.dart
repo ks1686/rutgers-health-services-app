@@ -6,9 +6,9 @@ import 'demo_learn.dart';
 
 const kLearnAssetPath = 'assets/content/learn.json';
 
-List<DemoLearnTopic>? _cachedLearnTopics;
+List<LearnTopic>? _cachedLearnTopics;
 
-List<DemoLearnTopic> parseLearnTopics(String json) {
+List<LearnTopic> parseLearnTopics(String json) {
   final decoded = jsonDecode(json);
   if (decoded is! List) {
     throw const FormatException('learn.json must be a list');
@@ -19,17 +19,24 @@ List<DemoLearnTopic> parseLearnTopics(String json) {
   ];
 }
 
-DemoLearnTopic _topicFromRow(Map row) {
-  return DemoLearnTopic(
-    title: row['title'] as String,
+LearnTopic _topicFromRow(Map row) {
+  return LearnTopic(
     iconLabel: row['iconLabel'] as String,
+    note: _articleFromRow(row),
+    articlesHeading: _optionalString(row['articlesHeading']),
+    articles: _articlesFrom(row['articles']),
+  );
+}
+
+/// A topic row and a nested article row share these fields.
+LearnArticle _articleFromRow(Map row) {
+  return LearnArticle(
+    title: row['title'] as String,
     summary: row['summary'] as String,
     body: row['body'] as String,
     source: row['source'] as String,
     linkLabel: _optionalString(row['linkLabel']),
     linkUrl: _optionalHttps(row['linkUrl']),
-    articlesHeading: _optionalString(row['articlesHeading']),
-    articles: _articlesFrom(row['articles']),
   );
 }
 
@@ -40,15 +47,7 @@ List<LearnArticle> _articlesFrom(Object? raw) {
   }
   return [
     for (final row in raw)
-      if (row is Map)
-        LearnArticle(
-          title: row['title'] as String,
-          summary: row['summary'] as String,
-          body: row['body'] as String,
-          source: row['source'] as String,
-          linkLabel: _optionalString(row['linkLabel']),
-          linkUrl: _optionalHttps(row['linkUrl']),
-        ),
+      if (row is Map) _articleFromRow(row),
   ];
 }
 
@@ -80,7 +79,7 @@ String? _optionalHttps(Object? raw) {
 ///
 /// Parsed topics are cached after the first successful [rootBundle] read so
 /// repeated pumps in widget tests do not re-enter a hanging asset load.
-Future<List<DemoLearnTopic>> loadLearnTopics({AssetBundle? bundle}) async {
+Future<List<LearnTopic>> loadLearnTopics({AssetBundle? bundle}) async {
   if (bundle != null) {
     final raw = await bundle.loadString(kLearnAssetPath);
     return parseLearnTopics(raw);

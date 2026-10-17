@@ -12,17 +12,17 @@ class LearnScreen extends StatefulWidget {
   const LearnScreen({super.key, this.topics, this.topicsLoader});
 
   /// Injected topics for tests. When null, loads [kLearnAssetPath].
-  final List<DemoLearnTopic>? topics;
+  final List<LearnTopic>? topics;
 
   /// Optional override for the asset loader (tests / future hosted JSON).
-  final Future<List<DemoLearnTopic>> Function()? topicsLoader;
+  final Future<List<LearnTopic>> Function()? topicsLoader;
 
   @override
   State<LearnScreen> createState() => _LearnScreenState();
 }
 
 class _LearnScreenState extends State<LearnScreen> {
-  late final Future<List<DemoLearnTopic>> _topicsFuture;
+  late final Future<List<LearnTopic>> _topicsFuture;
 
   @override
   void initState() {
@@ -30,9 +30,9 @@ class _LearnScreenState extends State<LearnScreen> {
     _topicsFuture = _startLoad();
   }
 
-  Future<List<DemoLearnTopic>> _startLoad() {
+  Future<List<LearnTopic>> _startLoad() {
     if (widget.topics != null) {
-      return Future<List<DemoLearnTopic>>.value(widget.topics!);
+      return Future<List<LearnTopic>>.value(widget.topics!);
     }
     if (widget.topicsLoader != null) {
       return widget.topicsLoader!();
@@ -65,7 +65,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<DemoLearnTopic>>(
+    return FutureBuilder<List<LearnTopic>>(
       future: _topicsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -127,7 +127,7 @@ class _LearnScreenState extends State<LearnScreen> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) => LearnArticleScreen(topic: topic),
+                              builder: (_) => LearnTopicScreen(topic: topic),
                             ),
                           );
                         },

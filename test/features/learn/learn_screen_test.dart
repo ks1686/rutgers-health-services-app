@@ -28,12 +28,14 @@ void main() {
         home: Scaffold(
           body: LearnScreen(
             topics: const [
-              DemoLearnTopic(
-                title: 'Physical Health',
+              LearnTopic(
                 iconLabel: 'body',
-                summary: 'Everyday care for your body.',
-                body: 'Check in with how you feel.',
-                source: 'CDC',
+                note: LearnArticle(
+                  title: 'Physical Health',
+                  summary: 'Everyday care for your body.',
+                  body: 'Check in with how you feel.',
+                  source: 'CDC',
+                ),
               ),
             ],
           ),
@@ -53,12 +55,14 @@ void main() {
         home: Scaffold(
           body: LearnScreen(
             topicsLoader: () async => const [
-              DemoLearnTopic(
-                title: 'Nutrition',
+              LearnTopic(
                 iconLabel: 'food',
-                summary: 'Simple ideas for eating well.',
-                body: 'Aim for regular meals when you can.',
-                source: 'USDA',
+                note: LearnArticle(
+                  title: 'Nutrition',
+                  summary: 'Simple ideas for eating well.',
+                  body: 'Aim for regular meals when you can.',
+                  source: 'USDA',
+                ),
               ),
             ],
           ),
@@ -127,5 +131,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('do not have to track'), findsOneWidget);
     expect(find.text('Read more on MedlinePlus'), findsOneWidget);
+  });
+
+  testWidgets('a nested note opens on its own page without the topic list', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildCwcTheme(),
+        home: Scaffold(
+          body: LearnScreen(
+            topics: const [
+              LearnTopic(
+                iconLabel: 'sleep',
+                note: LearnArticle(
+                  title: 'Sleep',
+                  summary: 'Rest helps your body and mood.',
+                  body: 'Try a regular bedtime.',
+                  source: 'CDC',
+                ),
+                articlesHeading: 'Sleep notes',
+                articles: [
+                  LearnArticle(
+                    title: 'Wind down',
+                    summary: 'A calm hour before bed.',
+                    body: 'Dim the lights and put the phone away.',
+                    source: 'NIH',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sleep notes'), findsOneWidget);
+    expect(find.text('Try a regular bedtime.'), findsOneWidget);
+
+    await tester.tap(find.text('Wind down'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dim the lights and put the phone away.'), findsOneWidget);
+    expect(find.text('From: NIH'), findsOneWidget);
+    expect(find.text('Sleep notes'), findsNothing);
   });
 }

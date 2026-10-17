@@ -14,7 +14,7 @@ void main() {
       final json = File('assets/content/learn.json').readAsStringSync();
       final topics = parseLearnTopics(json);
       expect(topics, hasLength(6));
-      expect(topics.first.source, isNotEmpty);
+      expect(topics.first.note.source, isNotEmpty);
       expect(topics.first.title, 'Physical Health');
       expect(topics.map((t) => t.title), [
         'Physical Health',
@@ -30,9 +30,9 @@ void main() {
       expect(topics.map((t) => t.title), isNot(contains('Stress management')));
 
       final physical = topics.firstWhere((t) => t.title == 'Physical Health');
-      expect(physical.body.toLowerCase(), isNot(contains('sleep')));
-      expect(physical.body, contains('My Health'));
-      expect(physical.body.toLowerCase(), contains('medicines'));
+      expect(physical.note.body.toLowerCase(), isNot(contains('sleep')));
+      expect(physical.note.body, contains('My Health'));
+      expect(physical.note.body.toLowerCase(), contains('medicines'));
       expect(physical.articlesHeading, isNull);
       expect(physical.articles.map((a) => a.title), [
         'A checkup when you feel okay',
