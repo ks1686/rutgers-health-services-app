@@ -1,12 +1,4 @@
-import '../../../links/phone_links.dart';
-
-/// External-link helpers for My Health call / text / portal (MYH-3).
-String healthDigitsOnly(String phone) => phoneDigitsOnly(phone);
-
-Uri healthTelUri(String phone) => phoneTelUri(phone);
-
-Uri healthSmsUri(String phone) => phoneSmsUri(phone);
-
+/// External-link helper for My Health portal link-outs (MYH-3).
 /// Returns an http(s) URI or null if the string is missing / unsafe for link-out.
 Uri? healthPortalUri(String? raw) {
   if (raw == null) return null;

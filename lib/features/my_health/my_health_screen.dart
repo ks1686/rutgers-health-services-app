@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../settings/app_preferences.dart';
@@ -174,7 +175,7 @@ class MyHealthScreen extends StatelessWidget {
               showCall: !hiding && health.providers.isNotEmpty,
               onCall: health.providers.isEmpty
                   ? null
-                  : () => _launch(healthTelUri(health.providers.first.phone)),
+                  : () => _launch(phoneTelUri(health.providers.first.phone)),
             ),
             const SizedBox(height: 12),
             _PrivacyBanner(
@@ -291,8 +292,8 @@ class MyHealthScreen extends StatelessWidget {
                         context,
                         ProviderFormScreen(existing: provider),
                       ),
-                      onCall: () => _launch(healthTelUri(provider.phone)),
-                      onText: () => _launch(healthSmsUri(provider.phone)),
+                      onCall: () => _launch(phoneTelUri(provider.phone)),
+                      onText: () => _launch(phoneSmsUri(provider.phone)),
                       onPortal: provider.portalUrl == null
                           ? null
                           : () {

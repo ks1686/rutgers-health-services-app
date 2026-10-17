@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
 import '../settings/app_preferences.dart';
-import 'data/health_launchers.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
 
@@ -213,7 +213,7 @@ class WalletCardScreen extends StatelessWidget {
                     trailing: IconButton(
                       tooltip: 'Call ${provider.name}',
                       icon: const Icon(Icons.phone_outlined),
-                      onPressed: () => _launch(healthTelUri(provider.phone)),
+                      onPressed: () => _launch(phoneTelUri(provider.phone)),
                     ),
                   ),
               ],

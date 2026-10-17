@@ -1,12 +1,4 @@
-import '../../../links/phone_links.dart';
-
-/// External-link helpers for live Nearby cards.
-String nearbyDigitsOnly(String phone) => phoneDigitsOnly(phone);
-
-Uri nearbyTelUri(String phone) => phoneTelUri(phone);
-
-Uri nearbySmsUri(String phone) => phoneSmsUri(phone);
-
+/// External-link helper for live Nearby cards.
 Uri nearbyDirectionsUri({
   required double lat,
   required double lng,

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../settings/app_preferences.dart';
 import 'data/nearby_config.dart';
@@ -549,11 +550,11 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       ),
       if (phone != null) ...[
         OutlinedButton(
-          onPressed: () => _open(nearbyTelUri(phone)),
+          onPressed: () => _open(phoneTelUri(phone)),
           child: const Text('Call'),
         ),
         OutlinedButton(
-          onPressed: () => _open(nearbySmsUri(phone)),
+          onPressed: () => _open(phoneSmsUri(phone)),
           child: const Text('Text'),
         ),
       ],

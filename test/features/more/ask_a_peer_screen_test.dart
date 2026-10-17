@@ -1,10 +1,10 @@
 import 'package:cwc_health_app/app.dart';
 import 'package:cwc_health_app/features/more/peer_contact.dart';
 import 'package:cwc_health_app/features/my_health/data/health_controller.dart';
-import 'package:cwc_health_app/features/my_health/data/health_launchers.dart';
 import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/features/settings/app_preferences.dart';
+import 'package:cwc_health_app/links/phone_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,7 +83,7 @@ void main() {
     expect(find.text('(732) 555-0100'), findsOneWidget);
     await tester.tap(find.text('Call'));
     await tester.pumpAndSettle();
-    expect(launched.single, healthTelUri('(732) 555-0100'));
+    expect(launched.single, phoneTelUri('(732) 555-0100'));
 
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
