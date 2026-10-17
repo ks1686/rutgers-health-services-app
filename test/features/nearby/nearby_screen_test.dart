@@ -19,6 +19,7 @@ import 'package:cwc_health_app/features/nearby/data/sources/osm_overpass_source.
 import 'package:cwc_health_app/features/nearby/nearby_screen.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_coverage_notice.dart';
 import 'package:cwc_health_app/features/nearby/widgets/nearby_live_disclaimer.dart';
+import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:cwc_health_app/theme/cwc_theme.dart';
 
 const _liveConfig = NearbyConfig(googlePlacesApiKey: '');
@@ -707,6 +708,58 @@ void main() {
       expect(second.queries.single.town, 'Camden');
       expect(find.text('Camden Pharmacy'), findsOneWidget);
       expect(second.nearDeviceCalls, 0);
+    });
+
+    testWidgets('a town saved under the prefs key is used with no scope', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({kRememberedTownPref: 'Hoboken'});
+      final repository = _TownFollowingRepository();
+      await pumpScreen(
+        tester,
+        NearbyScreen(config: _liveConfig, repository: repository),
+      );
+      expect(repository.queries.single.town, 'Hoboken');
+      expect(find.text('Hoboken ▾'), findsOneWidget);
+    });
+
+    testWidgets('picker and Settings share one remembered town', (
+      tester,
+    ) async {
+      final prefs = AppPreferences.fromStore(MemoryPreferenceStore());
+      final repository = _TownFollowingRepository();
+      await pumpScreen(
+        tester,
+        ListenableBuilder(
+          listenable: prefs,
+          builder: (context, _) => AppPreferencesScope(
+            preferences: prefs,
+            child: NearbyScreen(config: _liveConfig, repository: repository),
+          ),
+        ),
+      );
+      expect(repository.queries.single.town, 'New Brunswick');
+
+      await tester.tap(find.byKey(const ValueKey('nearby-town-chip')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-region-south')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('nearby-town-Camden')));
+      await tester.pumpAndSettle();
+
+      expect(prefs.rememberedTown, 'Camden');
+      expect(prefs.nearbyPlace.region.name, 'south');
+      expect(repository.queries.map((q) => q.town), [
+        'New Brunswick',
+        'Camden',
+      ]);
+
+      // A town typed in Settings that is not on the picker list.
+      await prefs.setRememberedTown('Frenchtown');
+      await tester.pumpAndSettle();
+      expect(repository.queries.last.town, 'Frenchtown');
+      expect(repository.queries, hasLength(3));
+      expect(find.text('Frenchtown Pharmacy'), findsOneWidget);
     });
   });
 

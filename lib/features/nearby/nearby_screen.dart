@@ -7,13 +7,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../settings/app_preferences.dart';
+import '../settings/shared_preferences_store.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
 import 'data/nearby_favorites.dart';
 import 'data/nearby_fetch_result.dart';
 import 'data/nearby_launchers.dart';
-import 'data/nearby_place_preference.dart';
 import 'data/nearby_query.dart';
 import 'data/nearby_repository.dart';
 import 'data/nearby_resource.dart';
@@ -36,7 +36,6 @@ class NearbyScreen extends StatelessWidget {
     this.repository,
     this.launcher,
     this.clock,
-    this.placePreference,
     this.favoriteStore,
   });
 
@@ -44,7 +43,6 @@ class NearbyScreen extends StatelessWidget {
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
-  final NearbyPlacePreferenceStore? placePreference;
   final NearbyFavoriteStore? favoriteStore;
 
   @override
@@ -54,19 +52,9 @@ class NearbyScreen extends StatelessWidget {
       repository: repository,
       launcher: launcher,
       clock: clock,
-      placePreference: placePreference,
       favoriteStore: favoriteStore,
     );
   }
-}
-
-Future<void> _publishRememberedTown(
-  BuildContext context,
-  NearbyPlacePreference picked,
-) async {
-  final prefs = AppPreferencesScope.maybeOf(context);
-  if (prefs == null || prefs.rememberedTown == picked.town) return;
-  await prefs.setRememberedTown(picked.town);
 }
 
 class _NearbyLiveView extends StatefulWidget {
@@ -75,7 +63,6 @@ class _NearbyLiveView extends StatefulWidget {
     this.repository,
     this.launcher,
     this.clock,
-    this.placePreference,
     this.favoriteStore,
   });
 
@@ -83,7 +70,6 @@ class _NearbyLiveView extends StatefulWidget {
   final NearbyRepository? repository;
   final NearbyLinkLauncher? launcher;
   final DateTime Function()? clock;
-  final NearbyPlacePreferenceStore? placePreference;
   final NearbyFavoriteStore? favoriteStore;
 
   @override
@@ -93,7 +79,13 @@ class _NearbyLiveView extends StatefulWidget {
 class _NearbyLiveViewState extends State<_NearbyLiveView> {
   NearbyQuery _query = const NearbyQuery();
   NearbyPlacePreference _place = NearbyPlacePreference.fallback;
-  NearbyPlacePreferenceStore? _placeStore;
+
+  /// The only owner of the remembered town. From [AppPreferencesScope] in the
+  /// app; a widget test that pumps this tab alone gets one read from the
+  /// phone's saved settings, which [_ownedPrefs] then disposes.
+  AppPreferences? _prefs;
+  AppPreferences? _ownedPrefs;
+  bool _started = false;
   NearbyFavoriteStore? _favoriteStore;
   Set<String> _favoriteIds = {};
 
@@ -135,27 +127,34 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final remembered = AppPreferencesScope.maybeOf(context)?.rememberedTown;
-    if (remembered == null) return;
-    final town = nearbyTownFromPreference(remembered);
-    if (town == _query.town && town == _place.town) return;
-    final listed = regionForTown(town);
-    _place = NearbyPlacePreference(region: listed ?? _place.region, town: town);
-    _query = NearbyQuery(town: town);
+    final scoped = AppPreferencesScope.maybeOf(context);
+    if (scoped != null) _prefs = scoped;
+    if (!_started) {
+      // Started here, not in initState, so the scope can be read first.
+      _started = true;
+      _pending = _start();
+      return;
+    }
+    _followRememberedPlace();
+  }
+
+  /// Settings (or another screen) changed the town while this tab was open.
+  void _followRememberedPlace() {
+    final place = _prefs?.nearbyPlace;
+    if (place == null) return;
+    if (place.town == _place.town && place.region == _place.region) return;
+    _place = place;
+    _query = NearbyQuery(town: place.town);
     if (_repositoryReady && !_deviceMode && !_reloadQueued) {
       _reload();
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _pending = _start();
-  }
-
   /// Remembered town is the lookup. Device location stays an optional shortcut.
   Future<NearbyFetchResult> _start() async {
-    await _loadPlace();
+    final prefs = _prefs ?? await _openOwnPrefs();
+    _place = prefs.nearbyPlace;
+    _query = NearbyQuery(town: _place.town);
     await _loadFavorites();
     final injected = widget.repository;
     if (injected != null) {
@@ -180,17 +179,12 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     setState(() => _favoriteIds = next);
   }
 
-  Future<void> _loadPlace() async {
-    final store = await nearbyPlacePreferenceStore(
-      injected: widget.placePreference,
-    );
-    final place = await store.read();
-    if (!mounted) return;
-    setState(() {
-      _placeStore = store;
-      _place = place;
-      _query = NearbyQuery(town: place.town);
-    });
+  Future<AppPreferences> _openOwnPrefs() async {
+    final shared = await SharedPreferences.getInstance();
+    final own = AppPreferences.fromStore(SharedPreferencesStore(shared));
+    _ownedPrefs = own;
+    _prefs = own;
+    return own;
   }
 
   /// One-shot device fix is available when a source is wired.
@@ -201,6 +195,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   @override
   void dispose() {
     _ownedClient?.close();
+    _ownedPrefs?.dispose();
     super.dispose();
   }
 
@@ -223,17 +218,16 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<void> _pickTown() async {
-    final store = _placeStore;
-    if (store == null || !_repositoryReady || _reloadQueued) return;
+    final prefs = _prefs;
+    if (prefs == null || !_repositoryReady || _reloadQueued) return;
     final picked = await showNearbyTownPicker(context, current: _place);
     if (picked == null || !mounted || _reloadQueued) return;
-    await store.save(picked);
-    if (!mounted || _reloadQueued) return;
+    // Local state first, so the save's notify finds nothing new to follow.
     _place = picked;
     _query = NearbyQuery(town: picked.town);
     _selectedResourceId = null;
     _beginLookup(_repository.fetch(_query), resetToTown: true);
-    await _publishRememberedTown(context, picked);
+    await prefs.setNearbyPlace(picked);
   }
 
   void _reload() {

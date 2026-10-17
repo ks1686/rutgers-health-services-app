@@ -21,9 +21,11 @@ void main() {
   });
 
   test('blank town preference keeps the Nearby default', () {
-    expect(nearbyTownFromPreference(null), 'New Brunswick');
-    expect(nearbyTownFromPreference('  '), 'New Brunswick');
-    expect(nearbyTownFromPreference('Trenton'), 'Trenton');
+    String townFor(Map<String, Object> saved) =>
+        AppPreferences(saved).nearbyPlace.town;
+    expect(townFor({}), 'New Brunswick');
+    expect(townFor({kRememberedTownPref: '  '}), 'New Brunswick');
+    expect(townFor({kRememberedTownPref: 'Trenton'}), 'Trenton');
   });
 
   test('how-to steps are bundled and videos stay within 90 seconds', () {
