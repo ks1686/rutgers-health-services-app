@@ -263,8 +263,7 @@ class _PeerContactFormState extends State<_PeerContactForm> {
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               labelText: 'How you reach them',
-              helperText:
-                  'Text, in person, or another way. Optional if you add a phone.',
+              helperText: 'Text, in person, or another way. Optional if you add a phone.',
             ),
           ),
           if (_error != null) ...[

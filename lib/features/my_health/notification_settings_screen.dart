@@ -67,9 +67,8 @@ class _NotificationSettingsScreenState
         if (existing != minute) existing,
       picked,
     ]);
-    await HealthScope.of(
-      context,
-    ).upsertMedication(med.copyWith(remind: true, remindMinutes: next));
+    await HealthScope.of(context)
+        .upsertMedication(med.copyWith(remind: true, remindMinutes: next));
   }
 
   Future<void> _addMedicationTime(HealthMedication med) async {
@@ -112,9 +111,8 @@ class _NotificationSettingsScreenState
         DateTime.now().add(const Duration(hours: 1));
     final picked = await pickLocalDateTime(context, initial: initial);
     if (picked == null || !mounted) return;
-    await HealthScope.of(
-      context,
-    ).upsertAppointment(appt.copyWith(remind: true, remindAt: picked));
+    await HealthScope.of(context)
+        .upsertAppointment(appt.copyWith(remind: true, remindAt: picked));
   }
 
   @override

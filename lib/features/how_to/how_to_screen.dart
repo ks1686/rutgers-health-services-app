@@ -217,8 +217,7 @@ class _VideoBlockState extends State<_VideoBlock> {
       if (result.saved) {
         _status = 'Video saved on this phone for offline playback.';
       } else if (result.needsWifi) {
-        _status =
-            'Connect to Wi-Fi to download this video. It is not downloaded on mobile data.';
+        _status = 'Connect to Wi-Fi to download this video. It is not downloaded on mobile data.';
       } else if (result.rejectedBecauseTooLong) {
         _status = 'That video is longer than 90 seconds, so it was not saved.';
       } else {

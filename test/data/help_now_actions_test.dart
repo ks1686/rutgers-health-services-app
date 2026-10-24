@@ -30,9 +30,8 @@ void main() {
   });
 
   test('Poison Control copy says when to use it vs 911', () {
-    final poison = helpNowActions(
-      showUnconfirmedRows: false,
-    ).singleWhere((a) => a.label == 'Poison Control');
+    final poison = helpNowActions(showUnconfirmedRows: false)
+        .singleWhere((a) => a.label == 'Poison Control');
     expect(poison.detail.toLowerCase(), contains('swallowed'));
     expect(poison.detail.toLowerCase(), contains('911'));
   });
@@ -125,9 +124,8 @@ void main() {
     });
 
     test('the Android manifest does not request CALL_PHONE', () {
-      final manifest = File(
-        'android/app/src/main/AndroidManifest.xml',
-      ).readAsStringSync();
+      final manifest = File('android/app/src/main/AndroidManifest.xml')
+          .readAsStringSync();
       expect(
         manifest,
         isNot(contains('android.permission.CALL_PHONE')),
@@ -145,8 +143,7 @@ void main() {
           'android:name="android.permission.USE_FINGERPRINT"\n'
           '        tools:node="remove"',
         ),
-        reason:
-            'androidx.biometric merges the legacy permission. The app removes it.',
+        reason: 'androidx.biometric merges the legacy permission. The app removes it.',
       );
     });
 
