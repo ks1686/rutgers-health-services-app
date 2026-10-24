@@ -40,9 +40,8 @@ These close the GitHub tracker. They do not change the feature spec’s version.
 
 **Tracker (#22, #43).** Priority 1 children #16–#21 and #23–#25 are merged. The P2 issues and the closed P3 code issues are merged. Nothing in that list is still an open engineering task.
 
-**Dependency pull requests.** Do not merge them on the current CI pin.
+**Dependency pull requests.** Do not merge this one.
 
-- `google_maps_flutter` 2.18.2 needs Dart `^3.13`. CI is Flutter 3.44.7 (Dart 3.12). The pin stays `^2.18.1`.
 - `geolocator` 14.1.1 is not merged. That release declares a foreground location service. This app uses one-shot coarse location only. The pin stays `^14.0.3`.
 
 ## Still outside this build

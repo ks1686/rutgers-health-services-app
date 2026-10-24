@@ -38,7 +38,7 @@ flutter build apk --debug     # needs Android SDK
 flutter build apk --release   # unsigned; needs Android SDK
 ```
 
-Flutter pin: **3.44.7** (stable).
+Flutter pin: **3.47.8** (stable).
 
 ### Not in CI yet (follow-on)
 

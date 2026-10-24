@@ -44,7 +44,7 @@ android {
         applicationId = "org.rutgers.cwc.cwc_health_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // local_auth needs Android SDK 24+. Flutter 3.44 already defaults to 24.
+        // local_auth needs Android SDK 24+. Flutter 3.47 already defaults to 24.
         minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

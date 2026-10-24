@@ -61,7 +61,7 @@ if [ "$skip_format" -eq 1 ]; then
   printf '\n\033[1m[format] skipped by flag\033[0m\n'
 else
   run_step "Check Dart formatting"
-  # CI pins Flutter 3.44.7. A newer local SDK may reformat files CI considers
+  # CI pins Flutter 3.47.8. A newer local SDK may reformat files CI considers
   # correct (see commit 398694a). If only that shows up, re-run with --skip-format
   # and let CI be the judge.
   dart format --output=none --set-exit-if-changed .

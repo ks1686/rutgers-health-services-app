@@ -43,9 +43,8 @@ class _TownPickerSheetState extends State<_TownPickerSheet> {
                 region: region,
                 onBack: () => setState(() => _region = null),
                 onPick: (town) {
-                  Navigator.of(
-                    context,
-                  ).pop(NearbyPlacePreference(region: region, town: town));
+                  Navigator.of(context)
+                      .pop(NearbyPlacePreference(region: region, town: town));
                 },
               ),
       ),
