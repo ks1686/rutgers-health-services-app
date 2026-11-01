@@ -5,6 +5,7 @@ import 'health_models.dart';
 import 'health_store.dart';
 import 'pin_hasher.dart';
 import 'reminder_scheduler.dart';
+import 'secure_health_store.dart';
 
 /// What happened when a PIN was checked.
 enum PinCheck {
@@ -50,7 +51,13 @@ class HealthController extends ChangeNotifier {
   bool _biometricAvailable = false;
   bool _suppressReminders = false;
   bool _storageUnavailable = false;
+  bool _recordUnreadable = false;
   String? _error;
+
+  /// PIN checks run one at a time, start to finish, so tries made at the
+  /// same time cannot all pass the lockout check before any miss is saved.
+  Future<void> _pinQueue = Future<void>.value();
+  int _pinChecksRunning = 0;
 
   /// Saves run one at a time so a quick second change builds on the first.
   Future<void> _saveQueue = Future<void>.value();
@@ -67,6 +74,13 @@ class HealthController extends ChangeNotifier {
   /// shows a notice and refuses to save, so an empty screen never replaces
   /// what is already on the phone. Help Now, Nearby, and Learn still work.
   bool get storageUnavailable => _storageUnavailable;
+
+  /// True when the saved record is there but this build cannot read it.
+  /// Nothing is shown and nothing is written until Erase starts over.
+  bool get recordUnreadable => _recordUnreadable;
+
+  /// True while a PIN is being checked. The PIN button waits for it.
+  bool get pinCheckBusy => _pinChecksRunning > 0;
 
   /// Files share one encrypted record, so their combined size is capped.
   /// About 3 MB of base64 text, which is roughly 2.25 MB of files.
@@ -91,10 +105,16 @@ class HealthController extends ChangeNotifier {
   Duration get pinLockoutRemaining {
     final until = _snapshot.pinLockedUntil;
     if (until == null) return Duration.zero;
-    final left = until.difference(_clock());
+    final now = _clock();
+    final left = until.difference(now);
     if (left <= Duration.zero) return Duration.zero;
-    // A phone clock set backward must not stretch the wait past the cap.
-    return left > maxPinLockout ? maxPinLockout : left;
+    if (left > maxPinLockout) {
+      // The phone clock was set backward. Move the deadline in to the cap so
+      // the wait really ends then, instead of showing 15 minutes forever.
+      _snapshot = _snapshot.copyWith(pinLockedUntil: now.add(maxPinLockout));
+      return maxPinLockout;
+    }
+    return left;
   }
 
   /// Wait after the [failures]th wrong try in a row, or zero if none.
@@ -127,6 +147,7 @@ class HealthController extends ChangeNotifier {
     } catch (e) {
       _error = 'Could not load My Health.';
       _storageUnavailable = true;
+      _recordUnreadable = e is UnreadableHealthRecord;
       _ready = true;
     }
     notifyListeners();
@@ -346,39 +367,73 @@ class HealthController extends ChangeNotifier {
   /// The count and the wait are saved, so closing the app does not reset
   /// them. A PIN saved by an older build is replaced with a PBKDF2 one the
   /// first time it matches.
-  Future<PinCheck> tryUnlock(String pin) async {
+  Future<PinCheck> tryUnlock(String pin) {
+    _pinChecksRunning++;
+    notifyListeners();
+    final result = _pinQueue.then((_) => _checkPin(pin));
+    _pinQueue = result.then<void>((_) {}, onError: (Object _) {});
+    return result.whenComplete(() {
+      _pinChecksRunning--;
+      notifyListeners();
+    });
+  }
+
+  Future<PinCheck> _checkPin(String pin) async {
     if (!_snapshot.hasPin) {
       _unlocked = true;
       notifyListeners();
       return PinCheck.unlocked;
     }
+    if (_unlocked) return PinCheck.unlocked;
     if (pinLockoutRemaining > Duration.zero) return PinCheck.lockedOut;
     final stored = _snapshot.pinHash!;
     final ok = await _pinHasher.verify(pin, stored);
     if (!ok) {
-      await _persist((current) {
+      HealthSnapshot countMiss(HealthSnapshot current) {
         final failures = current.pinFailures + 1;
         final wait = lockoutAfter(failures);
         return current.copyWith(
           pinFailures: failures,
           pinLockedUntil: wait > Duration.zero ? _clock().add(wait) : null,
         );
-      });
+      }
+
+      final saved = await _persist(countMiss);
+      if (!saved) {
+        // Fail closed. The miss counts for this session, and since it could
+        // not be saved, every miss also costs at least the first wait.
+        final next = countMiss(_snapshot);
+        final floor = _clock().add(firstPinLockout);
+        final until = next.pinLockedUntil;
+        _snapshot = next.copyWith(
+          pinLockedUntil: until == null || until.isBefore(floor)
+              ? floor
+              : until,
+        );
+      }
       notifyListeners();
       return PinCheck.wrong;
     }
     final upgraded = _pinHasher.needsUpgrade(stored)
         ? await _pinHasher.hash(pin)
         : null;
-    if (upgraded != null || _snapshot.pinFailures > 0) {
+    if (upgraded != null ||
+        _snapshot.pinFailures > 0 ||
+        _snapshot.pinLockedUntil != null) {
       // If this save fails the old hash still works, so unlock anyway.
-      await _persist(
+      final saved = await _persist(
         (current) => current.copyWith(
           pinHash: current.pinHash == stored ? upgraded : null,
           pinFailures: 0,
           clearPinLockedUntil: true,
         ),
       );
+      if (!saved) {
+        _snapshot = _snapshot.copyWith(
+          pinFailures: 0,
+          clearPinLockedUntil: true,
+        );
+      }
     }
     _unlocked = true;
     notifyListeners();
@@ -458,6 +513,10 @@ class HealthController extends ChangeNotifier {
     _saveQueue = erased.then<void>((_) {});
     if (!await erased) return false;
     _snapshot = const HealthSnapshot(initialized: true);
+    // A record that could not be read is gone now, so My Health starts over.
+    _storageUnavailable = false;
+    _recordUnreadable = false;
+    _error = null;
     _unlocked = true;
     notifyListeners();
     await _syncReminders();

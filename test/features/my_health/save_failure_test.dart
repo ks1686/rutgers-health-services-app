@@ -103,7 +103,7 @@ void main() {
   });
 
   group('H2 decode', () {
-    test('a wrongly shaped saved record does not throw', () async {
+    test('a wrongly shaped saved record is kept, not replaced', () async {
       final secure = MemorySecureStringStore();
       await secure.write(
         SecureHealthStore.dataKey,
@@ -115,8 +115,9 @@ void main() {
         }),
       );
       final store = SecureHealthStore(secure);
-      final snap = await store.read();
-      expect(snap.appointments, isEmpty);
+      // N2: reading it fails loudly so the controller shows My Health as
+      // unavailable instead of an empty record with no PIN.
+      await expectLater(store.read(), throwsA(isA<UnreadableHealthRecord>()));
       // The unreadable text is kept aside, not thrown away.
       expect(await secure.read(SecureHealthStore.unreadableKey), isNotNull);
       await store.erase();

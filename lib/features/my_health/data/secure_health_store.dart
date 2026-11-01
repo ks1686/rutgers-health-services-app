@@ -16,6 +16,16 @@ HealthSnapshot? decodeHealthSnapshot(String raw) {
   }
 }
 
+/// Thrown by [SecureHealthStore.read] when a saved record exists but this
+/// build cannot read it. The controller then treats My Health as
+/// unavailable: it keeps the PIN wall up and never writes over the record.
+class UnreadableHealthRecord implements Exception {
+  const UnreadableHealthRecord();
+
+  @override
+  String toString() => 'The saved My Health record could not be read.';
+}
+
 /// Encrypted-at-rest My Health snapshot (PRIV-4) via [SecureStringStore].
 class SecureHealthStore implements HealthStore {
   SecureHealthStore(this._secure);
@@ -24,9 +34,8 @@ class SecureHealthStore implements HealthStore {
 
   static const dataKey = 'health.v1.snapshot';
 
-  /// A saved record this build could not read is copied here before the
-  /// main key is reused, so a bad update never silently destroys it.
-  /// Erase removes it too.
+  /// The first saved record this build could not read is copied here. A
+  /// later bad read never replaces it. Erase removes it.
   static const unreadableKey = 'health.v1.snapshot.unreadable';
 
   @override
@@ -35,8 +44,11 @@ class SecureHealthStore implements HealthStore {
     if (raw == null || raw.isEmpty) return const HealthSnapshot();
     final snapshot = decodeHealthSnapshot(raw);
     if (snapshot == null) {
-      await _secure.write(unreadableKey, raw);
-      return const HealthSnapshot();
+      final kept = await _secure.read(unreadableKey);
+      if (kept == null || kept.isEmpty) {
+        await _secure.write(unreadableKey, raw);
+      }
+      throw const UnreadableHealthRecord();
     }
     return snapshot;
   }
@@ -48,7 +60,9 @@ class SecureHealthStore implements HealthStore {
 
   @override
   Future<void> erase() async {
-    await write(const HealthSnapshot(initialized: true));
+    // Backup first. If that fails the live record is still untouched, so
+    // the controller never keeps records on screen that were already wiped.
     await _secure.delete(unreadableKey);
+    await write(const HealthSnapshot(initialized: true));
   }
 }

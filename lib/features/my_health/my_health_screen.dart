@@ -82,6 +82,7 @@ class MyHealthScreen extends StatelessWidget {
     HealthController health,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
+    if (health.pinCheckBusy) return;
     if (health.pinLockoutRemaining > Duration.zero) {
       _showPinWait(messenger, health.pinLockoutRemaining);
       return;
@@ -196,7 +197,7 @@ class MyHealthScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (health.storageUnavailable) {
-          return const _StorageUnavailableView();
+          return _StorageUnavailableView(unreadable: health.recordUnreadable);
         }
         if (!health.isUnlocked) {
           return _PinLockView(
@@ -498,13 +499,16 @@ class _DoctorFirstPrompt extends StatelessWidget {
 /// H1. Secure storage would not open. Nothing is shown or saved, so the
 /// record already on the phone is never replaced by an empty one.
 class _StorageUnavailableView extends StatelessWidget {
-  const _StorageUnavailableView();
+  const _StorageUnavailableView({required this.unreadable});
+
+  /// The record is there but this version of the app cannot read it.
+  final bool unreadable;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(24),
-      children: const [
+      children: [
         Icon(Icons.lock_clock_outlined, size: 48, color: CwcColors.sub),
         SizedBox(height: 16),
         Text(
@@ -515,10 +519,22 @@ class _StorageUnavailableView extends StatelessWidget {
         ),
         SizedBox(height: 8),
         Text(
-          'Nothing was changed or deleted. Help Now, Nearby, and Learn still '
-          'work. Close the app all the way and open it again to try once more.',
+          unreadable
+              ? 'This version of the app cannot read what is saved. Nothing '
+                    'was changed or deleted, and your PIN still guards it. '
+                    'Help Now, Nearby, and Learn still work. Updating the '
+                    'app may fix this. To start over instead, use Erase My '
+                    'Information in More.'
+              : 'Nothing was changed or deleted. Help Now, Nearby, and Learn '
+                    'still work. Close the app all the way and open it again '
+                    'to try once more.',
+          key: const ValueKey('my-health-storage-detail'),
           textAlign: TextAlign.center,
-          style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.4),
+          style: const TextStyle(
+            color: CwcColors.sub,
+            fontSize: 18,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -612,7 +628,9 @@ class _PinLockViewState extends State<_PinLockView> {
             const SizedBox(height: 12),
           ],
           FilledButton(
-            onPressed: widget.onEnterPin,
+            key: const ValueKey('enter-pin'),
+            // N3: one PIN check at a time. The button waits for the last one.
+            onPressed: widget.health.pinCheckBusy ? null : widget.onEnterPin,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
             ),
