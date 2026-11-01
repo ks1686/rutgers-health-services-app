@@ -74,7 +74,7 @@ class NearbyRepository {
       area = await geocoder.geocode(query);
       await cache?.writePoint(query, area);
     } catch (e) {
-      debugPrint('Nearby geocode failed: $e');
+      if (kDebugMode) debugPrint('Nearby geocode failed: $e');
       final cachedPoint = await cache?.readPoint(query);
       if (cachedPoint == null) {
         return _cachedOr(query, kNearbyMemberLookupFailed);
@@ -112,7 +112,7 @@ class NearbyRepository {
         ),
       );
     } catch (e) {
-      debugPrint('Nearby Overpass failed: $e');
+      if (kDebugMode) debugPrint('Nearby Overpass failed: $e');
       return _cachedOr(query, kNearbyMemberLoadFailed);
     }
   }
@@ -148,7 +148,9 @@ class NearbyRepository {
       case DeviceLocationOk(:final point):
         origin = point;
       case DeviceLocationSoftFail(:final reason):
-        debugPrint('Nearby device location failed: ${reason.name}');
+        if (kDebugMode) {
+          debugPrint('Nearby device location failed: ${reason.name}');
+        }
         // Every soft-fail lands the member back on the town lookup, with a
         // plain-language reason attached (rendered as an info line).
         switch (reason) {
@@ -194,7 +196,7 @@ class NearbyRepository {
         origin: origin,
       );
     } catch (e) {
-      debugPrint('Nearby Overpass failed (device origin): $e');
+      if (kDebugMode) debugPrint('Nearby Overpass failed (device origin): $e');
       // Same honest fallback as above — never show a device-based list that
       // is actually the saved town copy without saying so.
       return _townFallback(query, nearbyLocationUnavailableMessage(query.town));
