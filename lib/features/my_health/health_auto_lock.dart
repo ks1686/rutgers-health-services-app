@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'data/health_controller.dart';
+import 'health_routes.dart';
 
 /// Locks My Health again after the app has been in the background (H5).
 ///
@@ -12,15 +13,17 @@ import 'data/health_controller.dart';
 /// on return as well as with a timer, because a phone can pause timers for
 /// an app in the background.
 ///
-/// Locking also closes every screen and dialog above the tabs, such as a
+/// Locking also closes the My Health screens and their dialogs, such as a
 /// half-filled form or the Wallet Card, so nothing saved stays visible past
-/// the PIN wall. Anything typed into an open form and not saved is lost.
+/// the PIN wall. Help Now and other screens stay open, so a person back from
+/// a long crisis call is still on Help Now. Anything typed into an open My
+/// Health form and not saved is lost.
 class HealthAutoLock extends StatefulWidget {
   const HealthAutoLock({
     super.key,
     required this.controller,
     required this.child,
-    this.navigatorKey,
+    this.routes,
     this.grace = defaultGrace,
     this.clock = DateTime.now,
   });
@@ -30,8 +33,8 @@ class HealthAutoLock extends StatefulWidget {
   final HealthController controller;
   final Widget child;
 
-  /// The app's root navigator. Routes above the first one are closed on lock.
-  final GlobalKey<NavigatorState>? navigatorKey;
+  /// The app's route stack. Its My Health routes are closed on lock.
+  final HealthRouteObserver? routes;
   final Duration grace;
   final DateTime Function() clock;
 
@@ -78,7 +81,7 @@ class _HealthAutoLockState extends State<HealthAutoLock>
     final controller = widget.controller;
     if (!controller.hasPin) return;
     controller.lock();
-    widget.navigatorKey?.currentState?.popUntil((route) => route.isFirst);
+    widget.routes?.closeHealthRoutes();
   }
 
   @override

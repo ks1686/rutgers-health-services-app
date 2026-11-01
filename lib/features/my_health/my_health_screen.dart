@@ -12,6 +12,7 @@ import 'data/health_launchers.dart';
 import 'data/health_models.dart';
 import 'document_form_screen.dart';
 import 'health_scope.dart';
+import 'health_routes.dart';
 import 'medication_form_screen.dart';
 import 'provider_form_screen.dart';
 import 'save_feedback.dart';
@@ -30,8 +31,12 @@ class MyHealthScreen extends StatelessWidget {
   }
 
   Future<void> _openForm(BuildContext context, Widget page) {
-    return Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => page));
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: myHealthRoute('form'),
+        builder: (_) => page,
+      ),
+    );
   }
 
   Future<void> _promptSetPin(
@@ -138,6 +143,7 @@ class MyHealthScreen extends StatelessWidget {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
+      routeSettings: myHealthRoute('pin'),
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Column(
@@ -408,6 +414,7 @@ class MyHealthScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
+                    settings: myHealthRoute('wallet'),
                     builder: (_) => WalletCardScreen(launcher: launcher),
                   ),
                 );

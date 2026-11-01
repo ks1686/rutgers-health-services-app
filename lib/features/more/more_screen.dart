@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
+import '../my_health/health_routes.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
 import '../nearby/data/nearby_favorites.dart';
@@ -162,6 +163,7 @@ class MoreScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
+                      settings: myHealthRoute('reminders'),
                       builder: (_) => const NotificationSettingsScreen(),
                     ),
                   );

@@ -6,6 +6,7 @@ import 'features/more/more_screen.dart';
 import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
 import 'features/my_health/health_auto_lock.dart';
+import 'features/my_health/health_routes.dart';
 import 'features/nearby/data/nearby_favorites.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store.dart';
@@ -58,7 +59,7 @@ class CwcApp extends StatefulWidget {
 }
 
 class _CwcAppState extends State<CwcApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
+  final _healthRoutes = HealthRouteObserver();
   HealthController? _owned;
   HealthController? _health;
   AppPreferences? _prefs;
@@ -153,7 +154,7 @@ class _CwcAppState extends State<CwcApp> {
       );
     }
     return MaterialApp(
-      navigatorKey: _navigatorKey,
+      navigatorObservers: [_healthRoutes],
       title: 'CWC Health App',
       debugShowCheckedModeBanner: false,
       theme: buildCwcTheme(),
@@ -172,7 +173,7 @@ class _CwcAppState extends State<CwcApp> {
                   controller: _health!,
                   child: HealthAutoLock(
                     controller: _health!,
-                    navigatorKey: _navigatorKey,
+                    routes: _healthRoutes,
                     child: MediaQuery(
                       data: media.copyWith(
                         textScaler: combineTextScaler(
