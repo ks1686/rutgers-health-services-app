@@ -6,6 +6,7 @@ import '../how_to/how_to_screen.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
 import '../nearby/data/nearby_favorites.dart';
+import '../nearby/data/nearby_cache.dart';
 import '../settings/app_preferences.dart';
 import '../settings/local_data_registry.dart';
 import '../settings/settings_screen.dart';
@@ -79,6 +80,8 @@ class MoreScreen extends StatelessWidget {
       );
       return;
     }
+    // Lookups already running must not save their town after this.
+    NearbyEraseEpoch.bump();
     var complete = await health.eraseAll();
     try {
       // M1: one list of every key, so a new one cannot be missed here.

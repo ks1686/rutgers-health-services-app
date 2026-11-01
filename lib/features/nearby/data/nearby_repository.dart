@@ -68,11 +68,16 @@ class NearbyRepository {
 
   Future<NearbyFetchResult> fetch(NearbyQuery query) async {
     final when = _clock();
+    // Erase may run while this lookup waits on the network. Saving after it
+    // would bring the erased town back, so compare before every write.
+    final epoch = NearbyEraseEpoch.value;
 
     GeoPoint area;
     try {
       area = await geocoder.geocode(query);
-      await cache?.writePoint(query, area);
+      if (NearbyEraseEpoch.value == epoch) {
+        await cache?.writePoint(query, area);
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('Nearby geocode failed: $e');
       final cachedPoint = await cache?.readPoint(query);
@@ -86,6 +91,7 @@ class NearbyRepository {
     if (googleRows != null && googleRows.isNotEmpty) {
       return _store(
         query,
+        epoch,
         NearbyFetchResult(
           resources: googleRows,
           status: NearbySourceStatus.google,
@@ -101,6 +107,7 @@ class NearbyRepository {
       );
       return await _store(
         query,
+        epoch,
         NearbyFetchResult(
           resources: osmRows,
           status: NearbySourceStatus.osm,
@@ -275,9 +282,10 @@ class NearbyRepository {
 
   Future<NearbyFetchResult> _store(
     NearbyQuery query,
+    int epoch,
     NearbyFetchResult result,
   ) async {
-    if (result.resources.isNotEmpty) {
+    if (result.resources.isNotEmpty && NearbyEraseEpoch.value == epoch) {
       await cache?.write(query, result);
     }
     return result;

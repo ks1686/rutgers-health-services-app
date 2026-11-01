@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
@@ -37,6 +39,18 @@ class _FakeGeocode implements NominatimGeocode {
     calls++;
     if (error != null) throw error!;
     return result!;
+  }
+}
+
+class _GatedGeocode extends _FakeGeocode {
+  _GatedGeocode(GeoPoint result) : super(result: result);
+
+  final gate = Completer<void>();
+
+  @override
+  Future<GeoPoint> geocode(NearbyQuery query) async {
+    await gate.future;
+    return super.geocode(query);
   }
 }
 
@@ -599,6 +613,30 @@ void main() {
       expect(result.resources, isEmpty);
     },
   );
+
+  test('a lookup started before Erase saves nothing after it', () async {
+    final cache = InMemoryNearbyCache();
+    final geocode = _GatedGeocode(area);
+    final repo = build(
+      geocode: geocode,
+      google: _FakeGoogle(
+        GooglePlacesOk([
+          _resource(id: 'g1', name: 'Google Pharmacy', source: 'google'),
+        ]),
+      ),
+      overpass: _FakeOverpass(result: const []),
+      cache: cache,
+    );
+
+    final pending = repo.fetch(query);
+    NearbyEraseEpoch.bump();
+    geocode.gate.complete();
+    final result = await pending;
+
+    expect(result.resources, hasLength(1), reason: 'the screen still shows it');
+    expect(await cache.read(query), isNull);
+    expect(await cache.readPoint(query), isNull);
+  });
 }
 
 /// Minimal scripted device-location source for repository tests.

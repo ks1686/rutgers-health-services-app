@@ -16,6 +16,20 @@ abstract class NearbyCache {
   Future<void> writePoint(NearbyQuery query, GeoPoint point);
 }
 
+/// Counts Erase my information runs in this process. A lookup that started
+/// before an erase must not save its town point or results afterward, or the
+/// erased data would come back after Erase said it was gone.
+class NearbyEraseEpoch {
+  NearbyEraseEpoch._();
+
+  static int _value = 0;
+
+  static int get value => _value;
+
+  /// Call before removing saved keys, so lookups already running stop saving.
+  static void bump() => _value++;
+}
+
 /// Shared cache key. Prefs and the in-memory cache must stay on the same shape.
 String nearbyCacheKey(NearbyQuery query) =>
     '${query.town.trim().toLowerCase()}|${query.stateCode.trim().toUpperCase()}';
