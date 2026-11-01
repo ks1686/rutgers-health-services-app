@@ -81,21 +81,52 @@ class MyHealthScreen extends StatelessWidget {
     BuildContext context,
     HealthController health,
   ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (health.pinLockoutRemaining > Duration.zero) {
+      _showPinWait(messenger, health.pinLockoutRemaining);
+      return;
+    }
     final pin = await _askPin(
       context,
       title: 'Enter your PIN',
       message: 'My Health is locked on this phone.',
     );
     if (pin == null || !context.mounted) return;
-    final ok = await health.unlock(pin);
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('That PIN did not match.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    final result = await health.tryUnlock(pin);
+    if (!context.mounted) return;
+    messenger.hideCurrentSnackBar();
+    switch (result) {
+      case PinCheck.unlocked:
+        break;
+      case PinCheck.wrong:
+        final wait = health.pinLockoutRemaining;
+        if (wait > Duration.zero) {
+          _showPinWait(messenger, wait);
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('That PIN did not match.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      case PinCheck.lockedOut:
+        _showPinWait(messenger, health.pinLockoutRemaining);
     }
+  }
+
+  void _showPinWait(ScaffoldMessengerState messenger, Duration wait) {
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('pin-wait'),
+        content: Text(
+          'Too many tries. Try your PIN again in ${describePinWait(wait)}. '
+          'Help Now still works.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<String?> _askPin(
@@ -899,4 +930,12 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Plain wording for a PIN wait, rounded up so it never reads as zero.
+String describePinWait(Duration wait) {
+  final seconds = (wait.inMilliseconds / 1000).ceil();
+  if (seconds < 60) return seconds == 1 ? '1 second' : '$seconds seconds';
+  final minutes = (seconds / 60).ceil();
+  return minutes == 1 ? '1 minute' : '$minutes minutes';
 }

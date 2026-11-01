@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/more/more_screen.dart';
 import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
+import 'features/my_health/health_auto_lock.dart';
 import 'features/nearby/data/nearby_favorites.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store.dart';
@@ -167,14 +168,17 @@ class _CwcAppState extends State<CwcApp> {
                 store: _favorites!,
                 child: HealthScope(
                   controller: _health!,
-                  child: MediaQuery(
-                    data: media.copyWith(
-                      textScaler: combineTextScaler(
-                        media.textScaler,
-                        preferences.textSize,
+                  child: HealthAutoLock(
+                    controller: _health!,
+                    child: MediaQuery(
+                      data: media.copyWith(
+                        textScaler: combineTextScaler(
+                          media.textScaler,
+                          preferences.textSize,
+                        ),
                       ),
+                      child: child ?? const SizedBox.shrink(),
                     ),
-                    child: child ?? const SizedBox.shrink(),
                   ),
                 ),
               ),

@@ -1,11 +1,20 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 
 import 'biometric_unlock.dart';
 import 'health_models.dart';
 import 'health_store.dart';
+import 'pin_hasher.dart';
 import 'reminder_scheduler.dart';
+
+/// What happened when a PIN was checked.
+enum PinCheck {
+  unlocked,
+  wrong,
+
+  /// Too many wrong tries. Nothing was checked. See
+  /// [HealthController.pinLockoutRemaining].
+  lockedOut,
+}
 
 /// Owns My Health state for the shell. Local-only; never syncs to a server.
 class HealthController extends ChangeNotifier {
@@ -13,12 +22,27 @@ class HealthController extends ChangeNotifier {
     this._store, {
     ReminderScheduler? reminders,
     BiometricAuthenticator? biometrics,
+    PinHasher? pinHasher,
+    DateTime Function()? clock,
   }) : _reminders = reminders ?? const NoopReminderScheduler(),
-       _biometrics = biometrics ?? const UnavailableBiometricAuthenticator();
+       _biometrics = biometrics ?? const UnavailableBiometricAuthenticator(),
+       _pinHasher = pinHasher ?? PinHasher.standard,
+       _clock = clock ?? DateTime.now;
 
   final HealthStore _store;
   final ReminderScheduler _reminders;
   final BiometricAuthenticator _biometrics;
+  final PinHasher _pinHasher;
+  final DateTime Function() _clock;
+
+  /// Wrong PIN tries allowed before the first wait.
+  static const freePinTries = 5;
+
+  /// First wait after [freePinTries] wrong tries. Each later miss doubles it.
+  static const firstPinLockout = Duration(seconds: 30);
+
+  /// The wait never grows past this.
+  static const maxPinLockout = Duration(minutes: 15);
 
   HealthSnapshot _snapshot = const HealthSnapshot();
   bool _ready = false;
@@ -63,19 +87,23 @@ class HealthController extends ChangeNotifier {
   HealthWallet get wallet => _snapshot.wallet;
   EmergencyCardChoices get emergencyCard => _snapshot.emergencyCard;
 
-  /// App-local salt, not a secret. Slows casual plaintext prefs snooping.
-  static const _pinSalt = 'cwc-health-pin-v1';
+  /// How long until the PIN can be tried again. Zero when it can be now.
+  Duration get pinLockoutRemaining {
+    final until = _snapshot.pinLockedUntil;
+    if (until == null) return Duration.zero;
+    final left = until.difference(_clock());
+    if (left <= Duration.zero) return Duration.zero;
+    // A phone clock set backward must not stretch the wait past the cap.
+    return left > maxPinLockout ? maxPinLockout : left;
+  }
 
-  /// Study-build PIN fingerprint (not keystore encryption, PRIV-4 follow-on).
-  /// Uses 32-bit FNV-1a so dart2js / web compile stays valid (no >53-bit ints).
-  static String hashPin(String pin) {
-    final bytes = utf8.encode('$_pinSalt:$pin');
-    var hash = 0x811c9dc5;
-    for (final b in bytes) {
-      hash ^= b;
-      hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    }
-    return hash.toRadixString(16).padLeft(8, '0');
+  /// Wait after the [failures]th wrong try in a row, or zero if none.
+  static Duration lockoutAfter(int failures) {
+    if (failures < freePinTries) return Duration.zero;
+    final doublings = failures - freePinTries;
+    if (doublings >= 5) return maxPinLockout;
+    final wait = firstPinLockout * (1 << doublings);
+    return wait > maxPinLockout ? maxPinLockout : wait;
   }
 
   static String newId() =>
@@ -296,8 +324,13 @@ class HealthController extends ChangeNotifier {
   /// Sets or replaces the optional My Health PIN (ONB-3). Digits only, 4–8.
   Future<bool> setPin(String pin) async {
     if (!_validPin(pin)) return false;
+    final hash = await _pinHasher.hash(pin);
     final saved = await _persist(
-      (current) => current.copyWith(pinHash: hashPin(pin)),
+      (current) => current.copyWith(
+        pinHash: hash,
+        pinFailures: 0,
+        clearPinLockedUntil: true,
+      ),
     );
     if (!saved) return false;
     _unlocked = true;
@@ -305,16 +338,51 @@ class HealthController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> unlock(String pin) async {
+  Future<bool> unlock(String pin) async =>
+      await tryUnlock(pin) == PinCheck.unlocked;
+
+  /// Checks [pin], counting wrong tries and enforcing the wait (H5).
+  ///
+  /// The count and the wait are saved, so closing the app does not reset
+  /// them. A PIN saved by an older build is replaced with a PBKDF2 one the
+  /// first time it matches.
+  Future<PinCheck> tryUnlock(String pin) async {
     if (!_snapshot.hasPin) {
       _unlocked = true;
       notifyListeners();
-      return true;
+      return PinCheck.unlocked;
     }
-    if (hashPin(pin) != _snapshot.pinHash) return false;
+    if (pinLockoutRemaining > Duration.zero) return PinCheck.lockedOut;
+    final stored = _snapshot.pinHash!;
+    final ok = await _pinHasher.verify(pin, stored);
+    if (!ok) {
+      await _persist((current) {
+        final failures = current.pinFailures + 1;
+        final wait = lockoutAfter(failures);
+        return current.copyWith(
+          pinFailures: failures,
+          pinLockedUntil: wait > Duration.zero ? _clock().add(wait) : null,
+        );
+      });
+      notifyListeners();
+      return PinCheck.wrong;
+    }
+    final upgraded = _pinHasher.needsUpgrade(stored)
+        ? await _pinHasher.hash(pin)
+        : null;
+    if (upgraded != null || _snapshot.pinFailures > 0) {
+      // If this save fails the old hash still works, so unlock anyway.
+      await _persist(
+        (current) => current.copyWith(
+          pinHash: current.pinHash == stored ? upgraded : null,
+          pinFailures: 0,
+          clearPinLockedUntil: true,
+        ),
+      );
+    }
     _unlocked = true;
     notifyListeners();
-    return true;
+    return PinCheck.unlocked;
   }
 
   void lock() {
@@ -362,6 +430,12 @@ class HealthController extends ChangeNotifier {
     }
     final result = await _biometrics.authenticate();
     if (result == BiometricResult.success) {
+      if (_snapshot.pinFailures > 0 || _snapshot.pinLockedUntil != null) {
+        await _persist(
+          (current) =>
+              current.copyWith(pinFailures: 0, clearPinLockedUntil: true),
+        );
+      }
       _unlocked = true;
       notifyListeners();
     }

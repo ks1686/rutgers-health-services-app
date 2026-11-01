@@ -433,6 +433,8 @@ class HealthSnapshot {
     this.wallet = const HealthWallet(),
     this.emergencyCard = const EmergencyCardChoices(),
     this.pinHash,
+    this.pinFailures = 0,
+    this.pinLockedUntil,
     this.biometricEnabled = false,
     this.initialized = false,
   });
@@ -444,6 +446,12 @@ class HealthSnapshot {
   final HealthWallet wallet;
   final EmergencyCardChoices emergencyCard;
   final String? pinHash;
+
+  /// Wrong PIN tries in a row. Saved so closing the app does not reset it.
+  final int pinFailures;
+
+  /// No PIN tries are checked before this time. Null when not locked out.
+  final DateTime? pinLockedUntil;
 
   /// Opt-in fingerprint unlock. Cleared with the PIN. Default off.
   final bool biometricEnabled;
@@ -461,6 +469,9 @@ class HealthSnapshot {
     'wallet': wallet.toJson(),
     'emergencyCard': emergencyCard.toJson(),
     if (pinHash != null) 'pinHash': pinHash,
+    if (pinFailures > 0) 'pinFailures': pinFailures,
+    if (pinLockedUntil != null)
+      'pinLockedUntil': pinLockedUntil!.toUtc().millisecondsSinceEpoch,
     'biometricEnabled': biometricEnabled,
     'initialized': initialized,
   };
@@ -498,6 +509,13 @@ class HealthSnapshot {
             : null,
       ),
       pinHash: json['pinHash'] as String?,
+      pinFailures: (json['pinFailures'] as num?)?.toInt() ?? 0,
+      pinLockedUntil: json['pinLockedUntil'] is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              (json['pinLockedUntil'] as num).toInt(),
+              isUtc: true,
+            )
+          : null,
       biometricEnabled: json['biometricEnabled'] == true,
       initialized: json['initialized'] as bool? ?? false,
     );
@@ -511,6 +529,9 @@ class HealthSnapshot {
     HealthWallet? wallet,
     EmergencyCardChoices? emergencyCard,
     String? pinHash,
+    int? pinFailures,
+    DateTime? pinLockedUntil,
+    bool clearPinLockedUntil = false,
     bool? biometricEnabled,
     bool? initialized,
     bool clearPinHash = false,
@@ -523,6 +544,10 @@ class HealthSnapshot {
       wallet: wallet ?? this.wallet,
       emergencyCard: emergencyCard ?? this.emergencyCard,
       pinHash: clearPinHash ? null : (pinHash ?? this.pinHash),
+      pinFailures: clearPinHash ? 0 : (pinFailures ?? this.pinFailures),
+      pinLockedUntil: clearPinHash || clearPinLockedUntil
+          ? null
+          : (pinLockedUntil ?? this.pinLockedUntil),
       biometricEnabled: clearPinHash
           ? false
           : (biometricEnabled ?? this.biometricEnabled),
