@@ -12,8 +12,10 @@ import 'data/health_launchers.dart';
 import 'data/health_models.dart';
 import 'document_form_screen.dart';
 import 'health_scope.dart';
+import 'health_routes.dart';
 import 'medication_form_screen.dart';
 import 'provider_form_screen.dart';
+import 'save_feedback.dart';
 import 'visible_health.dart';
 import 'wallet_card_screen.dart';
 
@@ -29,8 +31,12 @@ class MyHealthScreen extends StatelessWidget {
   }
 
   Future<void> _openForm(BuildContext context, Widget page) {
-    return Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => page));
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: myHealthRoute('form'),
+        builder: (_) => page,
+      ),
+    );
   }
 
   Future<void> _promptSetPin(
@@ -59,12 +65,17 @@ class MyHealthScreen extends StatelessWidget {
       );
       return;
     }
-    final ok = await health.setPin(pin);
+    final valid = HealthController.isValidPin(pin);
+    final ok = valid && await health.setPin(pin);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'PIN saved on this phone.' : 'PIN must be 4–8 digits.',
+          ok
+              ? 'PIN saved on this phone.'
+              : valid
+              ? 'Could not save the PIN on this phone. Try again.'
+              : 'PIN must be 4 to 8 digits.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -75,21 +86,53 @@ class MyHealthScreen extends StatelessWidget {
     BuildContext context,
     HealthController health,
   ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (health.pinCheckBusy) return;
+    if (health.pinLockoutRemaining > Duration.zero) {
+      _showPinWait(messenger, health.pinLockoutRemaining);
+      return;
+    }
     final pin = await _askPin(
       context,
       title: 'Enter your PIN',
       message: 'My Health is locked on this phone.',
     );
     if (pin == null || !context.mounted) return;
-    final ok = await health.unlock(pin);
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('That PIN did not match.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    final result = await health.tryUnlock(pin);
+    if (!context.mounted) return;
+    messenger.hideCurrentSnackBar();
+    switch (result) {
+      case PinCheck.unlocked:
+        break;
+      case PinCheck.wrong:
+        final wait = health.pinLockoutRemaining;
+        if (wait > Duration.zero) {
+          _showPinWait(messenger, wait);
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('That PIN did not match.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      case PinCheck.lockedOut:
+        _showPinWait(messenger, health.pinLockoutRemaining);
     }
+  }
+
+  void _showPinWait(ScaffoldMessengerState messenger, Duration wait) {
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('pin-wait'),
+        content: Text(
+          'Too many tries. Try your PIN again in ${describePinWait(wait)}. '
+          'Help Now still works.',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<String?> _askPin(
@@ -100,6 +143,7 @@ class MyHealthScreen extends StatelessWidget {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
+      routeSettings: myHealthRoute('pin'),
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Column(
@@ -158,6 +202,9 @@ class MyHealthScreen extends StatelessWidget {
         if (!health.ready) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (health.storageUnavailable) {
+          return _StorageUnavailableView(unreadable: health.recordUnreadable);
+        }
         if (!health.isUnlocked) {
           return _PinLockView(
             health: health,
@@ -182,11 +229,15 @@ class MyHealthScreen extends StatelessWidget {
               onLock: health.hasPin ? health.lock : null,
               onClearPin: health.hasPin
                   ? () async {
-                      await health.clearPin();
+                      final removed = await health.clearPin();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('PIN removed from this phone.'),
+                          SnackBar(
+                            content: Text(
+                              removed
+                                  ? 'PIN removed from this phone.'
+                                  : 'Could not remove the PIN. Try again.',
+                            ),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -209,7 +260,8 @@ class MyHealthScreen extends StatelessWidget {
                     );
                   }
                 } else {
-                  await health.disableBiometricUnlock();
+                  final off = await health.disableBiometricUnlock();
+                  if (!off && context.mounted) showCouldNotSave(context);
                 }
               },
             ),
@@ -362,6 +414,7 @@ class MyHealthScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
+                    settings: myHealthRoute('wallet'),
                     builder: (_) => WalletCardScreen(launcher: launcher),
                   ),
                 );
@@ -446,6 +499,51 @@ class _DoctorFirstPrompt extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// H1. Secure storage would not open. Nothing is shown or saved, so the
+/// record already on the phone is never replaced by an empty one.
+class _StorageUnavailableView extends StatelessWidget {
+  const _StorageUnavailableView({required this.unreadable});
+
+  /// The record is there but this version of the app cannot read it.
+  final bool unreadable;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Icon(Icons.lock_clock_outlined, size: 48, color: CwcColors.sub),
+        SizedBox(height: 16),
+        Text(
+          'My Health cannot open on this phone right now',
+          key: ValueKey('my-health-storage-unavailable'),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        SizedBox(height: 8),
+        Text(
+          unreadable
+              ? 'This version of the app cannot read what is saved. Nothing '
+                    'was changed or deleted, and your PIN still guards it. '
+                    'Help Now, Nearby, and Learn still work. Updating the '
+                    'app may fix this. To start over instead, use Erase My '
+                    'Information in More.'
+              : 'Nothing was changed or deleted. Help Now, Nearby, and Learn '
+                    'still work. Close the app all the way and open it again '
+                    'to try once more.',
+          key: const ValueKey('my-health-storage-detail'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: CwcColors.sub,
+            fontSize: 18,
+            height: 1.4,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -537,7 +635,9 @@ class _PinLockViewState extends State<_PinLockView> {
             const SizedBox(height: 12),
           ],
           FilledButton(
-            onPressed: widget.onEnterPin,
+            key: const ValueKey('enter-pin'),
+            // N3: one PIN check at a time. The button waits for the last one.
+            onPressed: widget.health.pinCheckBusy ? null : widget.onEnterPin,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
             ),
@@ -555,9 +655,11 @@ class _EmergencyCardChoices extends StatelessWidget {
   final HealthController health;
 
   Future<void> _set(
+    BuildContext context,
     EmergencyCardChoices Function(EmergencyCardChoices current) change,
-  ) {
-    return health.updateEmergencyCard(change(health.emergencyCard));
+  ) async {
+    final saved = await health.updateEmergencyCardWith(change);
+    if (!saved && context.mounted) showCouldNotSave(context);
   }
 
   @override
@@ -584,39 +686,45 @@ class _EmergencyCardChoices extends StatelessWidget {
               label: 'Emergency contact',
               value: choices.showEmergencyContact,
               onChanged: (on) =>
-                  _set((c) => c.copyWith(showEmergencyContact: on)),
+                  _set(context, (c) => c.copyWith(showEmergencyContact: on)),
             ),
             _ChoiceSwitch(
               label: 'Conditions',
               value: choices.showConditions,
-              onChanged: (on) => _set((c) => c.copyWith(showConditions: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showConditions: on)),
             ),
             _ChoiceSwitch(
               label: 'Medications',
               value: choices.showMedications,
-              onChanged: (on) => _set((c) => c.copyWith(showMedications: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showMedications: on)),
             ),
             _ChoiceSwitch(
               label: 'Providers',
               value: choices.showProviders,
-              onChanged: (on) => _set((c) => c.copyWith(showProviders: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showProviders: on)),
             ),
             _ChoiceSwitch(
               label: 'Appointment notes',
               value: choices.showAppointmentNotes,
               onChanged: (on) =>
-                  _set((c) => c.copyWith(showAppointmentNotes: on)),
+                  _set(context, (c) => c.copyWith(showAppointmentNotes: on)),
             ),
             _ChoiceSwitch(
               label: 'Psychiatric advance directive',
               value: choices.showPsychiatricAdvanceDirective,
-              onChanged: (on) =>
-                  _set((c) => c.copyWith(showPsychiatricAdvanceDirective: on)),
+              onChanged: (on) => _set(
+                context,
+                (c) => c.copyWith(showPsychiatricAdvanceDirective: on),
+              ),
             ),
             _ChoiceSwitch(
               label: 'Show service or support animal',
               value: choices.showServiceAnimal,
-              onChanged: (on) => _set((c) => c.copyWith(showServiceAnimal: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showServiceAnimal: on)),
             ),
           ],
         ),
@@ -847,4 +955,12 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Plain wording for a PIN wait, rounded up so it never reads as zero.
+String describePinWait(Duration wait) {
+  final seconds = (wait.inMilliseconds / 1000).ceil();
+  if (seconds < 60) return seconds == 1 ? '1 second' : '$seconds seconds';
+  final minutes = (seconds / 60).ceil();
+  return minutes == 1 ? '1 minute' : '$minutes minutes';
 }

@@ -7,6 +7,7 @@ import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:cwc_health_app/links/phone_links.dart';
 import 'package:flutter/material.dart';
+import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,6 +19,7 @@ void main() {
   Future<void> pumpApp(
     WidgetTester tester, {
     required List<Uri> launched,
+    NearbyEraseEpoch? eraseEpoch,
   }) async {
     SharedPreferences.setMockInitialValues({
       disclaimerAckPref: true,
@@ -31,6 +33,7 @@ void main() {
       CwcApp(
         healthController: health,
         disclaimerAcknowledged: true,
+        nearbyEraseEpoch: eraseEpoch,
         linkLauncher: (uri) async {
           launched.add(uri);
           return true;
@@ -132,7 +135,8 @@ void main() {
   testWidgets('Erase my information also clears saved Ask a Peer contacts', (
     tester,
   ) async {
-    await pumpApp(tester, launched: []);
+    final eraseEpoch = NearbyEraseEpoch();
+    await pumpApp(tester, launched: [], eraseEpoch: eraseEpoch);
     await openAsk(tester);
 
     await tester.tap(find.byKey(const ValueKey('add-peer-contact')));
@@ -161,12 +165,18 @@ void main() {
       findsOneWidget,
     );
 
+    final epoch = eraseEpoch.value;
     await tester.tap(find.widgetWithText(FilledButton, 'Erase'));
     await tester.pumpAndSettle();
 
     expect(
       find.textContaining('Your information was erased from this phone'),
       findsOneWidget,
+    );
+    expect(
+      eraseEpoch.value,
+      epoch + 1,
+      reason: 'Nearby lookups already running stop saving',
     );
 
     final stored = await SharedPreferences.getInstance();

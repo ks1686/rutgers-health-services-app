@@ -56,8 +56,11 @@ class OsmOverpassSource {
     this.endpoints = kOverpassEndpoints,
     this.attemptsPerEndpoint = 2,
     this.retryBackoff = const Duration(milliseconds: 600),
-    this.requestTimeout = const Duration(seconds: 20),
-  }) : assert(endpoints.isNotEmpty, 'At least one endpoint is required');
+    this.requestTimeout = const Duration(seconds: 8),
+    this.totalBudget = const Duration(seconds: 20),
+    Stopwatch Function()? stopwatch,
+  }) : _stopwatch = stopwatch ?? Stopwatch.new,
+       assert(endpoints.isNotEmpty, 'At least one endpoint is required');
 
   final http.Client _client;
   final String userAgent;
@@ -65,6 +68,13 @@ class OsmOverpassSource {
   final int attemptsPerEndpoint;
   final Duration retryBackoff;
   final Duration requestTimeout;
+
+  /// M3. Time for every mirror and retry together. Without it a slow day
+  /// could keep the spinner up for mirrors x tries x [requestTimeout].
+  final Duration totalBudget;
+
+  /// Measures [totalBudget]. Tests pass one that runs on a fake clock.
+  final Stopwatch Function() _stopwatch;
 
   /// Tries each mirror in turn, retrying only when the server asks us to wait.
   Future<List<NearbyResource>> fetch(GeoPoint area, {DateTime? fetchedAt}) {
@@ -98,11 +108,19 @@ class OsmOverpassSource {
     final query = _buildQuery(area, forceAround: forceAround);
 
     Object? lastFailure;
+    final clock = _stopwatch()..start();
+    mirrors:
     for (final endpoint in endpoints) {
       for (var attempt = 1; attempt <= attemptsPerEndpoint; attempt++) {
+        final left = totalBudget - clock.elapsed;
+        if (left <= Duration.zero) break mirrors;
         String body;
         try {
-          body = await _post(endpoint, query);
+          body = await _post(
+            endpoint,
+            query,
+            left < requestTimeout ? left : requestTimeout,
+          );
           return _parse(body, when, applyRegionGuard);
         } on OsmOverpassException catch (failure) {
           lastFailure = failure;
@@ -124,7 +142,7 @@ class OsmOverpassSource {
     );
   }
 
-  Future<String> _post(String endpoint, String query) async {
+  Future<String> _post(String endpoint, String query, Duration timeout) async {
     final response = await _client
         .post(
           Uri.parse(endpoint),
@@ -135,7 +153,7 @@ class OsmOverpassSource {
           },
           body: {'data': query},
         )
-        .timeout(requestTimeout);
+        .timeout(timeout);
 
     if (response.statusCode == 200) return response.body;
 
@@ -196,7 +214,7 @@ class OsmOverpassSource {
       final e = area.bboxEast!;
       final bbox = '$s,$w,$n,$e';
       return '''
-[out:json][timeout:25];
+[out:json][timeout:10];
 (
 ${filter.replaceAll('(AREA)', '($bbox)')}
 );
@@ -207,7 +225,7 @@ out center tags;
     final around =
         '(around:$kDefaultOverpassRadiusMeters,${area.lat},${area.lng})';
     return '''
-[out:json][timeout:25];
+[out:json][timeout:10];
 (
 ${filter.replaceAll('(AREA)', around)}
 );

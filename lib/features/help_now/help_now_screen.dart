@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../my_health/data/emergency_card.dart';
@@ -33,34 +36,48 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
     _loadCardPref();
   }
 
+  /// The card choice is a nice-to-have. If storage fails it starts off and
+  /// the helplines below still work.
   Future<void> _loadCardPref() async {
-    final prefs = await SharedPreferences.getInstance();
+    var show = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      show = prefs.getBool(helpNowEmergencyCardPref) ?? false;
+    } catch (_) {
+      show = false;
+    }
     if (!mounted) return;
     setState(() {
-      _showEmergencyCard = prefs.getBool(helpNowEmergencyCardPref) ?? false;
+      _showEmergencyCard = show;
       _cardPrefReady = true;
     });
   }
 
   Future<void> _setShowCard(bool value) async {
     setState(() => _showEmergencyCard = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(helpNowEmergencyCardPref, value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(helpNowEmergencyCardPref, value);
+    } catch (_) {
+      // Kept for this visit only.
+    }
   }
 
   Future<void> _open(Uri uri) async {
-    final messenger = ScaffoldMessenger.of(context);
     final launcher = widget.launcher ?? _launchExternal;
-    final opened = await launcher(uri);
-    if (!opened) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not open that on this phone.'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
+    var opened = false;
+    try {
+      opened = await launcher(uri);
+    } catch (e) {
+      // M2. No dialer or messaging app (a tablet, a locked-down phone)
+      // throws instead of returning false. Never leave the person stuck.
+      if (kDebugMode) debugPrint('Help Now could not open $uri: $e');
     }
+    if (opened || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => _DialItYourselfDialog(uri: uri),
+    );
   }
 
   Future<bool> _launchExternal(Uri uri) {
@@ -366,5 +383,61 @@ class _HelpActionButton extends StatelessWidget {
       case HelpNowStyle.neutralOutline:
         return CwcColors.sub;
     }
+  }
+}
+
+/// Shown when the phone would not open its dialer or messages app.
+class _DialItYourselfDialog extends StatelessWidget {
+  const _DialItYourselfDialog({required this.uri});
+
+  final Uri uri;
+
+  @override
+  Widget build(BuildContext context) {
+    final isText = uri.scheme == 'sms';
+    final number = phoneForDisplay(uri.path);
+    return AlertDialog(
+      title: Text(isText ? 'Text this number' : 'Dial this number'),
+      // Scrolls so the number and the steps stay reachable on a small
+      // phone at the largest text size.
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SelectableText(
+            number,
+            key: const ValueKey('help-now-number'),
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: CwcColors.ink,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            isText
+                ? 'This phone could not open messages. Text $number from '
+                      'another phone or app.'
+                : 'This phone could not open the dialer. Dial $number from '
+                      'any phone.',
+            style: const TextStyle(fontSize: 18, height: 1.4),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: phoneDialable(number)));
+            if (context.mounted) Navigator.pop(context);
+          },
+          child: const Text('Copy number'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    );
   }
 }

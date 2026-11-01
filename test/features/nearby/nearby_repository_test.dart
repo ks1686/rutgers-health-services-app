@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cwc_health_app/features/nearby/data/nearby_cache.dart';
@@ -37,6 +39,18 @@ class _FakeGeocode implements NominatimGeocode {
     calls++;
     if (error != null) throw error!;
     return result!;
+  }
+}
+
+class _GatedGeocode extends _FakeGeocode {
+  _GatedGeocode(GeoPoint result) : super(result: result);
+
+  final gate = Completer<void>();
+
+  @override
+  Future<GeoPoint> geocode(NearbyQuery query) async {
+    await gate.future;
+    return super.geocode(query);
   }
 }
 
@@ -91,6 +105,9 @@ class _FakeOverpass implements OsmOverpassSource {
 
   @override
   Duration get requestTimeout => const Duration(seconds: 1);
+
+  @override
+  Duration get totalBudget => const Duration(seconds: 1);
 
   @override
   Future<List<NearbyResource>> fetch(
@@ -150,6 +167,7 @@ void main() {
     required _FakeOverpass overpass,
     DeviceLocationSource? deviceLocation,
     NearbyCache? cache,
+    NearbyEraseEpoch? eraseEpoch,
   }) {
     return NearbyRepository(
       config: liveConfig,
@@ -158,6 +176,7 @@ void main() {
       overpass: overpass,
       deviceLocation: deviceLocation,
       cache: cache,
+      eraseEpoch: eraseEpoch,
       clock: () => now,
     );
   }
@@ -596,6 +615,32 @@ void main() {
       expect(result.resources, isEmpty);
     },
   );
+
+  test('a lookup started before Erase saves nothing after it', () async {
+    final cache = InMemoryNearbyCache();
+    final geocode = _GatedGeocode(area);
+    final epoch = NearbyEraseEpoch();
+    final repo = build(
+      eraseEpoch: epoch,
+      geocode: geocode,
+      google: _FakeGoogle(
+        GooglePlacesOk([
+          _resource(id: 'g1', name: 'Google Pharmacy', source: 'google'),
+        ]),
+      ),
+      overpass: _FakeOverpass(result: const []),
+      cache: cache,
+    );
+
+    final pending = repo.fetch(query);
+    epoch.bump();
+    geocode.gate.complete();
+    final result = await pending;
+
+    expect(result.resources, hasLength(1), reason: 'the screen still shows it');
+    expect(await cache.read(query), isNull);
+    expect(await cache.readPoint(query), isNull);
+  });
 }
 
 /// Minimal scripted device-location source for repository tests.

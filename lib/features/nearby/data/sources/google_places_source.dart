@@ -31,7 +31,7 @@ class GooglePlacesSource {
     required this.apiKey,
     this.endpoint = 'https://places.googleapis.com/v1/places:searchNearby',
     this.radiusMeters = kDefaultOverpassRadiusMeters,
-    this.requestTimeout = const Duration(seconds: 10),
+    this.requestTimeout = const Duration(seconds: 8),
   });
 
   final http.Client _client;

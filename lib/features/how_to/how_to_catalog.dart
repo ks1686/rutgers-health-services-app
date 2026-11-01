@@ -25,26 +25,19 @@ class HowToStep {
 }
 
 class HowToVideo {
-  const HowToVideo({
-    required this.seconds,
-    required this.captionsAsset,
-    this.downloadUrl,
-  });
+  const HowToVideo({required this.seconds, required this.captionsAsset});
 
   final int seconds;
   final String captionsAsset;
-  final Uri? downloadUrl;
 
   factory HowToVideo.fromJson(Map<String, dynamic> json, String tutorialId) {
     final seconds = json['seconds'] as int;
     if (seconds > 90) {
       throw FormatException('Video for $tutorialId is longer than 90 seconds');
     }
-    final rawUrl = json['downloadUrl'] as String?;
     return HowToVideo(
       seconds: seconds,
       captionsAsset: json['captionsAsset'] as String,
-      downloadUrl: rawUrl == null || rawUrl.isEmpty ? null : Uri.parse(rawUrl),
     );
   }
 }

@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/link_launcher.dart';
 import '../how_to/how_to_screen.dart';
+import '../my_health/health_routes.dart';
 import '../my_health/health_scope.dart';
 import '../my_health/notification_settings_screen.dart';
 import '../nearby/data/nearby_favorites.dart';
+import '../nearby/data/nearby_cache.dart';
 import '../settings/app_preferences.dart';
+import '../settings/local_data_registry.dart';
 import '../settings/settings_screen.dart';
 import 'about_this_app_page.dart';
 import 'using_this_app_page.dart';
 import 'ask_a_peer_screen.dart';
-import 'session_answers.dart';
 import 'session_questions_screen.dart';
 import 'helper_privacy_screen.dart';
 import 'protects_you_page.dart';
@@ -48,10 +50,11 @@ class MoreScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Erase my information?'),
         content: const Text(
-          'This deletes appointments, medications, providers, wallet details, '
-          'reminders, your My Health PIN, people you saved under Ask a Peer, '
-          'saved nearby places, and session question answers from this phone. '
-          'It cannot be undone.',
+          'This deletes appointments, medications, providers, papers, wallet '
+          'details, reminders, your My Health PIN, people you saved under Ask '
+          'a Peer, saved nearby places, the town you picked for Nearby and '
+          'its saved results, and session question answers from this phone. '
+          'Text size and other settings stay. It cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -78,16 +81,26 @@ class MoreScreen extends StatelessWidget {
       );
       return;
     }
-    await health.eraseAll();
-    await prefs?.setPeerContacts([]);
-    await favorites?.clear();
-    await prefs?.setSessionAnswers(const SessionAnswers());
+    // Lookups already running must not save their town after this.
+    NearbyEraseEpochScope.maybeOf(context)?.bump();
+    var complete = await health.eraseAll();
+    try {
+      // M1: one list of every key, so a new one cannot be missed here.
+      await prefs?.removeWhere(erasedOnRequest);
+      await favorites?.clear();
+    } catch (e) {
+      complete = false;
+    }
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Your information was erased from this phone.'),
+      SnackBar(
+        content: Text(
+          complete
+              ? 'Your information was erased from this phone.'
+              : 'Some information could not be erased. Try Erase again.',
+        ),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -150,6 +163,7 @@ class MoreScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
+                      settings: myHealthRoute('reminders'),
                       builder: (_) => const NotificationSettingsScreen(),
                     ),
                   );

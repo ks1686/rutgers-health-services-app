@@ -32,6 +32,8 @@ dependencies:
     sdk: flutter
 
   http: ^1.2.2
+  # PBKDF2 for the My Health PIN (H5). Already in the lock file via http.
+  crypto: ^3.0.7
   url_launcher: ^6.3.3
   shared_preferences: ^2.5.6
   # 11.x requires compileSdk 37; Flutter 3.47.8 / AGP 9.0.1 stay on 36.
@@ -50,6 +52,8 @@ dependencies:
   local_auth: ^3.0.2
 
 dev_dependencies:
+  # Pinned by flutter_test. Lets timing tests run on a fake clock.
+  fake_async: any
   flutter_test:
     sdk: flutter
   integration_test:

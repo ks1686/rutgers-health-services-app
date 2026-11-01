@@ -119,6 +119,58 @@ void main() {
     expect(find.text('Appointments'), findsOneWidget);
   });
 
+  testWidgets('five wrong PINs show a wait and a right one clears it', (
+    tester,
+  ) async {
+    final health = await readyController();
+    expect(await health.setPin('1234'), isTrue);
+    health.lock();
+    await pumpHealthApp(tester, health: health);
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+
+    Future<void> tryPin(String pin) async {
+      await tester.tap(find.text('Enter PIN'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), pin);
+      await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+      await tester.pumpAndSettle();
+    }
+
+    await tryPin('0000');
+    expect(find.text('That PIN did not match.'), findsOneWidget);
+    for (var i = 0; i < 4; i++) {
+      await tryPin('0000');
+    }
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+    expect(find.textContaining('30 seconds'), findsOneWidget);
+
+    // While waiting, the PIN box does not even open.
+    await tester.tap(find.text('Enter PIN'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(find.textContaining('Too many tries'), findsOneWidget);
+  });
+
+  testWidgets('a right PIN clears the did not match message', (tester) async {
+    final health = await readyController();
+    expect(await health.setPin('1234'), isTrue);
+    health.lock();
+    await pumpHealthApp(tester, health: health);
+    await tester.tap(find.byKey(const ValueKey('tab-my-health')));
+    await tester.pumpAndSettle();
+
+    for (final pin in ['0000', '1234']) {
+      await tester.tap(find.text('Enter PIN'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), pin);
+      await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Appointments'), findsOneWidget);
+    expect(find.text('That PIN did not match.'), findsNothing);
+  });
+
   testWidgets('Erase from More clears My Health', (tester) async {
     final health = await readyController();
     await pumpHealthApp(tester, health: health);

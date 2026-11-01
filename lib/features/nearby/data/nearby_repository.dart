@@ -32,6 +32,7 @@ class NearbyRepository {
     required this.overpass,
     this.deviceLocation,
     this.cache,
+    this.eraseEpoch,
     Clock? clock,
   }) : _clock = clock ?? (() => DateTime.now().toUtc());
 
@@ -40,6 +41,7 @@ class NearbyRepository {
     http.Client client, {
     required NearbyConfig config,
     NearbyCache? cache,
+    NearbyEraseEpoch? eraseEpoch,
   }) {
     return NearbyRepository(
       config: config,
@@ -51,6 +53,7 @@ class NearbyRepository {
       overpass: OsmOverpassSource(client),
       deviceLocation: GeolocatorDeviceLocation(),
       cache: cache,
+      eraseEpoch: eraseEpoch,
     );
   }
 
@@ -64,17 +67,26 @@ class NearbyRepository {
   /// memory, and never persisted or logged.
   final DeviceLocationSource? deviceLocation;
   final NearbyCache? cache;
+
+  /// Bumped by Erase. Null in tests that do not erase; then writes are not
+  /// checked.
+  final NearbyEraseEpoch? eraseEpoch;
   final Clock _clock;
 
   Future<NearbyFetchResult> fetch(NearbyQuery query) async {
     final when = _clock();
+    // Erase may run while this lookup waits on the network. Saving after it
+    // would bring the erased town back, so compare before every write.
+    final epoch = eraseEpoch?.value;
 
     GeoPoint area;
     try {
       area = await geocoder.geocode(query);
-      await cache?.writePoint(query, area);
+      if (eraseEpoch?.value == epoch) {
+        await cache?.writePoint(query, area);
+      }
     } catch (e) {
-      debugPrint('Nearby geocode failed: $e');
+      if (kDebugMode) debugPrint('Nearby geocode failed: $e');
       final cachedPoint = await cache?.readPoint(query);
       if (cachedPoint == null) {
         return _cachedOr(query, kNearbyMemberLookupFailed);
@@ -86,6 +98,7 @@ class NearbyRepository {
     if (googleRows != null && googleRows.isNotEmpty) {
       return _store(
         query,
+        epoch,
         NearbyFetchResult(
           resources: googleRows,
           status: NearbySourceStatus.google,
@@ -101,6 +114,7 @@ class NearbyRepository {
       );
       return await _store(
         query,
+        epoch,
         NearbyFetchResult(
           resources: osmRows,
           status: NearbySourceStatus.osm,
@@ -112,7 +126,7 @@ class NearbyRepository {
         ),
       );
     } catch (e) {
-      debugPrint('Nearby Overpass failed: $e');
+      if (kDebugMode) debugPrint('Nearby Overpass failed: $e');
       return _cachedOr(query, kNearbyMemberLoadFailed);
     }
   }
@@ -148,7 +162,9 @@ class NearbyRepository {
       case DeviceLocationOk(:final point):
         origin = point;
       case DeviceLocationSoftFail(:final reason):
-        debugPrint('Nearby device location failed: ${reason.name}');
+        if (kDebugMode) {
+          debugPrint('Nearby device location failed: ${reason.name}');
+        }
         // Every soft-fail lands the member back on the town lookup, with a
         // plain-language reason attached (rendered as an info line).
         switch (reason) {
@@ -194,7 +210,7 @@ class NearbyRepository {
         origin: origin,
       );
     } catch (e) {
-      debugPrint('Nearby Overpass failed (device origin): $e');
+      if (kDebugMode) debugPrint('Nearby Overpass failed (device origin): $e');
       // Same honest fallback as above — never show a device-based list that
       // is actually the saved town copy without saying so.
       return _townFallback(query, nearbyLocationUnavailableMessage(query.town));
@@ -273,9 +289,10 @@ class NearbyRepository {
 
   Future<NearbyFetchResult> _store(
     NearbyQuery query,
+    int? epoch,
     NearbyFetchResult result,
   ) async {
-    if (result.resources.isNotEmpty) {
+    if (result.resources.isNotEmpty && eraseEpoch?.value == epoch) {
       await cache?.write(query, result);
     }
     return result;

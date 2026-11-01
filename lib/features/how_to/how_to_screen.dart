@@ -5,7 +5,6 @@ import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import 'caption_cue.dart';
 import 'how_to_catalog.dart';
-import 'tutorial_video_cache.dart';
 
 class HowToScreen extends StatefulWidget {
   const HowToScreen({super.key, this.loader});
@@ -91,12 +90,10 @@ class HowToDetailScreen extends StatelessWidget {
   const HowToDetailScreen({
     super.key,
     required this.tutorial,
-    this.cache,
     this.captionsLoader,
   });
 
   final HowToTutorial tutorial;
-  final TutorialVideoCache? cache;
   final Future<String> Function(String asset)? captionsLoader;
 
   @override
@@ -128,11 +125,7 @@ class HowToDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
           ],
-          _VideoBlock(
-            tutorial: tutorial,
-            cache: cache,
-            captionsLoader: captionsLoader,
-          ),
+          _VideoBlock(tutorial: tutorial, captionsLoader: captionsLoader),
         ],
       ),
     );
@@ -176,10 +169,9 @@ class _StepPicture extends StatelessWidget {
 }
 
 class _VideoBlock extends StatefulWidget {
-  const _VideoBlock({required this.tutorial, this.cache, this.captionsLoader});
+  const _VideoBlock({required this.tutorial, this.captionsLoader});
 
   final HowToTutorial tutorial;
-  final TutorialVideoCache? cache;
   final Future<String> Function(String asset)? captionsLoader;
 
   @override
@@ -190,40 +182,13 @@ class _VideoBlockState extends State<_VideoBlock> {
   late final Future<String> _captions = widget.captionsLoader != null
       ? widget.captionsLoader!(widget.tutorial.video.captionsAsset)
       : rootBundle.loadString(widget.tutorial.video.captionsAsset);
-  String? _status;
 
+  /// This build ships steps and captions only. A downloader for video files
+  /// was removed because nothing in the app created one, so a download
+  /// button would have done nothing.
   String _videoNote(HowToVideo video) {
-    final seconds = video.seconds;
-    if (video.downloadUrl == null) {
-      return 'About $seconds seconds. This build has the steps and captions. '
-          'It does not include a video file to download.';
-    }
-    return 'About $seconds seconds. Videos do not play by themselves. '
-        'A video file downloads only on Wi-Fi, then stays on this phone. '
-        'Captions work with no internet.';
-  }
-
-  Future<void> _download() async {
-    final cache = widget.cache;
-    final url = widget.tutorial.video.downloadUrl;
-    if (cache == null || url == null) return;
-    final result = await cache.prepare(
-      id: widget.tutorial.id,
-      url: url,
-      seconds: widget.tutorial.video.seconds,
-    );
-    if (!mounted) return;
-    setState(() {
-      if (result.saved) {
-        _status = 'Video saved on this phone for offline playback.';
-      } else if (result.needsWifi) {
-        _status = 'Connect to Wi-Fi to download this video. It is not downloaded on mobile data.';
-      } else if (result.rejectedBecauseTooLong) {
-        _status = 'That video is longer than 90 seconds, so it was not saved.';
-      } else {
-        _status = 'No video file is available yet.';
-      }
-    });
+    return 'About ${video.seconds} seconds. This build has the steps and '
+        'captions. It does not include a video file to download.';
   }
 
   @override
@@ -262,17 +227,6 @@ class _VideoBlockState extends State<_VideoBlock> {
             return CaptionPlayer(cues: cues);
           },
         ),
-        if (video.downloadUrl != null) ...[
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _download,
-            child: const Text('Download video on Wi-Fi'),
-          ),
-        ],
-        if (_status != null) ...[
-          const SizedBox(height: 8),
-          Text(_status!, style: const TextStyle(fontSize: 18, height: 1.4)),
-        ],
       ],
     );
   }

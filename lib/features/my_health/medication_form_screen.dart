@@ -6,6 +6,7 @@ import 'data/health_controller.dart';
 import 'data/health_models.dart';
 import 'data/reminder_plan.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 import 'reminder_pickers.dart';
 
 class MedicationFormScreen extends StatefulWidget {
@@ -65,7 +66,7 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
     }
     if (!mounted) return;
     final id = widget.existing?.id ?? HealthController.newId();
-    await controller.upsertMedication(
+    final saved = await controller.upsertMedication(
       HealthMedication(
         id: id,
         name: _name.text.trim(),
@@ -75,7 +76,12 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
         remindMinutes: minutes,
       ),
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (!saved) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _changeMinute(int minute) async {
@@ -121,8 +127,13 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await HealthScope.of(context).deleteMedication(existing.id);
-    if (mounted) Navigator.of(context).pop();
+    final deleted = await HealthScope.of(context).deleteMedication(existing.id);
+    if (!mounted) return;
+    if (!deleted) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   @override

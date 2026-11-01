@@ -5,6 +5,7 @@ import '../../widgets/help_now_button.dart';
 import 'data/health_models.dart';
 import 'data/reminder_plan.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 import 'reminder_pickers.dart';
 import 'visible_health.dart';
 
@@ -41,6 +42,14 @@ class _NotificationSettingsScreenState
     if (mounted) setState(() => _allowed = ok);
   }
 
+  void _report(bool saved) {
+    if (saved || !mounted) return;
+    showCouldNotSave(
+      context,
+      message: 'Could not save that reminder change on this phone. Try again.',
+    );
+  }
+
   Future<void> _setMedication(HealthMedication med, bool on) async {
     final health = HealthScope.of(context);
     if (on) await health.requestReminderPermission();
@@ -48,8 +57,10 @@ class _NotificationSettingsScreenState
     final minutes = med.remindMinutes.isNotEmpty
         ? med.remindMinutes
         : inferReminderMinutes(med.schedule);
-    await health.upsertMedication(
-      med.copyWith(remind: on, remindMinutes: minutes),
+    _report(
+      await health.upsertMedication(
+        med.copyWith(remind: on, remindMinutes: minutes),
+      ),
     );
   }
 
@@ -67,17 +78,21 @@ class _NotificationSettingsScreenState
         if (existing != minute) existing,
       picked,
     ]);
-    await HealthScope.of(context)
-        .upsertMedication(med.copyWith(remind: true, remindMinutes: next));
+    _report(
+      await HealthScope.of(context)
+          .upsertMedication(med.copyWith(remind: true, remindMinutes: next)),
+    );
   }
 
   Future<void> _addMedicationTime(HealthMedication med) async {
     final picked = await pickMinuteOfDay(context, initial: 8 * 60);
     if (picked == null || !mounted) return;
-    await HealthScope.of(context).upsertMedication(
-      med.copyWith(
-        remind: true,
-        remindMinutes: normalizeReminderMinutes([..._minutes(med), picked]),
+    _report(
+      await HealthScope.of(context).upsertMedication(
+        med.copyWith(
+          remind: true,
+          remindMinutes: normalizeReminderMinutes([..._minutes(med), picked]),
+        ),
       ),
     );
   }
@@ -94,13 +109,17 @@ class _NotificationSettingsScreenState
         initial: DateTime.now().add(const Duration(hours: 1)),
       );
       if (picked == null || !mounted) return;
-      await health.upsertAppointment(
-        appt.copyWith(remind: true, remindAt: picked),
+      _report(
+        await health.upsertAppointment(
+          appt.copyWith(remind: true, remindAt: picked),
+        ),
       );
       return;
     }
-    await health.upsertAppointment(
-      appt.copyWith(remind: on, remindAt: remindAt),
+    _report(
+      await health.upsertAppointment(
+        appt.copyWith(remind: on, remindAt: remindAt),
+      ),
     );
   }
 
@@ -111,8 +130,10 @@ class _NotificationSettingsScreenState
         DateTime.now().add(const Duration(hours: 1));
     final picked = await pickLocalDateTime(context, initial: initial);
     if (picked == null || !mounted) return;
-    await HealthScope.of(context)
-        .upsertAppointment(appt.copyWith(remind: true, remindAt: picked));
+    _report(
+      await HealthScope.of(context)
+          .upsertAppointment(appt.copyWith(remind: true, remindAt: picked)),
+    );
   }
 
   @override

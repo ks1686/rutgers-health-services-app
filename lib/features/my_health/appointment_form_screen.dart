@@ -7,6 +7,7 @@ import 'data/health_controller.dart';
 import 'data/health_models.dart';
 import 'data/reminder_plan.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 import 'reminder_pickers.dart';
 
 class AppointmentFormScreen extends StatefulWidget {
@@ -116,7 +117,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
     }
     if (!mounted) return;
     final id = widget.existing?.id ?? HealthController.newId();
-    await controller.upsertAppointment(
+    final saved = await controller.upsertAppointment(
       HealthAppointment(
         id: id,
         provider: _provider.text.trim(),
@@ -129,7 +130,12 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         remindAt: remindAt,
       ),
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (!saved) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _delete() async {
@@ -153,8 +159,14 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await HealthScope.of(context).deleteAppointment(existing.id);
-    if (mounted) Navigator.of(context).pop();
+    final deleted = await HealthScope.of(context)
+        .deleteAppointment(existing.id);
+    if (!mounted) return;
+    if (!deleted) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   @override

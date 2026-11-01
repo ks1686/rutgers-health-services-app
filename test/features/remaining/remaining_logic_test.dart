@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cwc_health_app/features/how_to/caption_cue.dart';
 import 'package:cwc_health_app/features/how_to/how_to_catalog.dart';
-import 'package:cwc_health_app/features/how_to/tutorial_video_cache.dart';
 import 'package:cwc_health_app/features/settings/app_preferences.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,7 +41,6 @@ void main() {
     for (final tutorial in tutorials) {
       expect(tutorial.steps, isNotEmpty);
       expect(tutorial.video.seconds, inInclusiveRange(1, 90));
-      expect(tutorial.video.downloadUrl, isNull);
       expect(
         File(tutorial.video.captionsAsset).readAsStringSync(),
         contains('WEBVTT'),
@@ -66,57 +64,4 @@ Second line.
     expect(cueAt(cues, const Duration(seconds: 2))?.text, 'Second line.');
     expect(cueAt(cues, const Duration(seconds: 4)), isNull);
   });
-
-  test(
-    'video download waits for Wi-Fi and then plays from the saved file',
-    () async {
-      final files = MemoryVideoFileStore();
-      final cache = TutorialVideoCache(
-        network: FixedNetworkKind(NetworkKind.cellular),
-        store: files,
-        fetch: (_) async => [1, 2, 3],
-      );
-      final blocked = await cache.prepare(
-        id: 'find-a-pharmacy',
-        url: Uri.parse('https://example.test/how-to.mp4'),
-        seconds: 45,
-      );
-      expect(blocked.needsWifi, isTrue);
-      expect(blocked.saved, isFalse);
-
-      final wifi = TutorialVideoCache(
-        network: FixedNetworkKind(NetworkKind.wifi),
-        store: files,
-        fetch: (_) async => [1, 2, 3],
-      );
-      final saved = await wifi.prepare(
-        id: 'find-a-pharmacy',
-        url: Uri.parse('https://example.test/how-to.mp4'),
-        seconds: 45,
-      );
-      expect(saved.saved, isTrue);
-      expect(saved.path, 'memory://find-a-pharmacy');
-
-      final offline = TutorialVideoCache(
-        network: FixedNetworkKind(NetworkKind.offline),
-        store: files,
-        fetch: (_) async => throw StateError('should not download again'),
-      );
-      final replay = await offline.prepare(
-        id: 'find-a-pharmacy',
-        url: Uri.parse('https://example.test/how-to.mp4'),
-        seconds: 45,
-      );
-      expect(replay.saved, isTrue);
-      expect(replay.needsWifi, isFalse);
-
-      final tooLong = await wifi.prepare(
-        id: 'too-long',
-        url: Uri.parse('https://example.test/long.mp4'),
-        seconds: 91,
-      );
-      expect(tooLong.rejectedBecauseTooLong, isTrue);
-      expect(tooLong.saved, isFalse);
-    },
-  );
 }
