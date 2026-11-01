@@ -22,10 +22,17 @@
     <uses-permission
         android:name="android.permission.USE_FINGERPRINT"
         tools:node="remove"/>
+    <!-- Backup is off. My Health, settings, saved places, and peer contacts
+         stay on this phone, as the privacy pages promise, so none of it goes
+         to Google backup or a device-to-device transfer. -->
     <application
         android:label="CWC Health App"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:targetApi="31">
         <!-- Google Maps SDK (FIND-4). Empty placeholder → OSM soft-fail in Dart.
              Pass the same value as dart-define GOOGLE_MAPS_API_KEY via
              -PGOOGLE_MAPS_API_KEY=... or the GOOGLE_MAPS_API_KEY env var. -->

@@ -33,7 +33,7 @@
 		<string>https</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location helps us find health services close to you. It stays on your phone and is never saved or shared.</string>
+	<string>Used one time to sort nearby places. Your location is sent to the map service to find places near you and is not saved by this app.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to open My Health. Your app PIN always works too.</string>
 	<key>GMSApiKey</key>

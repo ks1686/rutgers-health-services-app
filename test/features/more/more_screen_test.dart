@@ -104,7 +104,11 @@ void main() {
       await tester.scrollUntilVisible(find.text(paragraph), 400);
       expect(find.text(paragraph), findsOneWidget);
     }
-    expect(find.textContaining('not uploaded'), findsOneWidget);
-    expect(find.textContaining('does not save a trail'), findsOneWidget);
+    final all = kProtectsYouParagraphs.join(' ');
+    expect(all, contains('not uploaded'));
+    expect(all, contains('a trail of where you go'));
+    // H4: say where a location goes instead of claiming it is never shared.
+    expect(all, contains('OpenStreetMap'));
+    expect(all, contains('Google Places'));
   });
 }

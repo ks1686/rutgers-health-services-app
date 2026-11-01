@@ -11,10 +11,15 @@ const kProtectsYouParagraphs = <String>[
       'There is no cloud account for them.',
   'The phone stores them with its built-in secure storage. This app has no '
       'ads and does not track how you use it. You do not need an account.',
-  'Nearby can use your location one time if you tap that choice. It sorts '
-      'the list and then drops the location. It does not save a trail of '
-      'where you go. You can pick a town instead. Saying no does not block '
-      'Nearby, Learn, or Help Now.',
+  'Nearby can use your location one time if you tap that choice. To find '
+      'places, the location or the town you pick is sent to OpenStreetMap '
+      'map services (Nominatim and Overpass). If this build has Google '
+      'Places turned on, it goes to Google too. The map pictures come from '
+      'CARTO, which can see the area the map shows. This app does not save '
+      'your location or a trail of where you go. You can pick a town '
+      'instead. Saying no does not block Nearby, Learn, or Help Now.',
+  'On Android, this app turns off Google backup, so My Health, settings, '
+      'and saved places are not copied to the cloud or to a new phone.',
   'An optional PIN can hide My Health. It never blocks Nearby, Learn, or '
       'Help Now.',
   'After a PIN is set, you can use a fingerprint to open My Health. The '
