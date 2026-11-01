@@ -105,8 +105,10 @@ class DisclaimerScreen extends StatelessWidget {
   }
 }
 
-/// Pinned footer. Its labels grow with the text size up to [maxTextScale],
-/// so all three buttons fit on a small phone even at the largest setting.
+/// Pinned footer. Its labels follow the phone's text size with no cap
+/// (ACC-1). If the three buttons would take more than [maxHeightShare] of
+/// the screen, the footer scrolls on its own so the warning above stays
+/// visible and every button can still be reached.
 class _DisclaimerActions extends StatelessWidget {
   const _DisclaimerActions({
     required this.onCall911,
@@ -114,7 +116,7 @@ class _DisclaimerActions extends StatelessWidget {
     required this.onAcknowledged,
   });
 
-  static const maxTextScale = 1.5;
+  static const maxHeightShare = 0.6;
 
   final VoidCallback onCall911;
   final VoidCallback onCall988;
@@ -122,16 +124,17 @@ class _DisclaimerActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: maxTextScale,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          border: const Border(top: BorderSide(color: CwcColors.line)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
+    final maxHeight = MediaQuery.sizeOf(context).height * maxHeightShare;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: const Border(top: BorderSide(color: CwcColors.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,

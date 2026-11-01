@@ -8,7 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// failure by the framework, and the buttons must stay on screen.
 void main() {
   const size = Size(360, 640);
-  const scales = [1.0, 1.25, 1.3, 1.5, 1.75, 2.0];
+  // 2.0 is the Android maximum. 3.0 is that with Extra large on top.
+  const scales = [1.0, 1.25, 1.3, 1.5, 1.75, 2.0, 3.0];
 
   Future<bool> pumpAt(WidgetTester tester, double scale) async {
     tester.view.physicalSize = size;
@@ -32,6 +33,13 @@ void main() {
     await tester.pumpAndSettle();
     final understand = find.text('I understand');
     expect(understand, findsOneWidget);
+    // Up to the Android maximum all three show with no scrolling. Above
+    // it the footer scrolls on its own, so each must be reachable that way.
+    final scrollFooter = scale > 2.0;
+    if (scrollFooter) {
+      await tester.ensureVisible(understand);
+      await tester.pumpAndSettle();
+    }
     final rect = tester.getRect(understand);
     expect(
       rect.bottom,
@@ -41,7 +49,15 @@ void main() {
     for (final label in ['Call 911', 'Call 988']) {
       final button = find.text(label);
       expect(button, findsOneWidget, reason: label);
+      if (scrollFooter) {
+        await tester.ensureVisible(button);
+        await tester.pumpAndSettle();
+      }
       expect(tester.getRect(button).bottom, lessThanOrEqualTo(size.height));
+    }
+    if (scrollFooter) {
+      await tester.ensureVisible(understand);
+      await tester.pumpAndSettle();
     }
     await tester.tap(understand);
     await tester.pump();
@@ -56,6 +72,20 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  }
+
+  for (final scale in [2.0, 3.0]) {
+    testWidgets('button labels keep the full text size at $scale', (
+      tester,
+    ) async {
+      await pumpAt(tester, scale);
+      for (final label in ['Call 911', 'Call 988', 'I understand']) {
+        final scaler = MediaQuery.textScalerOf(
+          tester.element(find.text(label)),
+        );
+        expect(scaler.scale(20), closeTo(20 * scale, 0.01), reason: label);
+      }
+    });
   }
 
   testWidgets('long body text scrolls at text scale 2.0', (tester) async {
