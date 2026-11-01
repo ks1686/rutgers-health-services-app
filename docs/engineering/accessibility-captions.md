@@ -10,10 +10,10 @@ video (#35).
   (`assets/content/captions/`). How to Use plays those captions on this phone.
   Captions stay available with no internet. Playback starts only when the
   person presses play.
-- **Optional video file:** downloaded only on Wi-Fi, then kept on the phone
-  for offline playback. Mobile data and an unknown network do not start a
-  download. A saved file can play again with no connection. Files longer than
-  90 seconds are refused.
+- **Video files:** this build ships none and has no downloader. A
+  `downloadUrl` in `how_to.json` is ignored. If a video file is added later,
+  it must download only on Wi-Fi, stay on the phone for offline playback, and
+  be 90 seconds or less.
 - **Video on another site** (a browser or the source app): do not re-host it
   and do not embed a player that strips captions. Use that site's own captions.
 
@@ -46,7 +46,7 @@ at the figures above. The wallet line on the scarlet card is solid white at
 ## Low-power phones
 
 - The Nearby map stays off until someone turns it on.
-- Tutorial video does not play by itself and does not download off Wi-Fi.
+- Tutorial captions do not play by themselves, and nothing downloads a video.
 - Step goals use a number the person enters. The app does not run a step
   sensor in the background.
 - Wellness nudges are in the app. They are not a background alarm.
