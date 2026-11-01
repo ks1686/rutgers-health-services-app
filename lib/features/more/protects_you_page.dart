@@ -13,7 +13,8 @@ const kProtectsYouParagraphs = <String>[
       'ads and does not track how you use it. You do not need an account.',
   'Nearby can use your location one time if you tap that choice. To find '
       'places, the location or the town you pick is sent to OpenStreetMap '
-      'map services (Nominatim and Overpass). If this build has Google '
+      'map services: Nominatim, and Overpass servers run by FOSSGIS, Kumi '
+      'Systems, and private.coffee. If this build has Google '
       'Places turned on, it goes to Google too. The map pictures come from '
       'CARTO, which can see the area the map shows. This app does not save '
       'your location or a trail of where you go. You can pick a town '

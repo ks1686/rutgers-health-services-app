@@ -93,6 +93,9 @@ class _FakeOverpass implements OsmOverpassSource {
   Duration get requestTimeout => const Duration(seconds: 1);
 
   @override
+  Duration get totalBudget => const Duration(seconds: 1);
+
+  @override
   Future<List<NearbyResource>> fetch(
     GeoPoint area, {
     DateTime? fetchedAt,

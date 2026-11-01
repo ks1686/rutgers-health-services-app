@@ -25,7 +25,7 @@ class NominatimGeocode {
     this._client, {
     this.userAgent = kNearbyOsmUserAgent,
     this.baseUrl = 'https://nominatim.openstreetmap.org',
-    this.requestTimeout = const Duration(seconds: 10),
+    this.requestTimeout = const Duration(seconds: 8),
     this.retryBackoff = const Duration(milliseconds: 600),
   });
 
