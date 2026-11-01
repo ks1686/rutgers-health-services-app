@@ -229,6 +229,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<NearbyFetchResult> _boot() async {
+    final eraseEpoch = mounted ? NearbyEraseEpochScope.maybeOf(context) : null;
     final prefs = await _tryShared();
     final client = http.Client();
     _ownedClient = client;
@@ -236,6 +237,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
       client,
       config: widget.config,
       cache: prefs == null ? InMemoryNearbyCache() : PrefsNearbyCache(prefs),
+      eraseEpoch: eraseEpoch,
     );
     _repositoryReady = true;
     return _lookupTown();

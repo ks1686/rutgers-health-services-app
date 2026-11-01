@@ -45,6 +45,9 @@ class _StubRepository implements NearbyRepository {
   NearbyCache? get cache => null;
 
   @override
+  NearbyEraseEpoch? get eraseEpoch => null;
+
+  @override
   NominatimGeocode get geocoder => throw UnimplementedError();
 
   @override

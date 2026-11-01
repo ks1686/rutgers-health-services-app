@@ -7,6 +7,7 @@ import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
 import 'features/my_health/health_auto_lock.dart';
 import 'features/my_health/health_routes.dart';
+import 'features/nearby/data/nearby_cache.dart';
 import 'features/nearby/data/nearby_favorites.dart';
 import 'features/nearby/data/nearby_repository.dart';
 import 'features/my_health/data/health_store.dart';
@@ -30,6 +31,7 @@ class CwcApp extends StatefulWidget {
     this.disclaimerAcknowledged = false,
     this.openSharedPreferences,
     this.openHealthStore,
+    this.nearbyEraseEpoch,
   });
 
   /// Injected in tests to simulate a phone whose app storage will not open.
@@ -54,12 +56,16 @@ class CwcApp extends StatefulWidget {
   /// shows it again. It is not stored on the phone.
   final bool disclaimerAcknowledged;
 
+  /// Injected in tests to see Erase bump it. Otherwise the app makes one.
+  final NearbyEraseEpoch? nearbyEraseEpoch;
+
   @override
   State<CwcApp> createState() => _CwcAppState();
 }
 
 class _CwcAppState extends State<CwcApp> {
   final _healthRoutes = HealthRouteObserver();
+  late final _eraseEpoch = widget.nearbyEraseEpoch ?? NearbyEraseEpoch();
   HealthController? _owned;
   HealthController? _health;
   AppPreferences? _prefs;
@@ -169,19 +175,22 @@ class _CwcAppState extends State<CwcApp> {
               preferences: preferences,
               child: NearbyFavoritesScope(
                 store: _favorites!,
-                child: HealthScope(
-                  controller: _health!,
-                  child: HealthAutoLock(
+                child: NearbyEraseEpochScope(
+                  epoch: _eraseEpoch,
+                  child: HealthScope(
                     controller: _health!,
-                    routes: _healthRoutes,
-                    child: MediaQuery(
-                      data: media.copyWith(
-                        textScaler: combineTextScaler(
-                          media.textScaler,
-                          preferences.textSize,
+                    child: HealthAutoLock(
+                      controller: _health!,
+                      routes: _healthRoutes,
+                      child: MediaQuery(
+                        data: media.copyWith(
+                          textScaler: combineTextScaler(
+                            media.textScaler,
+                            preferences.textSize,
+                          ),
                         ),
+                        child: child ?? const SizedBox.shrink(),
                       ),
-                      child: child ?? const SizedBox.shrink(),
                     ),
                   ),
                 ),

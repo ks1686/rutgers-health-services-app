@@ -167,6 +167,7 @@ void main() {
     required _FakeOverpass overpass,
     DeviceLocationSource? deviceLocation,
     NearbyCache? cache,
+    NearbyEraseEpoch? eraseEpoch,
   }) {
     return NearbyRepository(
       config: liveConfig,
@@ -175,6 +176,7 @@ void main() {
       overpass: overpass,
       deviceLocation: deviceLocation,
       cache: cache,
+      eraseEpoch: eraseEpoch,
       clock: () => now,
     );
   }
@@ -617,7 +619,9 @@ void main() {
   test('a lookup started before Erase saves nothing after it', () async {
     final cache = InMemoryNearbyCache();
     final geocode = _GatedGeocode(area);
+    final epoch = NearbyEraseEpoch();
     final repo = build(
+      eraseEpoch: epoch,
       geocode: geocode,
       google: _FakeGoogle(
         GooglePlacesOk([
@@ -629,7 +633,7 @@ void main() {
     );
 
     final pending = repo.fetch(query);
-    NearbyEraseEpoch.bump();
+    epoch.bump();
     geocode.gate.complete();
     final result = await pending;
 

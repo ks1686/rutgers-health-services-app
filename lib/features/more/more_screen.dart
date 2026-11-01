@@ -82,7 +82,7 @@ class MoreScreen extends StatelessWidget {
       return;
     }
     // Lookups already running must not save their town after this.
-    NearbyEraseEpoch.bump();
+    NearbyEraseEpochScope.maybeOf(context)?.bump();
     var complete = await health.eraseAll();
     try {
       // M1: one list of every key, so a new one cannot be missed here.

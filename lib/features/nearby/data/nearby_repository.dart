@@ -32,6 +32,7 @@ class NearbyRepository {
     required this.overpass,
     this.deviceLocation,
     this.cache,
+    this.eraseEpoch,
     Clock? clock,
   }) : _clock = clock ?? (() => DateTime.now().toUtc());
 
@@ -40,6 +41,7 @@ class NearbyRepository {
     http.Client client, {
     required NearbyConfig config,
     NearbyCache? cache,
+    NearbyEraseEpoch? eraseEpoch,
   }) {
     return NearbyRepository(
       config: config,
@@ -51,6 +53,7 @@ class NearbyRepository {
       overpass: OsmOverpassSource(client),
       deviceLocation: GeolocatorDeviceLocation(),
       cache: cache,
+      eraseEpoch: eraseEpoch,
     );
   }
 
@@ -64,18 +67,22 @@ class NearbyRepository {
   /// memory, and never persisted or logged.
   final DeviceLocationSource? deviceLocation;
   final NearbyCache? cache;
+
+  /// Bumped by Erase. Null in tests that do not erase; then writes are not
+  /// checked.
+  final NearbyEraseEpoch? eraseEpoch;
   final Clock _clock;
 
   Future<NearbyFetchResult> fetch(NearbyQuery query) async {
     final when = _clock();
     // Erase may run while this lookup waits on the network. Saving after it
     // would bring the erased town back, so compare before every write.
-    final epoch = NearbyEraseEpoch.value;
+    final epoch = eraseEpoch?.value;
 
     GeoPoint area;
     try {
       area = await geocoder.geocode(query);
-      if (NearbyEraseEpoch.value == epoch) {
+      if (eraseEpoch?.value == epoch) {
         await cache?.writePoint(query, area);
       }
     } catch (e) {
@@ -282,10 +289,10 @@ class NearbyRepository {
 
   Future<NearbyFetchResult> _store(
     NearbyQuery query,
-    int epoch,
+    int? epoch,
     NearbyFetchResult result,
   ) async {
-    if (result.resources.isNotEmpty && NearbyEraseEpoch.value == epoch) {
+    if (result.resources.isNotEmpty && eraseEpoch?.value == epoch) {
       await cache?.write(query, result);
     }
     return result;
