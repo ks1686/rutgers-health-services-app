@@ -398,6 +398,9 @@ class _DialItYourselfDialog extends StatelessWidget {
     final number = phoneForDisplay(uri.path);
     return AlertDialog(
       title: Text(isText ? 'Text this number' : 'Dial this number'),
+      // Scrolls so the number and the steps stay reachable on a small
+      // phone at the largest text size.
+      scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
