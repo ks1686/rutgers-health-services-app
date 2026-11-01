@@ -33,19 +33,31 @@ class _HelpNowScreenState extends State<HelpNowScreen> {
     _loadCardPref();
   }
 
+  /// The card choice is a nice-to-have. If storage fails it starts off and
+  /// the helplines below still work.
   Future<void> _loadCardPref() async {
-    final prefs = await SharedPreferences.getInstance();
+    var show = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      show = prefs.getBool(helpNowEmergencyCardPref) ?? false;
+    } catch (_) {
+      show = false;
+    }
     if (!mounted) return;
     setState(() {
-      _showEmergencyCard = prefs.getBool(helpNowEmergencyCardPref) ?? false;
+      _showEmergencyCard = show;
       _cardPrefReady = true;
     });
   }
 
   Future<void> _setShowCard(bool value) async {
     setState(() => _showEmergencyCard = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(helpNowEmergencyCardPref, value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(helpNowEmergencyCardPref, value);
+    } catch (_) {
+      // Kept for this visit only.
+    }
   }
 
   Future<void> _open(Uri uri) async {

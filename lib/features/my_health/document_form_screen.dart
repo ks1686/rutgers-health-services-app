@@ -9,6 +9,7 @@ import 'data/document_file_picker.dart';
 import 'data/health_controller.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 
 class DocumentFormScreen extends StatefulWidget {
   const DocumentFormScreen({super.key, this.existing, this.pickFile});
@@ -60,17 +61,25 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final controller = HealthScope.of(context);
     final bytes = _fileBytes;
-    await controller.upsertDocument(
-      HealthDocument(
-        id: widget.existing?.id ?? HealthController.newId(),
-        kind: _kind,
-        title: _title.text.trim(),
-        body: _body.text.trim(),
-        fileName: bytes == null ? null : _fileName,
-        fileBase64: bytes == null ? null : base64Encode(bytes),
-      ),
+    final document = HealthDocument(
+      id: widget.existing?.id ?? HealthController.newId(),
+      kind: _kind,
+      title: _title.text.trim(),
+      body: _body.text.trim(),
+      fileName: bytes == null ? null : _fileName,
+      fileBase64: bytes == null ? null : base64Encode(bytes),
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!controller.documentFits(document)) {
+      showCouldNotSave(context, message: kDocumentsFullMessage);
+      return;
+    }
+    final saved = await controller.upsertDocument(document);
+    if (!mounted) return;
+    if (!saved) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _delete() async {
@@ -94,8 +103,13 @@ class _DocumentFormScreenState extends State<DocumentFormScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await HealthScope.of(context).deleteDocument(existing.id);
-    if (mounted) Navigator.of(context).pop();
+    final deleted = await HealthScope.of(context).deleteDocument(existing.id);
+    if (!mounted) return;
+    if (!deleted) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _chooseFile() async {

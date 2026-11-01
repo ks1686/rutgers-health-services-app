@@ -14,6 +14,7 @@ import 'document_form_screen.dart';
 import 'health_scope.dart';
 import 'medication_form_screen.dart';
 import 'provider_form_screen.dart';
+import 'save_feedback.dart';
 import 'visible_health.dart';
 import 'wallet_card_screen.dart';
 
@@ -59,12 +60,17 @@ class MyHealthScreen extends StatelessWidget {
       );
       return;
     }
-    final ok = await health.setPin(pin);
+    final valid = HealthController.isValidPin(pin);
+    final ok = valid && await health.setPin(pin);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'PIN saved on this phone.' : 'PIN must be 4–8 digits.',
+          ok
+              ? 'PIN saved on this phone.'
+              : valid
+              ? 'Could not save the PIN on this phone. Try again.'
+              : 'PIN must be 4 to 8 digits.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -158,6 +164,9 @@ class MyHealthScreen extends StatelessWidget {
         if (!health.ready) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (health.storageUnavailable) {
+          return const _StorageUnavailableView();
+        }
         if (!health.isUnlocked) {
           return _PinLockView(
             health: health,
@@ -182,11 +191,15 @@ class MyHealthScreen extends StatelessWidget {
               onLock: health.hasPin ? health.lock : null,
               onClearPin: health.hasPin
                   ? () async {
-                      await health.clearPin();
+                      final removed = await health.clearPin();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('PIN removed from this phone.'),
+                          SnackBar(
+                            content: Text(
+                              removed
+                                  ? 'PIN removed from this phone.'
+                                  : 'Could not remove the PIN. Try again.',
+                            ),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -209,7 +222,8 @@ class MyHealthScreen extends StatelessWidget {
                     );
                   }
                 } else {
-                  await health.disableBiometricUnlock();
+                  final off = await health.disableBiometricUnlock();
+                  if (!off && context.mounted) showCouldNotSave(context);
                 }
               },
             ),
@@ -450,6 +464,36 @@ class _DoctorFirstPrompt extends StatelessWidget {
   }
 }
 
+/// H1. Secure storage would not open. Nothing is shown or saved, so the
+/// record already on the phone is never replaced by an empty one.
+class _StorageUnavailableView extends StatelessWidget {
+  const _StorageUnavailableView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: const [
+        Icon(Icons.lock_clock_outlined, size: 48, color: CwcColors.sub),
+        SizedBox(height: 16),
+        Text(
+          'My Health cannot open on this phone right now',
+          key: ValueKey('my-health-storage-unavailable'),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Nothing was changed or deleted. Help Now, Nearby, and Learn still '
+          'work. Close the app all the way and open it again to try once more.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: CwcColors.sub, fontSize: 18, height: 1.4),
+        ),
+      ],
+    );
+  }
+}
+
 class _PinLockView extends StatefulWidget {
   const _PinLockView({required this.health, required this.onEnterPin});
 
@@ -555,9 +599,11 @@ class _EmergencyCardChoices extends StatelessWidget {
   final HealthController health;
 
   Future<void> _set(
+    BuildContext context,
     EmergencyCardChoices Function(EmergencyCardChoices current) change,
-  ) {
-    return health.updateEmergencyCard(change(health.emergencyCard));
+  ) async {
+    final saved = await health.updateEmergencyCardWith(change);
+    if (!saved && context.mounted) showCouldNotSave(context);
   }
 
   @override
@@ -584,39 +630,45 @@ class _EmergencyCardChoices extends StatelessWidget {
               label: 'Emergency contact',
               value: choices.showEmergencyContact,
               onChanged: (on) =>
-                  _set((c) => c.copyWith(showEmergencyContact: on)),
+                  _set(context, (c) => c.copyWith(showEmergencyContact: on)),
             ),
             _ChoiceSwitch(
               label: 'Conditions',
               value: choices.showConditions,
-              onChanged: (on) => _set((c) => c.copyWith(showConditions: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showConditions: on)),
             ),
             _ChoiceSwitch(
               label: 'Medications',
               value: choices.showMedications,
-              onChanged: (on) => _set((c) => c.copyWith(showMedications: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showMedications: on)),
             ),
             _ChoiceSwitch(
               label: 'Providers',
               value: choices.showProviders,
-              onChanged: (on) => _set((c) => c.copyWith(showProviders: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showProviders: on)),
             ),
             _ChoiceSwitch(
               label: 'Appointment notes',
               value: choices.showAppointmentNotes,
               onChanged: (on) =>
-                  _set((c) => c.copyWith(showAppointmentNotes: on)),
+                  _set(context, (c) => c.copyWith(showAppointmentNotes: on)),
             ),
             _ChoiceSwitch(
               label: 'Psychiatric advance directive',
               value: choices.showPsychiatricAdvanceDirective,
-              onChanged: (on) =>
-                  _set((c) => c.copyWith(showPsychiatricAdvanceDirective: on)),
+              onChanged: (on) => _set(
+                context,
+                (c) => c.copyWith(showPsychiatricAdvanceDirective: on),
+              ),
             ),
             _ChoiceSwitch(
               label: 'Show service or support animal',
               value: choices.showServiceAnimal,
-              onChanged: (on) => _set((c) => c.copyWith(showServiceAnimal: on)),
+              onChanged: (on) =>
+                  _set(context, (c) => c.copyWith(showServiceAnimal: on)),
             ),
           ],
         ),

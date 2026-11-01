@@ -19,9 +19,8 @@ void main() {
       MaterialApp(
         theme: buildCwcTheme(),
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(scale)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(scale)),
           child: child!,
         ),
         home: DisclaimerScreen(
@@ -50,12 +49,13 @@ void main() {
   }
 
   for (final scale in scales) {
-    testWidgets('360x640 at text scale $scale: no overflow, buttons reachable', (
-      tester,
-    ) async {
-      expect(await pumpAt(tester, scale), isTrue);
-      expect(tester.takeException(), isNull);
-    });
+    testWidgets(
+      '360x640 at text scale $scale: no overflow, buttons reachable',
+      (tester) async {
+        expect(await pumpAt(tester, scale), isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('long body text scrolls at text scale 2.0', (tester) async {

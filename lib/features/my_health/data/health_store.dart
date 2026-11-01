@@ -24,3 +24,21 @@ class InMemoryHealthStore implements HealthStore {
     _snapshot = const HealthSnapshot(initialized: true);
   }
 }
+
+/// Stands in when the phone's secure storage cannot be opened. Every call
+/// fails, so the controller shows My Health as unavailable and saves nothing.
+class UnavailableHealthStore implements HealthStore {
+  const UnavailableHealthStore();
+
+  @override
+  Future<HealthSnapshot> read() =>
+      Future.error(StateError('My Health storage is unavailable.'));
+
+  @override
+  Future<void> write(HealthSnapshot snapshot) =>
+      Future.error(StateError('My Health storage is unavailable.'));
+
+  @override
+  Future<void> erase() =>
+      Future.error(StateError('My Health storage is unavailable.'));
+}

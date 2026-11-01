@@ -8,6 +8,7 @@ import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../settings/app_preferences.dart';
 import '../settings/shared_preferences_store.dart';
+import 'data/nearby_cache.dart';
 import 'data/nearby_config.dart';
 import 'data/nearby_distance.dart';
 import 'data/nearby_errors.dart';
@@ -166,7 +167,7 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
 
   Future<void> _loadFavorites() async {
     final store = _favoriteStore ??= _ownedFavoriteStore =
-        PrefsNearbyFavoriteStore(await SharedPreferences.getInstance());
+        await _openOwnFavorites();
     store.addListener(_onFavoritesChanged);
     _favoriteIds = await store.read();
   }
@@ -186,9 +187,28 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
     setState(() => _favoriteIds = next);
   }
 
+  /// Storage trouble never blocks Nearby. Without it, stars and the town
+  /// last only for this visit.
+  Future<SharedPreferences?> _tryShared() async {
+    try {
+      return await SharedPreferences.getInstance();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<NearbyFavoriteStore> _openOwnFavorites() async {
+    final shared = await _tryShared();
+    return shared == null
+        ? MemoryNearbyFavoriteStore()
+        : PrefsNearbyFavoriteStore(shared);
+  }
+
   Future<AppPreferences> _openOwnPrefs() async {
-    final shared = await SharedPreferences.getInstance();
-    final own = AppPreferences.fromStore(SharedPreferencesStore(shared));
+    final shared = await _tryShared();
+    final own = AppPreferences.fromStore(
+      shared == null ? MemoryPreferenceStore() : SharedPreferencesStore(shared),
+    );
     _ownedPrefs = own;
     _prefs = own;
     return own;
@@ -209,13 +229,13 @@ class _NearbyLiveViewState extends State<_NearbyLiveView> {
   }
 
   Future<NearbyFetchResult> _boot() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _tryShared();
     final client = http.Client();
     _ownedClient = client;
     _repository = NearbyRepository.fromClient(
       client,
       config: widget.config,
-      cache: PrefsNearbyCache(prefs),
+      cache: prefs == null ? InMemoryNearbyCache() : PrefsNearbyCache(prefs),
     );
     _repositoryReady = true;
     return _lookupTown();

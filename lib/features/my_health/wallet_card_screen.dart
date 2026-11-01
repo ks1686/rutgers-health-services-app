@@ -7,6 +7,7 @@ import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 import 'visible_health.dart';
 
 class WalletCardScreen extends StatelessWidget {
@@ -78,13 +79,21 @@ class WalletCardScreen extends StatelessWidget {
       ),
     );
     if (saved == true && context.mounted) {
-      await health.updateWallet(
+      final ok = await health.updateWallet(
         HealthWallet(
           emergencyContact: contact.text.trim(),
           conditions: conditions.text.trim(),
           serviceAnimal: serviceAnimal.text.trim(),
         ),
       );
+      if (!ok && context.mounted) {
+        showCouldNotSave(
+          context,
+          message:
+              'Could not save the wallet details on this phone. '
+              'Try again.',
+        );
+      }
     }
     contact.dispose();
     conditions.dispose();

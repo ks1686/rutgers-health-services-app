@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,6 +7,7 @@ import 'features/my_health/data/biometric_unlock.dart';
 import 'features/my_health/data/health_controller.dart';
 import 'features/nearby/data/nearby_favorites.dart';
 import 'features/nearby/data/nearby_repository.dart';
+import 'features/my_health/data/health_store.dart';
 import 'features/my_health/data/health_store_factory.dart';
 import 'features/my_health/data/local_reminder_scheduler.dart';
 import 'features/my_health/health_scope.dart';
@@ -24,7 +26,15 @@ class CwcApp extends StatefulWidget {
     this.nearbyRepository,
     this.showSessionQuestions = kShowSessionQuestions,
     this.disclaimerAcknowledged = false,
+    this.openSharedPreferences,
+    this.openHealthStore,
   });
+
+  /// Injected in tests to simulate a phone whose app storage will not open.
+  final Future<SharedPreferences> Function()? openSharedPreferences;
+
+  /// Injected in tests. Gets the app preferences when they opened, else null.
+  final Future<HealthStore> Function(SharedPreferences? prefs)? openHealthStore;
 
   /// Injected in tests. When null, opens Keystore/Keychain-backed store.
   final HealthController? healthController;
@@ -53,7 +63,6 @@ class _CwcAppState extends State<CwcApp> {
   NearbyFavoriteStore? _favorites;
   bool _booting = true;
   late bool _disclaimerAck;
-  String? _bootError;
 
   @override
   void initState() {
@@ -61,13 +70,30 @@ class _CwcAppState extends State<CwcApp> {
     _bootstrap();
   }
 
+  /// Never leaves the app on a dead screen. If settings or My Health
+  /// storage fail to open, the tabs still load: settings fall back to memory
+  /// for this session and My Health shows a "storage unavailable" notice.
+  /// Help Now, Nearby, and Learn keep working (H1).
   Future<void> _bootstrap() async {
-    final injected = widget.healthController;
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = AppPreferences.fromStore(SharedPreferencesStore(prefs));
-    _prefs!.addListener(_onPreferencesChanged);
-    _favorites = PrefsNearbyFavoriteStore(prefs);
     _disclaimerAck = widget.disclaimerAcknowledged;
+    SharedPreferences? shared;
+    try {
+      shared =
+          await (widget.openSharedPreferences ??
+              SharedPreferences.getInstance)();
+    } catch (e) {
+      if (kDebugMode) debugPrint('App settings storage failed to open: $e');
+    }
+    if (shared != null) {
+      _prefs = AppPreferences.fromStore(SharedPreferencesStore(shared));
+      _favorites = PrefsNearbyFavoriteStore(shared);
+    } else {
+      _prefs = AppPreferences.fromStore(MemoryPreferenceStore());
+      _favorites = MemoryNearbyFavoriteStore();
+    }
+    _prefs!.addListener(_onPreferencesChanged);
+
+    final injected = widget.healthController;
     if (injected != null) {
       _health = injected;
       await _health!.setRemindersSuppressed(_prefs!.helperHiding);
@@ -75,19 +101,28 @@ class _CwcAppState extends State<CwcApp> {
       if (mounted) setState(() => _booting = false);
       return;
     }
+    HealthStore store;
     try {
-      final store = await HealthStoreFactory.openSecure();
-      _owned = HealthController(
-        store,
-        reminders: LocalReminderScheduler(),
-        biometrics: LocalAuthBiometricAuthenticator(),
-      );
-      _health = _owned;
-      await _health!.setRemindersSuppressed(_prefs!.helperHiding);
-      await _health!.load();
+      final open =
+          widget.openHealthStore ??
+          (prefs) => HealthStoreFactory.openSecure(prefs: prefs);
+      store = await open(shared);
     } catch (e) {
-      _bootError = 'Could not open secure My Health storage.';
+      if (kDebugMode) debugPrint('My Health storage failed to open: $e');
+      store = const UnavailableHealthStore();
     }
+    _owned = HealthController(
+      store,
+      reminders: LocalReminderScheduler(),
+      biometrics: LocalAuthBiometricAuthenticator(),
+    );
+    _health = _owned;
+    try {
+      await _health!.setRemindersSuppressed(_prefs!.helperHiding);
+    } catch (_) {
+      // Reminders are best effort. My Health still opens.
+    }
+    await _health!.load();
     if (mounted) setState(() => _booting = false);
   }
 
@@ -113,24 +148,6 @@ class _CwcAppState extends State<CwcApp> {
         debugShowCheckedModeBanner: false,
         theme: buildCwcTheme(),
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
-    }
-    if (_health == null) {
-      return MaterialApp(
-        title: 'CWC Health App',
-        debugShowCheckedModeBanner: false,
-        theme: buildCwcTheme(),
-        home: Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                _bootError ?? 'My Health storage is unavailable.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ),
       );
     }
     return MaterialApp(

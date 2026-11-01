@@ -17,9 +17,21 @@ class HealthStoreFactory {
     final secure = SecureHealthStore(
       secureStrings ?? PlatformSecureStringStore(),
     );
-    final shared = prefs ?? await SharedPreferences.getInstance();
-    await migrateLegacyPrefsIfNeeded(secure: secure, prefs: shared);
+    final shared = prefs ?? await _tryPrefs();
+    // Without app settings there is nothing to migrate. The secure record
+    // still opens.
+    if (shared != null) {
+      await migrateLegacyPrefsIfNeeded(secure: secure, prefs: shared);
+    }
     return secure;
+  }
+
+  static Future<SharedPreferences?> _tryPrefs() async {
+    try {
+      return await SharedPreferences.getInstance();
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Copies plaintext prefs → secure store once, then deletes the prefs key.

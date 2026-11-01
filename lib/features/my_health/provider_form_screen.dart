@@ -5,6 +5,7 @@ import '../../widgets/help_now_button.dart';
 import 'data/health_controller.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
+import 'save_feedback.dart';
 
 class ProviderFormScreen extends StatefulWidget {
   const ProviderFormScreen({super.key, this.existing});
@@ -50,7 +51,7 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
     final id = widget.existing?.id ?? HealthController.newId();
     final label = _portalLabel.text.trim();
     final url = _portalUrl.text.trim();
-    await controller.upsertProvider(
+    final saved = await controller.upsertProvider(
       HealthProvider(
         id: id,
         name: _name.text.trim(),
@@ -60,7 +61,12 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
         portalUrl: url.isEmpty ? null : url,
       ),
     );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (!saved) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _delete() async {
@@ -84,8 +90,13 @@ class _ProviderFormScreenState extends State<ProviderFormScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    await HealthScope.of(context).deleteProvider(existing.id);
-    if (mounted) Navigator.of(context).pop();
+    final deleted = await HealthScope.of(context).deleteProvider(existing.id);
+    if (!mounted) return;
+    if (!deleted) {
+      showCouldNotSave(context);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   @override

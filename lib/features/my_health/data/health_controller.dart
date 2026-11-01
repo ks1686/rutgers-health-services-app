@@ -25,7 +25,11 @@ class HealthController extends ChangeNotifier {
   bool _unlocked = false;
   bool _biometricAvailable = false;
   bool _suppressReminders = false;
+  bool _storageUnavailable = false;
   String? _error;
+
+  /// Saves run one at a time so a quick second change builds on the first.
+  Future<void> _saveQueue = Future<void>.value();
 
   HealthSnapshot get snapshot => _snapshot;
   bool get ready => _ready;
@@ -34,6 +38,23 @@ class HealthController extends ChangeNotifier {
   bool get biometricAvailable => _biometricAvailable;
   bool get biometricEnabled => _snapshot.biometricEnabled;
   String? get error => _error;
+
+  /// True when the saved record could not be opened at all. My Health then
+  /// shows a notice and refuses to save, so an empty screen never replaces
+  /// what is already on the phone. Help Now, Nearby, and Learn still work.
+  bool get storageUnavailable => _storageUnavailable;
+
+  /// Files share one encrypted record, so their combined size is capped.
+  /// About 3 MB of base64 text, which is roughly 2.25 MB of files.
+  static const maxTotalFileChars = 3 * 1024 * 1024;
+
+  /// Whether [document] fits in the file budget next to the other papers.
+  bool documentFits(HealthDocument document) =>
+      _fileChars(_withItem(documents, document, (row) => row.id)) <=
+      maxTotalFileChars;
+
+  static int _fileChars(List<HealthDocument> docs) =>
+      docs.fold(0, (sum, d) => sum + (d.fileBase64?.length ?? 0));
 
   List<HealthAppointment> get appointments => _snapshot.appointments;
   List<HealthMedication> get medications => _snapshot.medications;
@@ -77,6 +98,7 @@ class HealthController extends ChangeNotifier {
       return;
     } catch (e) {
       _error = 'Could not load My Health.';
+      _storageUnavailable = true;
       _ready = true;
     }
     notifyListeners();
@@ -90,11 +112,31 @@ class HealthController extends ChangeNotifier {
     return const HealthSnapshot(initialized: true);
   }
 
-  Future<void> _persist(HealthSnapshot next) async {
-    _snapshot = next;
-    await _store.write(next);
+  /// Writes first and only then shows the change. Returns false, leaving the
+  /// screen and the saved record as they were, when the write fails.
+  Future<bool> _persist(
+    HealthSnapshot Function(HealthSnapshot current) change,
+  ) {
+    final result = _saveQueue.then((_) => _apply(change));
+    _saveQueue = result.then<void>((_) {});
+    return result;
+  }
+
+  Future<bool> _apply(
+    HealthSnapshot Function(HealthSnapshot current) change,
+  ) async {
+    if (_storageUnavailable) return false;
+    try {
+      final next = change(_snapshot);
+      await _store.write(next);
+      _snapshot = next;
+    } catch (e) {
+      if (kDebugMode) debugPrint('My Health save failed: $e');
+      return false;
+    }
     notifyListeners();
     await _syncReminders();
+    return true;
   }
 
   /// Cancels pending My Health alerts while Helper Mode is on, then restores
@@ -130,11 +172,11 @@ class HealthController extends ChangeNotifier {
     }
   }
 
-  Future<void> upsertAppointment(HealthAppointment appointment) {
+  Future<bool> upsertAppointment(HealthAppointment appointment) {
     return _persist(
-      _snapshot.copyWith(
+      (current) => current.copyWith(
         appointments: _withItem(
-          _snapshot.appointments,
+          current.appointments,
           appointment,
           (row) => row.id,
         ),
@@ -142,19 +184,19 @@ class HealthController extends ChangeNotifier {
     );
   }
 
-  Future<void> deleteAppointment(String id) {
+  Future<bool> deleteAppointment(String id) {
     return _persist(
-      _snapshot.copyWith(
-        appointments: _withoutId(_snapshot.appointments, id, (row) => row.id),
+      (current) => current.copyWith(
+        appointments: _withoutId(current.appointments, id, (row) => row.id),
       ),
     );
   }
 
-  Future<void> upsertMedication(HealthMedication medication) {
+  Future<bool> upsertMedication(HealthMedication medication) {
     return _persist(
-      _snapshot.copyWith(
+      (current) => current.copyWith(
         medications: _withItem(
-          _snapshot.medications,
+          current.medications,
           medication,
           (row) => row.id,
         ),
@@ -162,42 +204,49 @@ class HealthController extends ChangeNotifier {
     );
   }
 
-  Future<void> deleteMedication(String id) {
+  Future<bool> deleteMedication(String id) {
     return _persist(
-      _snapshot.copyWith(
-        medications: _withoutId(_snapshot.medications, id, (row) => row.id),
+      (current) => current.copyWith(
+        medications: _withoutId(current.medications, id, (row) => row.id),
       ),
     );
   }
 
-  Future<void> upsertProvider(HealthProvider provider) {
+  Future<bool> upsertProvider(HealthProvider provider) {
     return _persist(
-      _snapshot.copyWith(
-        providers: _withItem(_snapshot.providers, provider, (row) => row.id),
+      (current) => current.copyWith(
+        providers: _withItem(current.providers, provider, (row) => row.id),
       ),
     );
   }
 
-  Future<void> deleteProvider(String id) {
+  Future<bool> deleteProvider(String id) {
     return _persist(
-      _snapshot.copyWith(
-        providers: _withoutId(_snapshot.providers, id, (row) => row.id),
+      (current) => current.copyWith(
+        providers: _withoutId(current.providers, id, (row) => row.id),
       ),
     );
   }
 
-  Future<void> upsertDocument(HealthDocument document) {
-    return _persist(
-      _snapshot.copyWith(
-        documents: _withItem(_snapshot.documents, document, (row) => row.id),
-      ),
-    );
+  /// Returns false without saving when the files would pass
+  /// [maxTotalFileChars].
+  Future<bool> upsertDocument(HealthDocument document) async {
+    var tooLarge = false;
+    final ok = await _persist((current) {
+      final docs = _withItem(current.documents, document, (row) => row.id);
+      if (_fileChars(docs) > maxTotalFileChars) {
+        tooLarge = true;
+        throw StateError('My Health files are over the size limit.');
+      }
+      return current.copyWith(documents: docs);
+    });
+    return ok && !tooLarge;
   }
 
-  Future<void> deleteDocument(String id) {
+  Future<bool> deleteDocument(String id) {
     return _persist(
-      _snapshot.copyWith(
-        documents: _withoutId(_snapshot.documents, id, (row) => row.id),
+      (current) => current.copyWith(
+        documents: _withoutId(current.documents, id, (row) => row.id),
       ),
     );
   }
@@ -225,18 +274,32 @@ class HealthController extends ChangeNotifier {
     ];
   }
 
-  Future<void> updateWallet(HealthWallet wallet) async {
-    await _persist(_snapshot.copyWith(wallet: wallet));
+  Future<bool> updateWallet(HealthWallet wallet) {
+    return _persist((current) => current.copyWith(wallet: wallet));
   }
 
-  Future<void> updateEmergencyCard(EmergencyCardChoices choices) async {
-    await _persist(_snapshot.copyWith(emergencyCard: choices));
+  Future<bool> updateEmergencyCard(EmergencyCardChoices choices) {
+    return _persist((current) => current.copyWith(emergencyCard: choices));
+  }
+
+  /// Applies [change] to the choices as saved at the moment the write runs,
+  /// so two quick switch taps both stick.
+  Future<bool> updateEmergencyCardWith(
+    EmergencyCardChoices Function(EmergencyCardChoices current) change,
+  ) {
+    return _persist(
+      (current) =>
+          current.copyWith(emergencyCard: change(current.emergencyCard)),
+    );
   }
 
   /// Sets or replaces the optional My Health PIN (ONB-3). Digits only, 4–8.
   Future<bool> setPin(String pin) async {
     if (!_validPin(pin)) return false;
-    await _persist(_snapshot.copyWith(pinHash: hashPin(pin)));
+    final saved = await _persist(
+      (current) => current.copyWith(pinHash: hashPin(pin)),
+    );
+    if (!saved) return false;
     _unlocked = true;
     notifyListeners();
     return true;
@@ -260,10 +323,14 @@ class HealthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clearPin() async {
-    await _persist(_snapshot.copyWith(clearPinHash: true));
+  Future<bool> clearPin() async {
+    final saved = await _persist(
+      (current) => current.copyWith(clearPinHash: true),
+    );
+    if (!saved) return false;
     _unlocked = true;
     notifyListeners();
+    return true;
   }
 
   /// Turns fingerprint unlock on only after one successful check.
@@ -278,13 +345,12 @@ class HealthController extends ChangeNotifier {
     }
     final result = await _biometrics.authenticate();
     if (result != BiometricResult.success) return false;
-    await _persist(_snapshot.copyWith(biometricEnabled: true));
-    return true;
+    return _persist((current) => current.copyWith(biometricEnabled: true));
   }
 
-  Future<void> disableBiometricUnlock() async {
-    if (!_snapshot.biometricEnabled) return;
-    await _persist(_snapshot.copyWith(biometricEnabled: false));
+  Future<bool> disableBiometricUnlock() async {
+    if (!_snapshot.biometricEnabled) return true;
+    return _persist((current) => current.copyWith(biometricEnabled: false));
   }
 
   /// Unlocks My Health when fingerprint is already enabled and the check works.
@@ -303,13 +369,29 @@ class HealthController extends ChangeNotifier {
   }
 
   /// PRIV-5. Clears personal My Health data (and PIN). Does not re-seed.
-  Future<void> eraseAll() async {
-    await _store.erase();
+  ///
+  /// Returns false, keeping the records on screen, if the phone refused.
+  Future<bool> eraseAll() async {
+    final erased = _saveQueue.then((_) async {
+      try {
+        await _store.erase();
+        return true;
+      } catch (e) {
+        if (kDebugMode) debugPrint('My Health erase failed: $e');
+        return false;
+      }
+    });
+    _saveQueue = erased.then<void>((_) {});
+    if (!await erased) return false;
     _snapshot = const HealthSnapshot(initialized: true);
     _unlocked = true;
     notifyListeners();
     await _syncReminders();
+    return true;
   }
+
+  /// Digits only, 4 to 8 of them.
+  static bool isValidPin(String pin) => _validPin(pin);
 
   static bool _validPin(String pin) {
     if (pin.length < 4 || pin.length > 8) return false;
