@@ -119,6 +119,19 @@ class AppPreferences extends ChangeNotifier {
     return _set(kSessionAnswersPref, sessionAnswersToStored(answers));
   }
 
+  /// Removes every saved key that [test] picks, then notifies once.
+  ///
+  /// Reads the store's live keys too, so keys other parts of the app wrote
+  /// after startup, such as the Nearby cache, are found.
+  Future<void> removeWhere(bool Function(String key) test) async {
+    final keys = {..._values.keys, ...?_store?.values.keys}.where(test);
+    for (final key in keys.toList()) {
+      _values.remove(key);
+      await _store?.remove(key);
+    }
+    notifyListeners();
+  }
+
   Future<void> _set(String key, Object value) => _setAll({key: value});
 
   /// Writes every pair, then notifies once so listeners never see half.
@@ -135,6 +148,7 @@ class AppPreferences extends ChangeNotifier {
 abstract class PreferenceStore {
   Map<String, Object> get values;
   Future<void> write(String key, Object value);
+  Future<void> remove(String key);
 }
 
 class MemoryPreferenceStore implements PreferenceStore {
@@ -147,6 +161,11 @@ class MemoryPreferenceStore implements PreferenceStore {
   @override
   Future<void> write(String key, Object value) async {
     values[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    values.remove(key);
   }
 }
 

@@ -28,6 +28,11 @@ class SharedPreferencesStore implements PreferenceStore {
         await _prefs.setString(key, value.toString());
     }
   }
+
+  @override
+  Future<void> remove(String key) async {
+    await _prefs.remove(key);
+  }
 }
 
 Future<AppPreferences> loadAppPreferences() async {
