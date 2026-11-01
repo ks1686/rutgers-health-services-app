@@ -425,9 +425,7 @@ class _DialItYourselfDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () async {
-            await Clipboard.setData(
-              ClipboardData(text: phoneDigitsOnly(number)),
-            );
+            await Clipboard.setData(ClipboardData(text: phoneDialable(number)));
             if (context.mounted) Navigator.pop(context);
           },
           child: const Text('Copy number'),

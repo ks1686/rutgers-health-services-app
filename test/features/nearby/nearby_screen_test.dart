@@ -404,7 +404,7 @@ void main() {
       await tester.tap(find.text('Call'));
       await tester.pumpAndSettle();
       expect(opened.single.scheme, 'tel');
-      expect(opened.single.path, '17325550142');
+      expect(opened.single.path, '+17325550142');
 
       await tester.tap(find.text('Directions'));
       await tester.pumpAndSettle();
