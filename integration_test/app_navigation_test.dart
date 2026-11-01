@@ -1,4 +1,5 @@
 import 'package:cwc_health_app/app.dart';
+import 'package:cwc_health_app/features/my_health/data/health_store.dart';
 import 'package:cwc_health_app/features/onboarding/disclaimer_prefs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,10 @@ void main() {
     await tester.pumpWidget(
       CwcApp(
         disclaimerAcknowledged: true,
+        // The VM has no Keychain or Keystore plugin. Since H1, a store that
+        // will not open shows a storage notice instead of an empty My Health,
+        // so this smoke uses an in-memory record.
+        openHealthStore: (_) async => InMemoryHealthStore(),
         // Nearby is always live. A stub keeps this smoke off the network.
         nearbyRepository: StubNearbyRepository(
           result: stubNearbyResult(
