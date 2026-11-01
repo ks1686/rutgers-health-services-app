@@ -40,4 +40,17 @@ void main() {
     expect(text.toLowerCase(), isNot(contains('never')));
     expect(text.toLowerCase(), isNot(contains('stays on your phone')));
   });
+
+  test('M4 iOS covers the app switcher snapshot without replacing Flutter '
+      'scene callbacks', () {
+    final app = File('ios/Runner/AppDelegate.swift').readAsStringSync();
+    expect(app, contains('AppSwitcherCover.shared.start()'));
+    expect(app, contains('UIScene.willDeactivateNotification'));
+    expect(app, contains('UIScene.didActivateNotification'));
+    final scene = File('ios/Runner/SceneDelegate.swift').readAsStringSync();
+    // Overriding these in Swift would hide FlutterSceneDelegate's own
+    // versions, which drive AppLifecycleState and the My Health auto-lock.
+    expect(scene, isNot(contains('sceneWillResignActive')));
+    expect(scene, isNot(contains('sceneDidBecomeActive')));
+  });
 }

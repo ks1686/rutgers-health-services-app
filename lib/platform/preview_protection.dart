@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 
 /// Hides sensitive UI from app-switcher / screenshots (PRIV-4).
 ///
-/// Android: [FLAG_SECURE]. iOS: no-op channel today (Keychain still encrypts
-/// at rest); screenshot blur can land in a follow-on without blocking Android.
+/// Android: FLAG_SECURE while My Health is open. iOS: this channel is a
+/// no-op; instead AppDelegate.swift (AppSwitcherCover) covers every screen
+/// with a plain view whenever the app stops being active, so the app switcher
+/// snapshot shows nothing personal.
 class PreviewProtection {
   PreviewProtection._();
 
