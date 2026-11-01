@@ -31,7 +31,12 @@ class SharedPreferencesStore implements PreferenceStore {
 
   @override
   Future<void> remove(String key) async {
-    await _prefs.remove(key);
+    if (await _prefs.remove(key)) return;
+    // False means the platform did not remove it. Re-read the disk so the
+    // in-memory cache matches what is really saved, then report it, so Erase
+    // can say some information was not erased.
+    await _prefs.reload();
+    throw StateError('Could not remove $key');
   }
 }
 

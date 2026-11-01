@@ -125,11 +125,16 @@ class AppPreferences extends ChangeNotifier {
   /// after startup, such as the Nearby cache, are found.
   Future<void> removeWhere(bool Function(String key) test) async {
     final keys = {..._values.keys, ...?_store?.values.keys}.where(test);
-    for (final key in keys.toList()) {
-      _values.remove(key);
-      await _store?.remove(key);
+    try {
+      for (final key in keys.toList()) {
+        // Forget it here only once the store removed it, so a failed remove
+        // leaves the screen showing what is still saved.
+        await _store?.remove(key);
+        _values.remove(key);
+      }
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> _set(String key, Object value) => _setAll({key: value});
