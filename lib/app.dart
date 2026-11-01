@@ -58,6 +58,7 @@ class CwcApp extends StatefulWidget {
 }
 
 class _CwcAppState extends State<CwcApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
   HealthController? _owned;
   HealthController? _health;
   AppPreferences? _prefs;
@@ -152,6 +153,7 @@ class _CwcAppState extends State<CwcApp> {
       );
     }
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'CWC Health App',
       debugShowCheckedModeBanner: false,
       theme: buildCwcTheme(),
@@ -170,6 +172,7 @@ class _CwcAppState extends State<CwcApp> {
                   controller: _health!,
                   child: HealthAutoLock(
                     controller: _health!,
+                    navigatorKey: _navigatorKey,
                     child: MediaQuery(
                       data: media.copyWith(
                         textScaler: combineTextScaler(

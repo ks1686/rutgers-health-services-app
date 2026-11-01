@@ -11,11 +11,16 @@ import 'data/health_controller.dart';
 /// Longer than [grace] and the PIN is needed again. Locking checks the time
 /// on return as well as with a timer, because a phone can pause timers for
 /// an app in the background.
+///
+/// Locking also closes every screen and dialog above the tabs, such as a
+/// half-filled form or the Wallet Card, so nothing saved stays visible past
+/// the PIN wall. Anything typed into an open form and not saved is lost.
 class HealthAutoLock extends StatefulWidget {
   const HealthAutoLock({
     super.key,
     required this.controller,
     required this.child,
+    this.navigatorKey,
     this.grace = defaultGrace,
     this.clock = DateTime.now,
   });
@@ -24,6 +29,9 @@ class HealthAutoLock extends StatefulWidget {
 
   final HealthController controller;
   final Widget child;
+
+  /// The app's root navigator. Routes above the first one are closed on lock.
+  final GlobalKey<NavigatorState>? navigatorKey;
   final Duration grace;
   final DateTime Function() clock;
 
@@ -67,7 +75,10 @@ class _HealthAutoLockState extends State<HealthAutoLock>
 
   void _lock() {
     _timer = null;
-    widget.controller.lock();
+    final controller = widget.controller;
+    if (!controller.hasPin) return;
+    controller.lock();
+    widget.navigatorKey?.currentState?.popUntil((route) => route.isFirst);
   }
 
   @override
