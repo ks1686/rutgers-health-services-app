@@ -58,7 +58,9 @@ class OsmOverpassSource {
     this.retryBackoff = const Duration(milliseconds: 600),
     this.requestTimeout = const Duration(seconds: 8),
     this.totalBudget = const Duration(seconds: 20),
-  }) : assert(endpoints.isNotEmpty, 'At least one endpoint is required');
+    Stopwatch Function()? stopwatch,
+  }) : _stopwatch = stopwatch ?? Stopwatch.new,
+       assert(endpoints.isNotEmpty, 'At least one endpoint is required');
 
   final http.Client _client;
   final String userAgent;
@@ -70,6 +72,9 @@ class OsmOverpassSource {
   /// M3. Time for every mirror and retry together. Without it a slow day
   /// could keep the spinner up for mirrors x tries x [requestTimeout].
   final Duration totalBudget;
+
+  /// Measures [totalBudget]. Tests pass one that runs on a fake clock.
+  final Stopwatch Function() _stopwatch;
 
   /// Tries each mirror in turn, retrying only when the server asks us to wait.
   Future<List<NearbyResource>> fetch(GeoPoint area, {DateTime? fetchedAt}) {
@@ -103,7 +108,7 @@ class OsmOverpassSource {
     final query = _buildQuery(area, forceAround: forceAround);
 
     Object? lastFailure;
-    final clock = Stopwatch()..start();
+    final clock = _stopwatch()..start();
     mirrors:
     for (final endpoint in endpoints) {
       for (var attempt = 1; attempt <= attemptsPerEndpoint; attempt++) {

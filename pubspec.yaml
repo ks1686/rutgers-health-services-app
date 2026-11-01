@@ -52,6 +52,8 @@ dependencies:
   local_auth: ^3.0.2
 
 dev_dependencies:
+  # Pinned by flutter_test. Lets timing tests run on a fake clock.
+  fake_async: any
   flutter_test:
     sdk: flutter
   integration_test:
