@@ -102,19 +102,38 @@ class HealthController extends ChangeNotifier {
   EmergencyCardChoices get emergencyCard => _snapshot.emergencyCard;
 
   /// How long until the PIN can be tried again. Zero when it can be now.
+  ///
+  /// Reading this changes nothing. Never more than [maxPinLockout]: a
+  /// deadline further out than that (the phone clock was set backward) is
+  /// pulled in by [load] and by the next PIN try.
   Duration get pinLockoutRemaining {
     final until = _snapshot.pinLockedUntil;
     if (until == null) return Duration.zero;
-    final now = _clock();
-    final left = until.difference(now);
+    final left = until.difference(_clock());
     if (left <= Duration.zero) return Duration.zero;
-    if (left > maxPinLockout) {
-      // The phone clock was set backward. Move the deadline in to the cap so
-      // the wait really ends then, instead of showing 15 minutes forever.
-      _snapshot = _snapshot.copyWith(pinLockedUntil: now.add(maxPinLockout));
-      return maxPinLockout;
-    }
-    return left;
+    return left > maxPinLockout ? maxPinLockout : left;
+  }
+
+  /// [snap] with a lockout deadline further out than [maxPinLockout] (the
+  /// phone clock was set backward) moved in to now plus that cap, so the
+  /// wait really ends then. Null when nothing needs to change.
+  HealthSnapshot? _withCappedLockout(HealthSnapshot snap) {
+    final until = snap.pinLockedUntil;
+    if (until == null) return null;
+    final now = _clock();
+    if (until.difference(now) <= maxPinLockout) return null;
+    return snap.copyWith(pinLockedUntil: now.add(maxPinLockout));
+  }
+
+  /// Applies [_withCappedLockout] before a PIN check. Saves it when it can;
+  /// if the save fails the in-memory deadline still applies this session.
+  Future<void> _capLockout() async {
+    final capped = _withCappedLockout(_snapshot);
+    if (capped == null) return;
+    final saved = await _persist(
+      (current) => _withCappedLockout(current) ?? current,
+    );
+    if (!saved) _snapshot = capped;
   }
 
   /// Wait after the [failures]th wrong try in a row, or zero if none.
@@ -136,6 +155,16 @@ class HealthController extends ChangeNotifier {
       if (!snap.initialized) {
         snap = _emptySeed();
         await _store.write(snap);
+      }
+      final capped = _withCappedLockout(snap);
+      if (capped != null) {
+        snap = capped;
+        try {
+          await _store.write(snap);
+        } catch (e) {
+          // The capped deadline still applies in memory for this session.
+          if (kDebugMode) debugPrint('My Health lockout save failed: $e');
+        }
       }
       _snapshot = snap;
       _unlocked = !snap.hasPin;
@@ -385,6 +414,7 @@ class HealthController extends ChangeNotifier {
       return PinCheck.unlocked;
     }
     if (_unlocked) return PinCheck.unlocked;
+    await _capLockout();
     if (pinLockoutRemaining > Duration.zero) return PinCheck.lockedOut;
     final stored = _snapshot.pinHash!;
     final ok = await _pinHasher.verify(pin, stored);

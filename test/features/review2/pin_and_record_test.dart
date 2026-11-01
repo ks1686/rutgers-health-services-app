@@ -13,11 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/failing_stores.dart';
 
-class _Clock {
-  DateTime now = DateTime.utc(2026, 11, 2, 9);
-  DateTime call() => now;
-}
-
 /// Verifies slowly, like the real 100k-iteration hash on a phone, so tries
 /// that start together are all in flight at once.
 class _SlowHasher extends PinHasher {
@@ -146,23 +141,7 @@ void main() {
     expect(health.isUnlocked, isFalse);
   });
 
-  test('after the clock is set back, the wait still ends at the cap', () async {
-    final clock = _Clock();
-    final health = HealthController(InMemoryHealthStore(), clock: clock.call);
-    await health.load();
-    await health.setPin('1234');
-    health.lock();
-    for (var i = 0; i < 5; i++) {
-      await health.tryUnlock('0000');
-    }
-    clock.now = clock.now.subtract(const Duration(days: 365));
-    expect(health.pinLockoutRemaining, HealthController.maxPinLockout);
-    clock.now = clock.now.add(
-      HealthController.maxPinLockout + const Duration(seconds: 1),
-    );
-    expect(health.pinLockoutRemaining, Duration.zero);
-    expect(await health.tryUnlock('1234'), PinCheck.unlocked);
-  });
+  // The clock-set-back case is in test/features/review3/pin_lockout_test.dart.
 
   group('legacy plaintext migration', () {
     final legacy = HealthSnapshot(
