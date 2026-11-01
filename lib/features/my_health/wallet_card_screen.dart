@@ -5,6 +5,7 @@ import '../../links/phone_links.dart';
 import '../../theme/cwc_theme.dart';
 import '../../widgets/help_now_button.dart';
 import '../../widgets/link_launcher.dart';
+import 'data/health_controller.dart';
 import 'data/health_models.dart';
 import 'health_scope.dart';
 import 'save_feedback.dart';
@@ -21,83 +22,11 @@ class WalletCardScreen extends StatelessWidget {
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _editWallet(BuildContext context) async {
-    final health = HealthScope.of(context);
-    final contact = TextEditingController(text: health.wallet.emergencyContact);
-    final conditions = TextEditingController(text: health.wallet.conditions);
-    final serviceAnimal = TextEditingController(
-      text: health.wallet.serviceAnimal,
-    );
-    final saved = await showDialog<bool>(
+  Future<void> _editWallet(BuildContext context) {
+    return showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Wallet details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: contact,
-                decoration: const InputDecoration(
-                  labelText: 'Emergency contact',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: conditions,
-                decoration: const InputDecoration(
-                  labelText: 'Conditions (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: serviceAnimal,
-                decoration: const InputDecoration(
-                  labelText: 'Service or support animal',
-                  hintText:
-                      'Type of animal, name, anything a helper should know',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (_) => _WalletEditDialog(health: HealthScope.of(context)),
     );
-    if (saved == true && context.mounted) {
-      final ok = await health.updateWallet(
-        HealthWallet(
-          emergencyContact: contact.text.trim(),
-          conditions: conditions.text.trim(),
-          serviceAnimal: serviceAnimal.text.trim(),
-        ),
-      );
-      if (!ok && context.mounted) {
-        showCouldNotSave(
-          context,
-          message:
-              'Could not save the wallet details on this phone. '
-              'Try again.',
-        );
-      }
-    }
-    contact.dispose();
-    conditions.dispose();
-    serviceAnimal.dispose();
   }
 
   @override
@@ -231,6 +160,124 @@ class WalletCardScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Edits the wallet details. Saves from the Save button and closes only once
+/// the phone has kept them, so a failed save keeps everything typed.
+class _WalletEditDialog extends StatefulWidget {
+  const _WalletEditDialog({required this.health});
+
+  final HealthController health;
+
+  @override
+  State<_WalletEditDialog> createState() => _WalletEditDialogState();
+}
+
+class _WalletEditDialogState extends State<_WalletEditDialog> {
+  late final _contact = TextEditingController(
+    text: widget.health.wallet.emergencyContact,
+  );
+  late final _conditions = TextEditingController(
+    text: widget.health.wallet.conditions,
+  );
+  late final _serviceAnimal = TextEditingController(
+    text: widget.health.wallet.serviceAnimal,
+  );
+  bool _saving = false;
+  bool _failed = false;
+
+  @override
+  void dispose() {
+    _contact.dispose();
+    _conditions.dispose();
+    _serviceAnimal.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _saving = true;
+      _failed = false;
+    });
+    final ok = await widget.health.updateWallet(
+      HealthWallet(
+        emergencyContact: _contact.text.trim(),
+        conditions: _conditions.text.trim(),
+        serviceAnimal: _serviceAnimal.text.trim(),
+      ),
+    );
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _saving = false;
+      _failed = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Wallet details'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _contact,
+              decoration: const InputDecoration(
+                labelText: 'Emergency contact',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _conditions,
+              decoration: const InputDecoration(
+                labelText: 'Conditions (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _serviceAnimal,
+              decoration: const InputDecoration(
+                labelText: 'Service or support animal',
+                hintText: 'Type of animal, name, anything a helper should know',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            if (_failed) ...[
+              const SizedBox(height: 12),
+              const Text(
+                kCouldNotSaveMessage,
+                key: ValueKey('wallet-save-failed'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: CwcColors.ink,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }
