@@ -1,31 +1,37 @@
 #!/usr/bin/env bash
 # Drive the CWC Health App the way a member does, on the Flutter web stand-in.
+# run.env is data. This script never sources it.
 set -euo pipefail
+umask 077
+unset TAR_OPTIONS
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SKILL_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 REPO=$(cd "$SKILL_DIR/../../.." && pwd)
 DAEMON="$SCRIPT_DIR/browser-daemon.mjs"
+USER_HOME=${HOME:-/tmp}
 
 usage() {
   cat <<'EOF'
 usage: verify-cwc launch|doctor|cleanup
-       verify-cwc browser start|reload
+       verify-cwc browser start|reload|opens
        verify-cwc browser click --role ROLE --name NAME [--contains]
-              [--within-role ROLE --within-name NAME] [--expect-open URL]
+              [--within-role ROLE --within-name NAME]
        verify-cwc browser fill --role ROLE --name NAME --value VALUE [--contains]
               [--within-role ROLE --within-name NAME]
        verify-cwc browser expect-text --text TEXT
        verify-cwc browser expect-absent --text TEXT
+       verify-cwc browser expect-order --text TEXT --text TEXT [--text TEXT ...]
        verify-cwc browser snapshot --path PATH [--feature ID]
        verify-cwc browser screenshot --path PATH
        verify-cwc browser scroll-into-view --text TEXT
 
 Environment:
-  CWC_VERIFY_RUN_ID     default local. Two runs need two ids.
+  CWC_VERIFY_RUN_ID     required after launch. Launch prints a new id when this is unset.
   CWC_VERIFY_PORT       default 8773. Two runs need two ports.
   CWC_VERIFY_HOME       state root, default /tmp/cwc-verify
-  CWC_VERIFY_EVIDENCE   proof directory. Cleanup never deletes it.
+  CWC_VERIFY_EVIDENCE   proof directory. Unset creates a private mktemp directory.
+                        Cleanup never deletes it.
   CWC_VERIFY_REPO       source checkout. Default is the repo that contains this skill.
 EOF
 }
@@ -38,90 +44,323 @@ need_flutter() {
     FLUTTER_BIN=$(command -v flutter)
     return
   fi
-  if [[ -x "$HOME/flutter/bin/flutter" ]]; then
-    FLUTTER_BIN="$HOME/flutter/bin/flutter"
+  if [[ -x "$USER_HOME/flutter/bin/flutter" ]]; then
+    FLUTTER_BIN="$USER_HOME/flutter/bin/flutter"
     return
   fi
   echo "verify-cwc: flutter is not on PATH. CI uses Flutter 3.47.8." >&2
   exit 1
 }
 
-ensure_node_modules() {
-  if [[ ! -d "$SCRIPT_DIR/node_modules/playwright-core" ]]; then
-    npm install --prefix "$SCRIPT_DIR" --omit=dev --no-fund --no-audit
+validate_run_id() {
+  local id=$1
+  if [[ "$id" == "." || "$id" == ".." ]]; then
+    printf 'verify-cwc: refusing run id %q\n' "$id" >&2
+    exit 1
+  fi
+  if [[ ! "$id" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    printf 'verify-cwc: refusing run id %q\n' "$id" >&2
+    exit 1
   fi
 }
 
-run_id() {
-  printf '%s' "${CWC_VERIFY_RUN_ID:-local}"
+prepare_run_id() {
+  local cmd=$1
+  if [[ -z "${CWC_VERIFY_RUN_ID:-}" ]]; then
+    if [[ "$cmd" == launch ]]; then
+      CWC_VERIFY_RUN_ID="cwc$(python3 -c 'import secrets; print(secrets.token_hex(8))')"
+      export CWC_VERIFY_RUN_ID
+    else
+      echo "verify-cwc: set CWC_VERIFY_RUN_ID to the run_id launch printed" >&2
+      exit 1
+    fi
+  fi
+  validate_run_id "$CWC_VERIFY_RUN_ID"
 }
 
-state_dir() {
-  printf '%s/%s' "${CWC_VERIFY_HOME:-/tmp/cwc-verify}" "$(run_id)"
+validate_port() {
+  local port=$1
+  if [[ ! "$port" =~ ^[0-9]+$ ]] || [[ "$port" -lt 1 || "$port" -gt 65535 ]]; then
+    echo "verify-cwc: refusing port" >&2
+    exit 1
+  fi
 }
 
-evidence_dir() {
+state_home() {
+  local home=${CWC_VERIFY_HOME:-/tmp/cwc-verify}
+  home=${home%/}
+  if [[ "$home" != /* ]]; then
+    echo "verify-cwc: CWC_VERIFY_HOME must be absolute" >&2
+    exit 1
+  fi
+  printf '%s' "$home"
+}
+
+state_path() {
+  printf '%s/%s' "$(state_home)" "$CWC_VERIFY_RUN_ID"
+}
+
+prepare_evidence() {
+  local dir
   if [[ -n "${CWC_VERIFY_EVIDENCE:-}" ]]; then
-    printf '%s' "$CWC_VERIFY_EVIDENCE"
+    case "$CWC_VERIFY_EVIDENCE" in
+      /*) ;;
+      *)
+        echo "verify-cwc: CWC_VERIFY_EVIDENCE must be absolute" >&2
+        exit 1
+        ;;
+    esac
+    if [[ -L "$CWC_VERIFY_EVIDENCE" ]]; then
+      echo "verify-cwc: refusing a symlinked evidence directory" >&2
+      exit 1
+    fi
+    mkdir -p -- "$CWC_VERIFY_EVIDENCE"
+    dir=$(readlink -f -- "$CWC_VERIFY_EVIDENCE")
   else
-    printf '%s/%s' "${CWC_VERIFY_EVIDENCE_ROOT:-/tmp/cwc-verify-evidence}" "$(run_id)"
+    dir=$(mktemp -d -- "${TMPDIR:-/tmp}/cwc-evidence.XXXXXXXX")
   fi
+  chmod 700 "$dir"
+  EVIDENCE=$dir
+  CWC_VERIFY_EVIDENCE=$dir
+  export CWC_VERIFY_EVIDENCE
+}
+
+copy_tracked() {
+  local repo=$1 dest=$2
+  mkdir -p -- "$dest"
+  git -C "$repo" ls-files -z |
+    tar --null -C "$repo" --files-from=- -cf - |
+    tar -C "$dest" -xf -
+}
+
+ensure_tools() {
+  local tools=$1
+  mkdir -p -- "$tools"
+  cp "$SCRIPT_DIR/package.json" "$SCRIPT_DIR/package-lock.json" "$DAEMON" "$tools/"
+  if [[ ! -d "$tools/node_modules/playwright-core" ]]; then
+    npm ci --prefix "$tools" --omit=dev --no-fund --no-audit
+  fi
+  if [[ -d "$SCRIPT_DIR/node_modules" ]]; then
+    rm -rf -- "$SCRIPT_DIR/node_modules"
+  fi
+  NODE_DAEMON="$tools/browser-daemon.mjs"
+}
+
+isolate_home() {
+  local state=$1
+  mkdir -p -- "$state/home/.cache" "$state/home/.config" "$state/home/.local/share" "$state/home/run"
+  export HOME="$state/home"
+  export XDG_CACHE_HOME="$HOME/.cache"
+  export XDG_CONFIG_HOME="$HOME/.config"
+  export XDG_DATA_HOME="$HOME/.local/share"
+  export XDG_RUNTIME_DIR="$HOME/run"
+  export PUB_CACHE="$HOME/.pub-cache"
+  chmod 700 "$HOME" "$XDG_RUNTIME_DIR"
+  RUN_HOME=$HOME
+}
+
+use_run_home() {
+  if [[ -z "${RUN_HOME:-}" || ! -d "$RUN_HOME" || -L "$RUN_HOME" ]]; then
+    echo "verify-cwc: this run has no isolated home" >&2
+    exit 1
+  fi
+  export HOME="$RUN_HOME"
+  export XDG_CACHE_HOME="$HOME/.cache"
+  export XDG_CONFIG_HOME="$HOME/.config"
+  export XDG_DATA_HOME="$HOME/.local/share"
+  export XDG_RUNTIME_DIR="$HOME/run"
+  export PUB_CACHE="$HOME/.pub-cache"
+  mkdir -p -- "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_RUNTIME_DIR"
+}
+
+# run.env is data. Never source it.
+load_state_file() {
+  local file=$1 line key val
+  RUN_ID='' PORT='' URL='' PID='' REPO='' APP_DIR='' EVIDENCE=''
+  GIT_SHA='' FLUTTER_BIN='' FLUTTER_VERSION='' BROWSER_PID=''
+  LISTENER_PID='' READY='' FLUTTER_START='' FLUTTER_UID='' FLUTTER_PGRP=''
+  BROWSER_START='' BROWSER_UID='' BROWSER_PGRP='' RUN_HOME='' NODE_DAEMON=''
+  FLUTTER_CMDLINE='' BROWSER_CMDLINE=''
+  [[ -f "$file" && ! -L "$file" ]] || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" != *=* ]]; then
+      echo "verify-cwc: bad state line" >&2
+      return 1
+    fi
+    key=${line%%=*}
+    val=${line#*=}
+    case "$key" in
+      RUN_ID|PORT|URL|PID|REPO|APP_DIR|EVIDENCE|GIT_SHA|FLUTTER_BIN|FLUTTER_VERSION|BROWSER_PID|LISTENER_PID|READY|FLUTTER_START|FLUTTER_UID|FLUTTER_PGRP|BROWSER_START|BROWSER_UID|BROWSER_PGRP|RUN_HOME|NODE_DAEMON|FLUTTER_CMDLINE|BROWSER_CMDLINE)
+        printf -v "$key" '%s' "$val"
+        ;;
+      *)
+        echo "verify-cwc: refusing state key" >&2
+        return 1
+        ;;
+    esac
+  done <"$file"
+  if [[ "$RUN_ID" != "$CWC_VERIFY_RUN_ID" ]]; then
+    echo "verify-cwc: state file run id does not match CWC_VERIFY_RUN_ID" >&2
+    return 1
+  fi
+  validate_run_id "$RUN_ID"
+}
+
+write_state() {
+  local file=$1 tmp
+  tmp=$(mktemp -- "${file}.XXXXXX")
+  chmod 600 "$tmp"
+  emit() {
+    case "$2" in
+      *$'\n'*)
+        echo "verify-cwc: refusing a state value with a newline" >&2
+        exit 1
+        ;;
+    esac
+    printf '%s=%s\n' "$1" "$2" >>"$tmp"
+  }
+  emit RUN_ID "${RUN_ID-}"
+  emit PORT "${PORT-}"
+  emit URL "${URL-}"
+  emit PID "${PID-}"
+  emit REPO "${REPO_STATE-${REPO-}}"
+  emit APP_DIR "${APP_DIR-}"
+  emit EVIDENCE "${EVIDENCE-}"
+  emit GIT_SHA "${GIT_SHA-}"
+  emit FLUTTER_BIN "${FLUTTER_BIN-}"
+  emit FLUTTER_VERSION "${FLUTTER_VERSION-}"
+  emit BROWSER_PID "${BROWSER_PID-}"
+  emit LISTENER_PID "${LISTENER_PID-}"
+  emit READY "${READY-}"
+  emit FLUTTER_START "${FLUTTER_START-}"
+  emit FLUTTER_UID "${FLUTTER_UID-}"
+  emit FLUTTER_PGRP "${FLUTTER_PGRP-}"
+  emit BROWSER_START "${BROWSER_START-}"
+  emit BROWSER_UID "${BROWSER_UID-}"
+  emit BROWSER_PGRP "${BROWSER_PGRP-}"
+  emit RUN_HOME "${RUN_HOME-}"
+  emit NODE_DAEMON "${NODE_DAEMON-}"
+  emit FLUTTER_CMDLINE "${FLUTTER_CMDLINE-}"
+  emit BROWSER_CMDLINE "${BROWSER_CMDLINE-}"
+  mv -f -- "$tmp" "$file"
+  chmod 600 "$file"
 }
 
 load_state() {
   local state
-  state=$(state_dir)
+  state=$(state_path)
   if [[ ! -f "$state/run.env" ]]; then
-    echo "verify-cwc: no instance for run id $(run_id). Run launch first." >&2
+    echo "verify-cwc: no instance for run id $CWC_VERIFY_RUN_ID. Run launch first." >&2
     exit 1
   fi
-  # shellcheck disable=SC1091
-  source "$state/run.env"
+  load_state_file "$state/run.env" || exit 1
 }
 
 pid_alive() {
   local pid=$1
-  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+  [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null
 }
 
-listener_pid() {
-  local port=$1
-  python3 - "$port" <<'PY'
-import os, sys
-port = int(sys.argv[1])
-hexport = f"{port:04X}"
-inodes = set()
-for name in ("/proc/net/tcp", "/proc/net/tcp6"):
-    try:
-        lines = open(name, encoding="utf-8").read().splitlines()[1:]
-    except OSError:
-        continue
-    for line in lines:
-        parts = line.split()
-        if len(parts) < 10 or parts[3] != "0A":
-            continue
-        if parts[1].rsplit(":", 1)[-1].upper() != hexport:
-            continue
-        inodes.add(parts[9])
-if not inodes:
-    sys.exit(0)
-for pid in os.listdir("/proc"):
-    if not pid.isdigit():
-        continue
-    fd_dir = f"/proc/{pid}/fd"
-    try:
-        fds = os.listdir(fd_dir)
-    except OSError:
-        continue
-    for fd in fds:
-        try:
-            target = os.readlink(f"{fd_dir}/{fd}")
-        except OSError:
-            continue
-        if target.startswith("socket:[") and target[8:-1] in inodes:
-            print(pid)
-            sys.exit(0)
-PY
+port_status() {
+  python3 "$SCRIPT_DIR/port_status.py" "$1"
+}
+
+read_proc() {
+  local pid=$1 enc out
+  PROC_START=''
+  PROC_PGRP=''
+  PROC_UID=''
+  PROC_CMD=''
+  out=$(python3 "$SCRIPT_DIR/proc_facts.py" "$pid") || return 1
+  PROC_START=$(printf '%s\n' "$out" | sed -n '1p')
+  PROC_PGRP=$(printf '%s\n' "$out" | sed -n '2p')
+  PROC_UID=$(printf '%s\n' "$out" | sed -n '3p')
+  enc=$(printf '%s\n' "$out" | sed -n '4p')
+  PROC_CMD=$(printf '%s' "$enc" | base64 -d 2>/dev/null || true)
+  [[ -n "$PROC_START" && -n "$PROC_UID" && -n "$PROC_PGRP" ]]
+}
+
+identity_reason() {
+  local pid=$1 start=$2 uid=$3 pgrp=$4 kind=$5 port=$6 me
+  if ! read_proc "$pid"; then
+    printf '%s' "unreadable"
+    return 0
+  fi
+  if [[ "$PROC_START" != "$start" || ! "$start" =~ ^[0-9]+$ ]]; then
+    printf '%s' "start time differs"
+    return 0
+  fi
+  me=$(id -u)
+  if [[ "$PROC_UID" != "$uid" || "$PROC_UID" != "$me" ]]; then
+    printf '%s' "owner differs"
+    return 0
+  fi
+  if [[ "$PROC_PGRP" != "$pgrp" || ! "$pgrp" =~ ^[0-9]+$ ]]; then
+    printf '%s' "process group differs"
+    return 0
+  fi
+  if [[ "$kind" == flutter ]]; then
+    if [[ -z "$port" || "$PROC_CMD" != *web-server* || "$PROC_CMD" != *HELP_NOW_LIVE=false* || "$PROC_CMD" != *"$port"* ]]; then
+      printf '%s' "cmdline does not match"
+      return 0
+    fi
+  elif [[ "$kind" == browser ]]; then
+    if [[ "$PROC_CMD" != *browser-daemon.mjs* || "$PROC_CMD" != *serve* ]]; then
+      printf '%s' "cmdline does not match"
+      return 0
+    fi
+  else
+    printf '%s' "unknown process kind"
+    return 0
+  fi
+  printf '%s' ""
+}
+
+skip_pid() {
+  printf 'verify-cwc: skip pid %s (%s)\n' "$1" "$2" >&2
+}
+
+signal_if_same() {
+  local sig=$1 pid=$2 start=$3 uid=$4 pgrp=$5 kind=$6 port=$7 reason
+  reason=$(identity_reason "$pid" "$start" "$uid" "$pgrp" "$kind" "$port")
+  if [[ -n "$reason" ]]; then
+    skip_pid "$pid" "$reason"
+    return 0
+  fi
+  read_proc "$pid" || return 0
+  if [[ "$PROC_PGRP" == "$pid" ]]; then
+    kill "-$sig" "-$pid" 2>/dev/null || true
+  else
+    kill "-$sig" "$pid" 2>/dev/null || true
+  fi
+}
+
+stop_owned() {
+  local pid=$1 start=$2 uid=$3 pgrp=$4 kind=$5 port=$6 reason i
+  if [[ -z "$pid" ]]; then
+    return 0
+  fi
+  if [[ ! "$pid" =~ ^[0-9]+$ ]] || [[ "$pid" -lt 2 ]]; then
+    skip_pid "$pid" "not a process id"
+    return 0
+  fi
+  if ! pid_alive "$pid"; then
+    return 0
+  fi
+  reason=$(identity_reason "$pid" "$start" "$uid" "$pgrp" "$kind" "$port")
+  if [[ -n "$reason" ]]; then
+    skip_pid "$pid" "$reason"
+    return 0
+  fi
+  signal_if_same TERM "$pid" "$start" "$uid" "$pgrp" "$kind" "$port"
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    if ! pid_alive "$pid"; then
+      return 0
+    fi
+    sleep 0.3
+  done
+  signal_if_same KILL "$pid" "$start" "$uid" "$pgrp" "$kind" "$port"
 }
 
 is_descendant() {
@@ -130,93 +369,161 @@ is_descendant() {
     if [[ "$pid" == "$ancestor" ]]; then
       return 0
     fi
-    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)
     guard=$((guard + 1))
   done
   [[ "$pid" == "$ancestor" ]]
 }
 
-stop_pid() {
-  local pid=$1
-  if ! pid_alive "$pid"; then
-    return 0
-  fi
-  kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
-  local i
-  for i in 1 2 3 4 5 6 7 8 9 10; do
+wait_cmdline() {
+  local pid=$1 marker=$2 tries=${3:-50} i
+  for i in $(seq 1 "$tries"); do
     if ! pid_alive "$pid"; then
+      return 1
+    fi
+    if read_proc "$pid" && [[ "$PROC_CMD" == *"$marker"* ]]; then
       return 0
     fi
-    sleep 0.3
+    sleep 0.2
   done
-  kill -KILL "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+  return 1
+}
+
+copy_into_evidence() {
+  local src=$1 name=$2 dest root
+  [[ -f "$src" && ! -L "$src" ]] || return 0
+  if [[ -z "${EVIDENCE:-}" || ! -d "$EVIDENCE" || -L "$EVIDENCE" ]]; then
+    return 0
+  fi
+  root=$(readlink -f -- "$EVIDENCE")
+  if [[ "$root" == "/" ]]; then
+    echo "verify-cwc: refusing to write evidence at the filesystem root" >&2
+    return 1
+  fi
+  dest="$root/$name"
+  if [[ -e "$dest" && -L "$dest" ]]; then
+    echo "verify-cwc: refusing to follow an evidence symlink" >&2
+    return 1
+  fi
+  cp -- "$src" "$dest"
+  chmod 600 "$dest"
+}
+
+on_launch_err() {
+  trap - ERR
+  cleanup_instance || true
+  exit 1
+}
+
+remove_state_dir() {
+  local state=$1 home parent home_real
+  home=$(state_home)
+  if [[ ! -e "$state" && ! -L "$state" ]]; then
+    return 0
+  fi
+  if [[ -L "$state" ]]; then
+    echo "verify-cwc: refusing to delete a symlinked state directory" >&2
+    exit 1
+  fi
+  if [[ ! -d "$state" ]]; then
+    echo "verify-cwc: refusing to delete $state" >&2
+    exit 1
+  fi
+  parent=$(readlink -f -- "$(dirname -- "$state")")
+  if [[ -d "$home" ]]; then
+    home_real=$(readlink -f -- "$home")
+  else
+    home_real=$home
+  fi
+  if [[ "$parent" != "$home_real" || "$(basename -- "$state")" != "$CWC_VERIFY_RUN_ID" ]]; then
+    echo "verify-cwc: refusing to delete $state" >&2
+    exit 1
+  fi
+  rm -rf -- "$state"
+}
+
+stop_recorded_processes() {
+  stop_owned "${BROWSER_PID-}" "${BROWSER_START-}" "${BROWSER_UID-}" "${BROWSER_PGRP-}" browser "${PORT-}"
+  stop_owned "${PID-}" "${FLUTTER_START-}" "${FLUTTER_UID-}" "${FLUTTER_PGRP-}" flutter "${PORT-}"
 }
 
 cleanup_instance() {
-  local state keep_evidence=${1:-yes}
-  state=$(state_dir)
+  local state
+  state=$(state_path)
   if [[ -f "$state/run.env" ]]; then
-    # shellcheck disable=SC1091
-    source "$state/run.env"
-    if [[ "$keep_evidence" == yes && -n "${EVIDENCE:-}" && -f "$state/flutter.log" ]]; then
-      mkdir -p "$EVIDENCE"
-      cp "$state/flutter.log" "$EVIDENCE/flutter.log"
-    fi
-    if [[ -n "${BROWSER_PID:-}" ]]; then
-      stop_pid "$BROWSER_PID"
-    fi
-    if [[ -n "${PID:-}" ]]; then
-      stop_pid "$PID"
-    fi
-    if [[ -n "${APP_DIR:-}" && "$APP_DIR" == "$state/"* ]]; then
-      rm -rf "$APP_DIR"
+    if load_state_file "$state/run.env"; then
+      copy_into_evidence "$state/flutter.log" flutter.log || true
+      copy_into_evidence "$state/opens.log" opens.log || true
+      if [[ -n "${EVIDENCE:-}" && -d "$EVIDENCE" && ! -L "$EVIDENCE" ]]; then
+        chmod 700 "$EVIDENCE"
+      fi
+      stop_recorded_processes
+    else
+      echo "verify-cwc: state file was not usable. No processes were killed." >&2
     fi
   fi
-  rm -rf "$state"
+  remove_state_dir "$state"
 }
 
 cmd_cleanup() {
-  cleanup_instance yes
-  echo "cleaned run $(run_id)"
-  echo "evidence $(evidence_dir)"
+  cleanup_instance
+  echo "cleaned run $CWC_VERIFY_RUN_ID"
+  if [[ -n "${EVIDENCE:-}" ]]; then
+    echo "evidence $EVIDENCE"
+  else
+    echo "evidence unknown"
+  fi
+}
+
+evidence_inside_state() {
+  local ev=$1 state=$2 ev_real state_real
+  ev_real=$(readlink -f -- "$ev")
+  state_real=$(readlink -f -- "$state")
+  [[ "$ev_real" == "$state_real" || "$ev_real" == "$state_real"/* ]]
 }
 
 cmd_launch() {
-  local state port url repo
-  state=$(state_dir)
+  local state port url repo sha flutter_version app pid listen ctype code i
+  echo "run_id: $CWC_VERIFY_RUN_ID"
   port=${CWC_VERIFY_PORT:-8773}
+  validate_port "$port"
   repo=${CWC_VERIFY_REPO:-$REPO}
+  state=$(state_path)
   if [[ -f "$state/run.env" ]]; then
-    # shellcheck disable=SC1091
-    source "$state/run.env"
-    if pid_alive "${PID:-}"; then
-      echo "verify-cwc: run $(run_id) is already up at ${URL:-unknown}. Refusing to start a second server for the same id." >&2
-      exit 1
+    if load_state_file "$state/run.env"; then
+      local reason=""
+      if [[ -n "${PID-}" ]]; then
+        reason=$(identity_reason "$PID" "${FLUTTER_START-}" "${FLUTTER_UID-}" "${FLUTTER_PGRP-}" flutter "${PORT-}")
+      fi
+      if pid_alive "${PID-}" && [[ -z "$reason" ]]; then
+        echo "verify-cwc: run $CWC_VERIFY_RUN_ID is already up at ${URL:-unknown}. Refusing to start a second server for the same id." >&2
+        exit 1
+      fi
     fi
-    cleanup_instance yes
+    cleanup_instance
   fi
-  if [[ -n "$(listener_pid "$port")" ]]; then
-    echo "verify-cwc: port $port is already in use. Set CWC_VERIFY_PORT and a new CWC_VERIFY_RUN_ID." >&2
+  local status
+  status=$(port_status "$port")
+  if [[ "$status" != free ]]; then
+    echo "verify-cwc: port $port is already in use ($status). Set CWC_VERIFY_PORT and a new CWC_VERIFY_RUN_ID." >&2
     exit 1
   fi
   need_flutter
-  ensure_node_modules
-  mkdir -p "$state" "$(evidence_dir)"
-  local app="$state/app"
-  mkdir -p "$app"
-  tar -C "$repo" \
-    --exclude .git \
-    --exclude .cursor \
-    --exclude build \
-    --exclude .dart_tool \
-    --exclude .idea \
-    --exclude web \
-    --exclude android/.gradle \
-    -cf - . | tar -C "$app" -xf -
-  rm -rf "$app/web"
-  mkdir -p "$app/web"
+  mkdir -p -- "$state"
+  chmod 700 "$state"
+  trap on_launch_err ERR
+  prepare_evidence
+  if evidence_inside_state "$EVIDENCE" "$state"; then
+    echo "verify-cwc: evidence must sit outside the run state directory" >&2
+    exit 1
+  fi
+  isolate_home "$state"
+  ensure_tools "$state/tools"
+  app="$state/app"
+  copy_tracked "$repo" "$app"
+  rm -rf -- "$app/web"
+  mkdir -p -- "$app/web"
   cp -a "$SCRIPT_DIR/web-scaffold/." "$app/web/"
-  local sha flutter_version
   sha=$(git -C "$repo" rev-parse HEAD)
   flutter_version=$("$FLUTTER_BIN" --version | awk 'NR==1 {print $1, $2; exit}')
   echo "verify-cwc: pub get in the temporary copy"
@@ -224,35 +531,56 @@ cmd_launch() {
   url="http://127.0.0.1:${port}"
   echo "verify-cwc: flutter run -d web-server on $url"
   (
-    cd "$app"
+    cd "$app" || exit 1
     exec setsid "$FLUTTER_BIN" run -d web-server --release \
       --web-hostname 127.0.0.1 \
       --web-port "$port" \
-      --dart-define=HELP_NOW_LIVE=true \
+      --dart-define=HELP_NOW_LIVE=false \
       --dart-define=HELP_NOW_UNCONFIRMED=false \
       --dart-define=SHOW_SESSION_QUESTIONS=false \
       >"$state/flutter.log" 2>&1
   ) &
-  local pid=$!
-  cat >"$state/run.env" <<EOF
-RUN_ID='$(run_id)'
-PORT='$port'
-URL='$url'
-PID='$pid'
-REPO='$repo'
-APP_DIR='$app'
-EVIDENCE='$(evidence_dir)'
-GIT_SHA='$sha'
-FLUTTER_BIN='$FLUTTER_BIN'
-FLUTTER_VERSION='$flutter_version'
-BROWSER_PID=''
-EOF
-  local i code ctype
+  pid=$!
+  if ! wait_cmdline "$pid" web-server 50; then
+    echo "verify-cwc: flutter did not stay up" >&2
+    tail -n 40 "$state/flutter.log" >&2 || true
+    if pid_alive "$pid" && read_proc "$pid"; then
+      if [[ "$PROC_UID" == "$(id -u)" && "$PROC_CMD" == *"--web-port"* ]]; then
+        if [[ "$PROC_PGRP" == "$pid" ]]; then
+          kill -TERM "-$pid" 2>/dev/null || true
+        else
+          kill -TERM "$pid" 2>/dev/null || true
+        fi
+      fi
+    fi
+    remove_state_dir "$state"
+    exit 1
+  fi
+  RUN_ID=$CWC_VERIFY_RUN_ID
+  PORT=$port
+  URL=$url
+  PID=$pid
+  REPO_STATE=$repo
+  APP_DIR=$app
+  GIT_SHA=$sha
+  FLUTTER_VERSION=$flutter_version
+  BROWSER_PID=''
+  LISTENER_PID=''
+  READY=no
+  FLUTTER_START=$PROC_START
+  FLUTTER_UID=$PROC_UID
+  FLUTTER_PGRP=$PROC_PGRP
+  FLUTTER_CMDLINE=$PROC_CMD
+  BROWSER_START=''
+  BROWSER_UID=''
+  BROWSER_PGRP=''
+  BROWSER_CMDLINE=''
+  write_state "$state/run.env"
   for i in $(seq 1 240); do
     if ! pid_alive "$pid"; then
       echo "verify-cwc: flutter exited before the app was ready" >&2
       tail -n 80 "$state/flutter.log" >&2 || true
-      cleanup_instance yes
+      cleanup_instance
       exit 1
     fi
     if [[ -f "$app/build/web/main.dart.js" ]] && grep -q "is being served at ${url}" "$state/flutter.log"; then
@@ -269,7 +597,7 @@ EOF
     *)
       echo "verify-cwc: $url/main.dart.js was not JavaScript (content-type: ${ctype:-none})" >&2
       tail -n 80 "$state/flutter.log" >&2 || true
-      cleanup_instance yes
+      cleanup_instance
       exit 1
       ;;
   esac
@@ -277,25 +605,31 @@ EOF
   if [[ "$code" != 200 ]]; then
     echo "verify-cwc: $url did not return 200" >&2
     tail -n 80 "$state/flutter.log" >&2 || true
-    cleanup_instance yes
+    cleanup_instance
     exit 1
   fi
   echo "verify-cwc: waiting until Before you continue is on screen"
-  if ! CWC_URL="$url" CWC_STATE="$state" CWC_EVIDENCE="$(evidence_dir)" \
-    node "$DAEMON" probe; then
+  if ! CWC_URL="$url" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" \
+    node "$NODE_DAEMON" probe; then
     echo "verify-cwc: the server answered but the care disclaimer was not usable" >&2
     tail -n 40 "$state/flutter.log" >&2 || true
-    cleanup_instance yes
+    cleanup_instance
     exit 1
   fi
-  local listen
-  listen=$(listener_pid "$port" || true)
-  printf "LISTENER_PID='%s'\nREADY='yes'\n" "$listen" >>"$state/run.env"
+  listen=$(port_status "$port" || true)
+  case "$listen" in
+    busy\ *) LISTENER_PID=${listen#busy } ;;
+    *) LISTENER_PID='' ;;
+  esac
+  READY=yes
+  write_state "$state/run.env"
+  trap - ERR
   echo "url: $url"
   echo "pid: $pid"
-  echo "listener: ${listen:-unknown}"
+  echo "listener: ${LISTENER_PID:-unknown}"
   echo "sha: $sha"
-  echo "evidence: $(evidence_dir)"
+  echo "evidence: $EVIDENCE"
+  echo "home: $RUN_HOME"
   echo "ready: Before you continue"
 }
 
@@ -309,6 +643,7 @@ cmd_doctor() {
   say "git_sha: $GIT_SHA"
   say "flutter: $FLUTTER_VERSION"
   say "evidence: $EVIDENCE"
+  say "home: ${RUN_HOME:-}"
   if ! pid_alive "$PID"; then
     say "flutter_alive: no"
     ok=no
@@ -316,28 +651,45 @@ cmd_doctor() {
     say "flutter_alive: yes"
   fi
   local head
-  head=$(git -C "$REPO" rev-parse HEAD)
+  head=$(git -C "${REPO_STATE:-$REPO}" rev-parse HEAD)
   if [[ "$head" != "$GIT_SHA" ]]; then
     say "sha_matches_checkout: no ($head)"
     ok=no
   else
     say "sha_matches_checkout: yes"
   fi
-  local listen
-  listen=$(listener_pid "$PORT" || true)
-  say "listener_pid: ${listen:-none}"
-  if [[ -z "$listen" ]]; then
-    say "port_owned_by_us: no"
-    ok=no
-  elif [[ -n "${LISTENER_PID:-}" && "$listen" != "$LISTENER_PID" ]]; then
-    say "port_owned_by_us: no (listener changed)"
-    ok=no
-  elif ! is_descendant "$PID" "$listen" && [[ "$listen" != "$PID" ]]; then
-    say "port_owned_by_us: no (listener is not our flutter process)"
-    ok=no
-  else
-    say "port_owned_by_us: yes"
-  fi
+  local status listen
+  status=$(port_status "$PORT")
+  case "$status" in
+    free)
+      say "listener_pid: none"
+      say "port_owned_by_us: no"
+      ok=no
+      ;;
+    "busy unknown")
+      say "listener_pid: unknown"
+      say "port_owned_by_us: no"
+      ok=no
+      ;;
+    busy\ *)
+      listen=${status#busy }
+      say "listener_pid: $listen"
+      if [[ -n "${LISTENER_PID:-}" && "$listen" != "$LISTENER_PID" ]]; then
+        say "port_owned_by_us: no (listener changed)"
+        ok=no
+      elif ! is_descendant "$PID" "$listen" && [[ "$listen" != "$PID" ]]; then
+        say "port_owned_by_us: no (listener is not our flutter process)"
+        ok=no
+      else
+        say "port_owned_by_us: yes"
+      fi
+      ;;
+    *)
+      say "listener_pid: unreadable"
+      say "port_owned_by_us: no"
+      ok=no
+      ;;
+  esac
   local code
   code=$(curl -s -o /dev/null -w '%{http_code}' "$URL/" || true)
   say "http: $code"
@@ -360,14 +712,25 @@ cmd_doctor() {
 
 send_browser() {
   load_state
-  local state json
-  state=$(state_dir)
+  use_run_home
+  local state daemon json
+  state=$(state_path)
+  daemon=${NODE_DAEMON:-$DAEMON}
   if [[ ! -S "$state/browser.sock" ]]; then
     echo "verify-cwc: browser is not started. Run: verify-cwc browser start" >&2
     exit 1
   fi
   json=$(node -e 'process.stdout.write(JSON.stringify(JSON.parse(process.argv[1])))' "$1")
-  CWC_EVIDENCE="$EVIDENCE" node "$DAEMON" client "$state/browser.sock" "$json"
+  CWC_EVIDENCE="$EVIDENCE" CWC_STATE="$state" node "$daemon" client "$state/browser.sock" "$json"
+}
+
+phone_name_blocked() {
+  local name=$1
+  [[ "$name" == "Call" || "$name" == "Text" ]] && return 0
+  case "$name" in
+    *911*|*988*|*Opens\ your\ phone*|*opens\ your\ phone*) return 0 ;;
+  esac
+  return 1
 }
 
 cmd_browser() {
@@ -376,17 +739,37 @@ cmd_browser() {
   case "$sub" in
     start)
       load_state
-      local state
-      state=$(state_dir)
+      use_run_home
+      local state bpid i
+      state=$(state_path)
       if [[ -S "$state/browser.sock" ]] && pid_alive "${BROWSER_PID:-}"; then
-        echo "verify-cwc: browser already started for run $(run_id)" >&2
+        echo "verify-cwc: browser already started for run $CWC_VERIFY_RUN_ID" >&2
         exit 1
       fi
-      ensure_node_modules
+      ensure_tools "$state/tools"
       CWC_URL="$URL" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" \
-        node "$DAEMON" serve >"$state/browser.log" 2>&1 &
-      local bpid=$!
-      local i
+        node "$NODE_DAEMON" serve >"$state/browser.log" 2>&1 &
+      bpid=$!
+      if ! wait_cmdline "$bpid" browser-daemon.mjs 40; then
+        echo "verify-cwc: browser exited" >&2
+        cat "$state/browser.log" >&2 || true
+        if pid_alive "$bpid" && read_proc "$bpid"; then
+          if [[ "$PROC_UID" == "$(id -u)" && "$PROC_CMD" == *"$state/tools"* ]]; then
+            if [[ "$PROC_PGRP" == "$bpid" ]]; then
+              kill -TERM "-$bpid" 2>/dev/null || true
+            else
+              kill -TERM "$bpid" 2>/dev/null || true
+            fi
+          fi
+        fi
+        exit 1
+      fi
+      BROWSER_PID=$bpid
+      BROWSER_START=$PROC_START
+      BROWSER_UID=$PROC_UID
+      BROWSER_PGRP=$PROC_PGRP
+      BROWSER_CMDLINE=$PROC_CMD
+      write_state "$state/run.env"
       for i in $(seq 1 120); do
         if [[ -S "$state/browser.sock" ]]; then
           break
@@ -401,22 +784,21 @@ cmd_browser() {
       if [[ ! -S "$state/browser.sock" ]]; then
         echo "verify-cwc: browser did not open a socket" >&2
         cat "$state/browser.log" >&2 || true
-        stop_pid "$bpid"
+        stop_owned "$bpid" "$BROWSER_START" "$BROWSER_UID" "$BROWSER_PGRP" browser "$PORT" || true
         exit 1
-      fi
-      if grep -q '^BROWSER_PID=' "$state/run.env"; then
-        sed -i "s/^BROWSER_PID=.*/BROWSER_PID='$bpid'/" "$state/run.env"
-      else
-        echo "BROWSER_PID='$bpid'" >>"$state/run.env"
       fi
       echo "browser: ready at $URL"
       ;;
     reload)
       send_browser '{"cmd":"reload"}'
       ;;
-    click|fill|expect-text|expect-absent|snapshot|screenshot|scroll-into-view)
-      local role='' name='' value='' path='' feature='' text='' exact=true
-      local within_role='' within_name='' expect_open=''
+    opens)
+      send_browser '{"cmd":"opens"}'
+      ;;
+    click|fill|expect-text|expect-absent|expect-order|snapshot|screenshot|scroll-into-view)
+      local role='' name='' value='' path='' feature='' exact=true
+      local within_role='' within_name=''
+      local texts=()
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --role) role=$2; shift 2 ;;
@@ -424,10 +806,13 @@ cmd_browser() {
           --value) value=$2; shift 2 ;;
           --path) path=$2; shift 2 ;;
           --feature) feature=$2; shift 2 ;;
-          --text) text=$2; shift 2 ;;
+          --text) texts+=("$2"); shift 2 ;;
           --within-role) within_role=$2; shift 2 ;;
           --within-name) within_name=$2; shift 2 ;;
-          --expect-open) expect_open=$2; shift 2 ;;
+          --expect-open)
+            echo "verify-cwc: refusing to watch a phone or text open" >&2
+            exit 1
+            ;;
           --contains) exact=false; shift ;;
           *)
             echo "verify-cwc: unknown flag $1" >&2
@@ -435,22 +820,27 @@ cmd_browser() {
             ;;
         esac
       done
-      local cmd=$sub
-      local payload
+      if [[ "$sub" == click ]] && phone_name_blocked "$name"; then
+        echo "verify-cwc: refusing to tap a phone or text row" >&2
+        exit 1
+      fi
+      local text_json payload
+      text_json=$(node -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "${texts[@]+"${texts[@]}"}")
       payload=$(node -e '
-        const [cmd, role, name, value, file, feature, text, exact, withinRole, withinName, expectOpen] = process.argv.slice(1);
+        const [cmd, role, name, value, file, feature, exact, withinRole, withinName, textJson] = process.argv.slice(1);
+        const texts = JSON.parse(textJson);
         const msg = { cmd, exact: exact === "true" };
         if (role) msg.role = role;
         if (name) msg.name = name;
         if (value) msg.value = value;
         if (file) msg.path = file;
         if (feature) msg.feature = feature;
-        if (text) msg.text = text;
+        if (texts.length === 1) msg.text = texts[0];
+        if (texts.length > 0) msg.texts = texts;
         if (withinRole) msg.withinRole = withinRole;
         if (withinName) msg.withinName = withinName;
-        if (expectOpen) msg.expectOpen = expectOpen;
         process.stdout.write(JSON.stringify(msg));
-      ' "$cmd" "$role" "$name" "$value" "$path" "$feature" "$text" "$exact" "$within_role" "$within_name" "$expect_open")
+      ' "$sub" "$role" "$name" "$value" "$path" "$feature" "$exact" "$within_role" "$within_name" "$text_json")
       send_browser "$payload"
       ;;
     *)
@@ -464,6 +854,11 @@ main() {
   local cmd=${1:-}
   shift || true
   case "$cmd" in
+    launch|doctor|cleanup|browser)
+      prepare_run_id "$cmd"
+      ;;
+  esac
+  case "$cmd" in
     launch) cmd_launch ;;
     doctor) cmd_doctor ;;
     cleanup) cmd_cleanup ;;
@@ -476,4 +871,6 @@ main() {
   esac
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

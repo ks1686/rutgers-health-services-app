@@ -1,52 +1,136 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { fileURLToPath } from 'node:url';
 
-const mode = process.argv[2];
-
-if (mode === 'client') {
-  const socketPath = process.argv[3];
-  const payload = process.argv[4];
-  const sock = net.createConnection(socketPath);
-  let buf = '';
-  const fail = (message) => {
-    process.stderr.write(`${message}\n`);
-    process.exit(1);
+// tel: and sms: stay inside the page. The real window.open is not called.
+export const OPEN_STUB = `(() => {
+  const opens = [];
+  window.__cwcOpens = opens;
+  const orig = window.open.bind(window);
+  window.open = function open(href, ...rest) {
+    const url = String(href ?? '');
+    opens.push(url);
+    const lowered = url.toLowerCase();
+    if (lowered.startsWith('tel:') || lowered.startsWith('sms:')) return null;
+    return orig(href, ...rest);
   };
-  sock.setTimeout(30000);
-  sock.on('timeout', () => fail('browser command timed out'));
-  sock.on('connect', () => sock.write(payload + '\n'));
-  sock.on('data', (chunk) => {
-    buf += chunk.toString('utf8');
-    const nl = buf.indexOf('\n');
-    if (nl < 0) return;
-    let response;
+})();`;
+
+export function phoneTapError(msg) {
+  if (!msg || msg.cmd !== 'click') return '';
+  const name = String(msg.name || '');
+  if (name === 'Call' || name === 'Text') return 'refusing to tap a phone or text row';
+  if (/911|988|opens your phone/i.test(name)) return 'refusing to tap a phone or text row';
+  const expected = String(msg.expectOpen || '');
+  if (/^(tel:|sms:)/i.test(expected)) return 'refusing a tel or sms open';
+  return '';
+}
+
+function assertInside(root, candidate) {
+  const rel = path.relative(root, candidate);
+  if (
+    rel === '' ||
+    rel === '..' ||
+    rel.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(rel)
+  ) {
+    throw new Error(`refusing to write outside this run evidence folder: ${candidate}`);
+  }
+}
+
+export function resolveEvidenceFile(file) {
+  if (typeof file !== 'string' || file.length === 0 || file.includes('\0')) {
+    throw new Error('refusing evidence path');
+  }
+  const evidence = process.env.CWC_EVIDENCE;
+  if (!evidence) throw new Error('CWC_EVIDENCE is not set');
+  let root;
+  try {
+    root = fs.realpathSync(evidence);
+  } catch {
+    throw new Error('evidence folder is not available');
+  }
+  const abs = path.resolve(file);
+  const parts = abs.split(path.sep).filter(Boolean);
+  let current = path.parse(abs).root;
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (part === '.' || part === '..') throw new Error('refusing evidence path');
+    const next = path.join(current, part);
+    let st;
     try {
-      response = JSON.parse(buf.slice(0, nl));
+      st = fs.lstatSync(next);
     } catch (err) {
-      fail(`bad browser response: ${err.message}`);
+      if (err.code !== 'ENOENT') throw new Error('refusing evidence path');
+      const finalPath = path.join(current, part, ...parts.slice(i + 1));
+      assertInside(root, finalPath);
+      return { root, finalPath };
     }
-    if (!response.ok) {
-      process.stderr.write(`${response.error || 'browser command failed'}\n`);
-      if (response.detail) process.stderr.write(`${response.detail}\n`);
-      process.exit(1);
+    if (st.isSymbolicLink()) {
+      let target;
+      try {
+        target = fs.realpathSync(next);
+      } catch {
+        throw new Error('refusing to follow an evidence symlink');
+      }
+      const rest = parts.slice(i + 1);
+      const finalPath = rest.length === 0 ? target : path.join(target, ...rest);
+      assertInside(root, finalPath);
+      if (rest.length === 0) return { root, finalPath: target };
+      current = target;
+      continue;
     }
-    if (response.message) process.stdout.write(`${response.message}\n`);
-    process.exit(0);
-  });
-  sock.on('error', (err) => fail(`browser is not running (${err.message})`));
-  sock.on('end', () => {
-    if (!buf.includes('\n')) fail(buf || 'empty browser response');
-  });
-} else if (mode === 'probe' || mode === 'serve') {
-  await runSession(mode);
-} else {
-  process.stderr.write('usage: browser-daemon.mjs probe|serve|client\n');
-  process.exit(2);
+    current = next;
+  }
+  assertInside(root, current);
+  return { root, finalPath: current };
+}
+
+function chmodUp(start, root) {
+  let current = start;
+  while (current.startsWith(root)) {
+    try {
+      fs.chmodSync(current, 0o700);
+    } catch {
+      // The directory may have been removed. The write still has to pass the path check.
+    }
+    if (current === root) break;
+    const next = path.dirname(current);
+    if (next === current) break;
+    current = next;
+  }
+}
+
+function evidencePath(file) {
+  const { root, finalPath } = resolveEvidenceFile(file);
+  fs.mkdirSync(path.dirname(finalPath), { recursive: true, mode: 0o700 });
+  const again = resolveEvidenceFile(finalPath);
+  const parentReal = fs.realpathSync(path.dirname(again.finalPath));
+  const checked = path.join(parentReal, path.basename(again.finalPath));
+  assertInside(root, checked);
+  chmodUp(parentReal, root);
+  return checked;
+}
+
+function refuseSymlink(file) {
+  try {
+    if (fs.lstatSync(file).isSymbolicLink()) {
+      throw new Error('refusing to follow an evidence symlink');
+    }
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+}
+
+function writePrivate(file, data) {
+  refuseSymlink(file);
+  fs.writeFileSync(file, data, { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
 }
 
 async function launchChrome() {
+  const { chromium } = await import('playwright-core');
   const attempts = [
     { channel: 'chrome', args: ['--disable-dev-shm-usage'] },
     {
@@ -107,35 +191,12 @@ async function openApp(page, url) {
   const logs = [];
   page.on('console', (msg) => logs.push(`${msg.type()}: ${msg.text()}`));
   page.on('pageerror', (err) => logs.push(`pageerror: ${err.message}`));
-  await page.addInitScript(() => {
-    const opens = [];
-    window.__cwcOpens = opens;
-    const orig = window.open;
-    window.open = function open(href, ...rest) {
-      opens.push(String(href));
-      return orig.call(this, href, ...rest);
-    };
-  });
+  await page.addInitScript(OPEN_STUB);
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await enableAccessibility(page, logs);
   await page.getByText('Before you continue', { exact: true }).waitFor({
     timeout: 30000,
   });
-}
-
-function evidencePath(file) {
-  const evidence = process.env.CWC_EVIDENCE;
-  if (!evidence) throw new Error('CWC_EVIDENCE is not set');
-  const resolved = path.resolve(file);
-  const roots = [path.resolve(evidence), '/opt/cursor/artifacts', '/tmp'];
-  const allowed = roots.some(
-    (root) => resolved === root || resolved.startsWith(root + path.sep),
-  );
-  if (!allowed) {
-    throw new Error(`refusing to write outside the evidence directory: ${resolved}`);
-  }
-  fs.mkdirSync(path.dirname(resolved), { recursive: true });
-  return resolved;
 }
 
 function locatorFor(page, msg) {
@@ -175,22 +236,35 @@ async function scrollIntoView(page, text) {
   return { ok: false };
 }
 
-async function handle(page, msg) {
+async function persistOpens(page) {
+  const stateDir = process.env.CWC_STATE;
+  if (!stateDir) return;
+  let st;
+  try {
+    st = fs.lstatSync(stateDir);
+  } catch {
+    return;
+  }
+  if (st.isSymbolicLink() || !st.isDirectory()) return;
+  const opens = await page.evaluate(() => window.__cwcOpens || []);
+  const file = path.join(stateDir, 'opens.log');
+  try {
+    if (fs.lstatSync(file).isSymbolicLink()) return;
+  } catch (err) {
+    if (err.code !== 'ENOENT') return;
+  }
+  fs.writeFileSync(file, opens.length ? `${opens.join('\n')}\n` : '', { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+}
+
+async function dispatch(page, msg) {
+  const blocked = phoneTapError(msg);
+  if (blocked) return { ok: false, error: blocked };
+  if (msg.expectOpen) {
+    return { ok: false, error: 'this helper does not confirm phone opens' };
+  }
   if (msg.cmd === 'click') {
-    const before = (await page.evaluate(() => window.__cwcOpens || [])).length;
     await locatorFor(page, msg).click({ timeout: 20000 });
-    if (msg.expectOpen) {
-      const opens = await page.evaluate(() => window.__cwcOpens || []);
-      const hit = opens.slice(before).some((url) => url.startsWith(msg.expectOpen));
-      if (!hit) {
-        return {
-          ok: false,
-          error: `tap did not open ${msg.expectOpen}`,
-          detail: `opened: ${opens.join(', ') || '(none)'}`,
-        };
-      }
-      return { ok: true, message: `opened ${msg.expectOpen}` };
-    }
     return { ok: true, message: `clicked ${msg.role} ${msg.name}` };
   }
   if (msg.cmd === 'fill') {
@@ -220,6 +294,38 @@ async function handle(page, msg) {
       detail: last,
     };
   }
+  if (msg.cmd === 'expect-order') {
+    const texts = Array.isArray(msg.texts) ? msg.texts.map((item) => String(item)) : [];
+    if (texts.length < 2) {
+      return { ok: false, error: 'expect-order needs at least two texts' };
+    }
+    const deadline = Date.now() + (msg.timeoutMs || 10000);
+    let last = '';
+    while (Date.now() < deadline) {
+      last = await ariaText(page);
+      let from = 0;
+      let ordered = true;
+      for (const text of texts) {
+        const at = last.indexOf(text, from);
+        if (at < 0) {
+          ordered = false;
+          break;
+        }
+        from = at + text.length;
+      }
+      if (ordered) return { ok: true, message: 'order ok' };
+      await page.waitForTimeout(200);
+    }
+    return {
+      ok: false,
+      error: 'accessibility tree is not in the requested order',
+      detail: last,
+    };
+  }
+  if (msg.cmd === 'opens') {
+    const opens = await page.evaluate(() => window.__cwcOpens || []);
+    return { ok: true, message: opens.length ? opens.join('\n') : '(none)' };
+  }
   if (msg.cmd === 'snapshot') {
     const file = evidencePath(msg.path);
     const body = await ariaText(page);
@@ -229,12 +335,14 @@ async function handle(page, msg) {
       `feature: ${msg.feature || ''}`,
       '',
     ].join('\n');
-    fs.writeFileSync(file, header + body);
+    writePrivate(file, header + body);
     return { ok: true, message: `wrote ${file}` };
   }
   if (msg.cmd === 'screenshot') {
     const file = evidencePath(msg.path);
+    refuseSymlink(file);
     await page.screenshot({ path: file, fullPage: false });
+    fs.chmodSync(file, 0o600);
     return { ok: true, message: `wrote ${file}` };
   }
   if (msg.cmd === 'scroll-into-view') {
@@ -259,6 +367,52 @@ async function handle(page, msg) {
   return { ok: false, error: `unknown command ${msg.cmd}` };
 }
 
+async function handle(page, msg) {
+  const result = await dispatch(page, msg);
+  try {
+    await persistOpens(page);
+  } catch {
+    // A failed log write must not hide the command result.
+  }
+  return result;
+}
+
+function runClient() {
+  const socketPath = process.argv[3];
+  const payload = process.argv[4];
+  const sock = net.createConnection(socketPath);
+  let buf = '';
+  const fail = (message) => {
+    process.stderr.write(`${message}\n`);
+    process.exit(1);
+  };
+  sock.setTimeout(90000);
+  sock.on('timeout', () => fail('browser command timed out'));
+  sock.on('connect', () => sock.write(`${payload}\n`));
+  sock.on('data', (chunk) => {
+    buf += chunk.toString('utf8');
+    const nl = buf.indexOf('\n');
+    if (nl < 0) return;
+    let response;
+    try {
+      response = JSON.parse(buf.slice(0, nl));
+    } catch (err) {
+      fail(`bad browser response: ${err.message}`);
+    }
+    if (!response.ok) {
+      process.stderr.write(`${response.error || 'browser command failed'}\n`);
+      if (response.detail) process.stderr.write(`${response.detail}\n`);
+      process.exit(1);
+    }
+    if (response.message) process.stdout.write(`${response.message}\n`);
+    process.exit(0);
+  });
+  sock.on('error', (err) => fail(`browser is not running (${err.message})`));
+  sock.on('end', () => {
+    if (!buf.includes('\n')) fail(buf || 'empty browser response');
+  });
+}
+
 async function runSession(mode) {
   const url = process.env.CWC_URL;
   const stateDir = process.env.CWC_STATE;
@@ -280,6 +434,11 @@ async function runSession(mode) {
     process.stderr.write(`${err.message}\n`);
     process.exit(1);
   }
+  try {
+    await persistOpens(page);
+  } catch {
+    // The session can still serve commands if the log cannot be written.
+  }
   if (mode === 'probe') {
     await browser.close();
     process.stdout.write('ready: Before you continue\n');
@@ -295,7 +454,7 @@ async function runSession(mode) {
       if (replied) return;
       replied = true;
       try {
-        conn.write(JSON.stringify(response) + '\n');
+        conn.write(`${JSON.stringify(response)}\n`);
       } catch (err) {
         process.stderr.write(`browser reply failed: ${err.message}\n`);
       }
@@ -337,4 +496,46 @@ async function runSession(mode) {
   };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
+}
+
+async function main() {
+  const mode = process.argv[2];
+  if (mode === 'check-path') {
+    try {
+      const found = resolveEvidenceFile(process.argv[3] || '');
+      process.stdout.write(`ok ${found.finalPath}\n`);
+    } catch (err) {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(1);
+    }
+    return;
+  }
+  if (mode === 'write-text') {
+    try {
+      const file = evidencePath(process.argv[3] || '');
+      writePrivate(file, process.argv[4] ?? '');
+      process.stdout.write(`wrote ${file}\n`);
+    } catch (err) {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(1);
+    }
+    return;
+  }
+  if (mode === 'client') {
+    runClient();
+    return;
+  }
+  if (mode === 'probe' || mode === 'serve') {
+    await runSession(mode);
+    return;
+  }
+  process.stderr.write(
+    'usage: browser-daemon.mjs probe|serve|client|check-path|write-text\n',
+  );
+  process.exit(2);
+}
+
+const entry = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (entry && entry === fileURLToPath(import.meta.url)) {
+  await main();
 }

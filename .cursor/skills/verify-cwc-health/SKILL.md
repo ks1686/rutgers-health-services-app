@@ -13,7 +13,7 @@ Package `cwc_health_app`. Android application id `org.rutgers.cwc.cwc_health_app
 
 ## Launch
 
-One instance per `CWC_VERIFY_RUN_ID`. The default id is `local` and the default port is `8773`. A second run needs its own id and port. Each run copies the checkout to a temp directory, copies the web scaffold into that copy only, and starts Flutter there. The product tree has no `web/` folder and must not gain one. `flutter create` rewrites `pubspec.lock` and `analysis_options.yaml`, so the helper never runs it.
+One instance per `CWC_VERIFY_RUN_ID`. Launch creates a new id when that variable is unset and prints `run_id:`. Doctor, browser, and cleanup refuse to run until you export that id. There is no shared default id. The default port is `8773`. A second run needs its own port. Each run copies tracked files to a temp directory, copies the web scaffold into that copy only, and starts Flutter there. The product tree has no `web/` folder and must not gain one. `flutter create` rewrites `pubspec.lock` and `analysis_options.yaml`, so the helper never runs it.
 
 From the repo root:
 
@@ -23,14 +23,14 @@ From the repo root:
 
 Useful environment:
 
-- `CWC_VERIFY_RUN_ID` isolates the process, port, and browser storage.
+- `CWC_VERIFY_RUN_ID` isolates the process, port, and browser storage. Export the `run_id:` line from launch.
 - `CWC_VERIFY_PORT` is the web port. Default `8773`.
-- `CWC_VERIFY_EVIDENCE` is the proof directory. Default `/tmp/cwc-verify-evidence/<run id>`. Cleanup never deletes it.
+- `CWC_VERIFY_EVIDENCE` is the proof directory. When unset, launch creates a private directory with `mktemp` (mode 700). Cleanup never deletes it.
 - `CWC_VERIFY_REPO` defaults to this repo.
 
-Launch is finished only when a headless Chrome session can see **Before you continue** and **I understand**. HTTP 200 by itself is not ready. The flags passed to Flutter are the v1 defaults: `HELP_NOW_LIVE=true`, `HELP_NOW_UNCONFIRMED=false`, `SHOW_SESSION_QUESTIONS=false`.
+Launch is finished only when a headless Chrome session can see **Before you continue** and **I understand**. HTTP 200 by itself is not ready. The helper passes `HELP_NOW_LIVE=false`, `HELP_NOW_UNCONFIRMED=false`, and `SHOW_SESSION_QUESTIONS=false`. `HELP_NOW_LIVE=false` changes the Help Now sentence. The row buttons still have phone URLs in app code, so the helper never presses them and drops `tel:` and `sms:` `window.open` calls.
 
-The helper needs `flutter` on `PATH` (3.47.8), `node`, `python3`, `tar`, `curl`, and Google Chrome. It reads `/proc/net/tcp` to see who owns the port. The first launch runs `npm install` in the scripts directory for `playwright-core`.
+The helper needs `flutter` on `PATH` (3.47.8), `node`, `python3`, `tar`, `curl`, and Google Chrome. It treats a LISTEN socket in `/proc/net/tcp` as a busy port even when the holding process cannot be inspected. The first launch runs `npm ci` in the run's private state directory for `playwright-core`. It does not install `node_modules` into the repo. Flutter and Chrome use a private `HOME` under that state directory.
 
 ### Android emulator (real target, unverified on a Linux VM without an emulator)
 
@@ -61,7 +61,7 @@ Ready when **Before you continue** is on screen. The simulator has no cell radio
 - Serves `flutter run -d web-server --release`. Debug mode on this VM stopped on the HTML shell while DDC was still loading scripts, so the disclaimer never appeared. Release mode is the same member UI and is the bundle the helper waits on.
 - Clicks the Flutter placeholder `flt-semantics-placeholder` by dispatching a DOM click. The placeholder is 1 pixel at `(-1, -1)`, so a normal Playwright click never lands. Phones expose semantics to TalkBack and VoiceOver without that click.
 - Uses a 430 by 1200 CSS pixel viewport so a Learn note fits. The HTML page does not scroll. Flutter scrolls inside the view.
-- Records `window.open` URLs. On this Chrome, Help Now's 911 tap calls `window.open('tel:911')` and does not show **Dial this number**, because Chrome accepts the open. A phone opens the dialer with 911 filled in and does not place the call.
+- Drops `tel:` and `sms:` `window.open` calls inside the page. Other opens still go to the browser. A phone opens its own dialer when a member presses a row. This helper does not press those rows.
 - Stores My Health in the browser origin for that port. A reload keeps it. That is not Android Keystore or iOS Keychain.
 
 ## Doctor
@@ -91,11 +91,13 @@ $V browser screenshot --path "$CWC_VERIFY_EVIDENCE/learn/topics.png"
 Commands:
 
 - `browser start` opens the app and enables semantics. The disclaimer is showing.
-- `browser click --role ROLE --name NAME` uses an exact accessible name. `--contains` switches to a substring. `--within-role` and `--within-name` scope the click (the within name is a substring). `--expect-open tel:911` fails unless that tap called `window.open` with that prefix.
+- `browser click --role ROLE --name NAME` uses an exact accessible name. `--contains` switches to a substring. `--within-role` and `--within-name` scope the click (the within name is a substring). A phone or text row, including 911 and 988, is refused.
+- `browser expect-order --text A --text B` waits until those strings appear in that order in the accessibility tree.
+- `browser opens` prints `tel:` and `sms:` URLs the page tried to open. A run that did not press a phone row prints `(none)`.
 - `browser fill --role textbox --name NAME --value VALUE` fills a field.
 - `browser expect-text --text TEXT` polls the accessibility tree for up to 10 seconds.
 - `browser expect-absent --text TEXT` waits until the text is gone. Use it after a navigation that should remove the previous screen.
-- `browser snapshot` and `browser screenshot` write only under the evidence directory, `/opt/cursor/artifacts`, or `/tmp`.
+- `browser snapshot` and `browser screenshot` write only inside this run's evidence directory. The helper resolves symlinks and refuses a path that leaves that directory.
 - `browser scroll-into-view --text TEXT` wheels the Flutter list until that text's box sits in the viewport.
 - `browser reload` reloads the page, enables semantics again, and waits for the disclaimer. Storage for that origin is kept. The in-memory disclaimer acknowledgement is not.
 
@@ -103,9 +105,9 @@ Match names from the feature file. Do not click by coordinates.
 
 ## Evidence
 
-Write proofs to `$CWC_VERIFY_EVIDENCE`. A review run on this VM uses `/opt/cursor/artifacts/verify-cwc-health`.
+Write proofs to the evidence directory launch printed (`evidence:`). The directory is mode 700. Files written there are mode 600. When `CWC_VERIFY_EVIDENCE` is unset, the path comes from `mktemp` and is not derived from the run id.
 
-A proof shows the action and the resulting state. For a screen, save an accessibility snapshot and a screenshot. The snapshot header includes the page URL and title `CWC Health App`. For a save, reload with `browser reload`, acknowledge the disclaimer again, and read the value back from My Health. For Help Now on the web stand-in, record the `window.open` URL. Do not treat that as the Android dialer. Do not place a 911, 988, or poison-control call.
+A proof shows the action and the resulting state. For a screen, save an accessibility snapshot and a screenshot. The snapshot header includes the page URL and title `CWC Health App`. For a save, reload with `browser reload`, acknowledge the disclaimer again, and read the value back from My Health. For Help Now, record the row names and their order. Do not press a row. Do not place a 911, 988, or poison-control call.
 
 Mocks are not used. Nearby calls the real Overpass servers. If the list fails to load, the run fails. The error text is not a pass.
 
@@ -115,7 +117,7 @@ Mocks are not used. Nearby calls the real Overpass servers. If the list fails to
 .cursor/skills/verify-cwc-health/scripts/verify-cwc cleanup
 ```
 
-Cleanup kills the browser pid and the Flutter pid this run recorded, including the process group when the system allows it. It deletes the temp app copy and the state directory. It copies `flutter.log` into the evidence directory first. It does not delete the evidence directory, and it does not kill processes by name.
+Cleanup reads the state file as data. It signals the browser pid and the Flutter pid only when `/proc/<pid>/cmdline`, the owner, and the start time still match the process this run started. It signals the process group only when that pid is still the leader of that same process. It does not signal an unrelated pid. It deletes the temp app copy and the state directory. It copies `flutter.log` into the evidence directory first. It does not delete the evidence directory, and it does not kill processes by name.
 
 After cleanup, confirm the snapshot and screenshot are still in the evidence directory.
 
@@ -125,9 +127,10 @@ Both files live in `.cursor/skills/verify-cwc-health/scripts/`.
 
 - `verify-cwc` is the command above. It is executable.
 - `browser-daemon.mjs` is the Chrome session. `verify-cwc` calls it. Do not invoke it yourself.
+- `check-regressions.sh` checks the run id, cleanup, evidence paths, and phone-open guards.
 - `web-scaffold/` is the temporary `web/` tree. `scripts/web-scaffold/SCAFFOLD.txt` says why it exists.
 
-`npm install` runs from `verify-cwc` when `node_modules/playwright-core` is missing. `scripts/.gitignore` keeps `node_modules/` out of git. `scripts/package.json` pins `playwright-core`.
+`npm ci` runs in the private state directory when `playwright-core` is missing. `scripts/package.json` pins `playwright-core`. The helper removes `scripts/node_modules` if it is present so the package tree stays out of the repo.
 
 ## Feature map
 

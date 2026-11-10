@@ -8,8 +8,8 @@ This directory is the maintained source for verifying the member-facing behavior
 - Run `verify-cwc launch`, then `verify-cwc doctor`, and require `ok: yes` before any drive.
 - Run `verify-cwc browser start` so the session is on **Before you continue**. Acknowledging the disclaimer lasts for that browser tab only. A reload or a new tab shows it again.
 - My Health starts empty in a new browser context. Do not reuse Chrome's everyday profile.
-- v1 flags stay at their defaults. `HELP_NOW_LIVE` is true. `SHOW_SESSION_QUESTIONS` is false, so **Session questions** is absent. `HELP_NOW_UNCONFIRMED` is false, so **NJ Peer Warmline** and **My Wellness Center** are absent.
-- Never drive a Flutter process this run did not start. Two runs need different `CWC_VERIFY_RUN_ID` values and different ports.
+- Launch passes `HELP_NOW_LIVE=false` so Help Now says calling is turned off in this build. `SHOW_SESSION_QUESTIONS` is false, so **Session questions** is absent. `HELP_NOW_UNCONFIRMED` is false, so **NJ Peer Warmline** and **My Wellness Center** are absent.
+- Launch prints a new run id. Export it before doctor, browser, and cleanup. Two runs also need different ports. Never drive a Flutter process this run did not start.
 
 ## Driving conventions
 
@@ -25,7 +25,7 @@ This directory is the maintained source for verifying the member-facing behavior
 - Capture the member action and the resulting state, not only the last screen.
 - UI proof is an accessibility snapshot plus a screenshot. The snapshot header includes the title `CWC Health App`.
 - A saved health record is proved by reloading, acknowledging the disclaimer, and reading the record back.
-- A Help Now tap on the web stand-in is proved by the `window.open` URL. The Android dialer is a separate check.
+- Help Now is proved by the row names and their order. Do not press a row. The Android dialer is outside this helper.
 - Record the feature id and the entry point with the snapshot (`--feature`).
 - Report an unreachable path with the command you ran and the unmet precondition. A failed Nearby lookup is a failure. Do not switch the assertion to the error text.
 - Do not report a skipped phone entry point as verified through the web stand-in.
@@ -42,7 +42,7 @@ Each feature file starts with an H1 and one paragraph, then these four H2 sectio
 ## Features
 
 - [Learn a topic](./learn.md) covers the cold-start disclaimer, the six Learn tiles, a topic note, and a sourced article.
-- [Help Now](./help-now.md) covers the header entry, 911 first, and the tap that fills a number.
+- [Help Now](./help-now.md) covers the header entry and the row names in order. It does not press a row.
 - [My Health medication](./my-health.md) covers an empty list, saving a medicine, and seeing it after a reload.
 - [Nearby places](./nearby.md) covers the remembered town, a live place list, and the unvetted-maps notice.
 - [More](./more.md) covers the More list, the privacy page, and cancelling erase.

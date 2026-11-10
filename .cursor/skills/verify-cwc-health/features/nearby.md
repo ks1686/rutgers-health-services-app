@@ -15,7 +15,7 @@ Nearby lists live pharmacies, clinics, urgent care, and hospitals for the rememb
 - Choose the **Nearby** tab.
 - Wait until the loading line is gone.
 - Read the notice that the places are not checked by the team.
-- Choose a place's **Call** only when you mean to open the dialer, then leave without calling. This journey stops at the list.
+- Read a place card. Call, Text, and Directions are on the card. This journey does not press them.
 
 ## Driving it with verify-cwc
 
@@ -37,5 +37,5 @@ Preconditions:
 - On 2026-11-10 a Linux run of this app got HTTP 504 from `https://overpass.kumi.systems/api/interpreter`, then the member-facing failure line above. That run did not verify the place list.
 - **Use my location** needs a device location fix. The web stand-in has no GPS grant unless the browser context allows it. This journey uses the remembered town. Denying location on a phone returns to that town. It does not empty the tab.
 - The town control's accessible role on the web stand-in is a checkbox named like `New Brunswick ▾`, not a button. Click it only when the journey is changing town.
-- Place **Call** and **Text** open `tel:` and `sms:`. **Directions** opens `geo:`. Those are phone apps. Do not treat a web `window.open` as proof the phone opened Maps or the dialer.
+- Place **Call** and **Text** open `tel:` and `sms:`. **Directions** opens `geo:`. This helper refuses those clicks. Do not treat a web `window.open` as proof a phone opened Maps or the dialer.
 - Category chips filter the cards already loaded. Panning the map does not fetch a new list.
