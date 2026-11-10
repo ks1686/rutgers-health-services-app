@@ -10,6 +10,16 @@ SKILL_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 REPO=$(cd "$SKILL_DIR/../../.." && pwd)
 DAEMON="$SCRIPT_DIR/browser-daemon.mjs"
 USER_HOME=${HOME:-/tmp}
+ORIG_XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR-}
+ORIG_TMPDIR=${TMPDIR-}
+SAVED_PUB_CACHE=${PUB_CACHE-}
+SAVED_NPM_CONFIG_CACHE=${NPM_CONFIG_CACHE-}
+SAVED_npm_config_cache=${npm_config_cache-}
+SAVED_PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH-}
+SAVED_GOMODCACHE=${GOMODCACHE-}
+SAVED_GOENV=${GOENV-}
+SAVED_GOPATH=${GOPATH-}
+CREATED_RUN_DIR=0
 
 usage() {
   cat <<'EOF'
@@ -29,9 +39,13 @@ usage: verify-cwc launch|doctor|cleanup
 Environment:
   CWC_VERIFY_RUN_ID     required after launch. Launch prints a new id when this is unset.
   CWC_VERIFY_PORT       default 8773. Two runs need two ports.
-  CWC_VERIFY_HOME       state root, default /tmp/cwc-verify
+  CWC_VERIFY_HOME       state root. Default is a mode 700 directory named
+                        cwc-verify-<uid> under XDG_RUNTIME_DIR, or under /tmp.
+                        An existing directory is used only when this user owns
+                        it and the group and others cannot write it.
   CWC_VERIFY_EVIDENCE   proof directory. Unset creates a private mktemp directory.
-                        Cleanup never deletes it.
+                        An existing directory must already be private. The helper
+                        does not change its mode. Cleanup never deletes it.
   CWC_VERIFY_REPO       source checkout. Default is the repo that contains this skill.
 EOF
 }
@@ -86,9 +100,19 @@ validate_port() {
   fi
 }
 
+py_realpath() {
+  python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"
+}
+
 state_home() {
-  local home=${CWC_VERIFY_HOME:-/tmp/cwc-verify}
-  home=${home%/}
+  local home
+  if [[ -n "${CWC_VERIFY_HOME:-}" ]]; then
+    home=${CWC_VERIFY_HOME%/}
+  elif [[ -n "$ORIG_XDG_RUNTIME_DIR" && "$ORIG_XDG_RUNTIME_DIR" == /* ]]; then
+    home="${ORIG_XDG_RUNTIME_DIR%/}/cwc-verify-$(id -u)"
+  else
+    home="${ORIG_TMPDIR:-/tmp}/cwc-verify-$(id -u)"
+  fi
   if [[ "$home" != /* ]]; then
     echo "verify-cwc: CWC_VERIFY_HOME must be absolute" >&2
     exit 1
@@ -96,12 +120,59 @@ state_home() {
   printf '%s' "$home"
 }
 
+# Empty output means the path is a real directory owned by this user and
+# not writable by the group or by others. This never creates or chmods.
+private_dir_reason() {
+  python3 - "$1" "$2" "$(id -u)" <<'PY'
+import os, stat, sys
+path, label, uid = sys.argv[1], sys.argv[2], int(sys.argv[3])
+if os.path.islink(path):
+    sys.stdout.write("%s is a symlink" % label)
+elif not os.path.isdir(path):
+    sys.stdout.write("%s is not a directory" % label)
+else:
+    st = os.stat(path)
+    if st.st_uid != uid:
+        sys.stdout.write("%s is owned by uid %s" % (label, st.st_uid))
+    elif stat.S_IMODE(st.st_mode) & 0o022:
+        sys.stdout.write("%s is group or world writable" % label)
+PY
+}
+
+require_private_dir() {
+  local reason
+  reason=$(private_dir_reason "$1" "$2")
+  if [[ -n "$reason" ]]; then
+    echo "verify-cwc: refusing $reason" >&2
+    exit 1
+  fi
+}
+
+guard_existing_home() {
+  local home
+  home=$(state_home)
+  if [[ -e "$home" || -L "$home" ]]; then
+    require_private_dir "$home" "state home $home"
+  fi
+}
+
+create_state_home() {
+  local home
+  home=$(state_home)
+  if [[ -e "$home" || -L "$home" ]]; then
+    require_private_dir "$home" "state home $home"
+  else
+    mkdir -m 700 -- "$home"
+    require_private_dir "$home" "state home $home"
+  fi
+}
+
 state_path() {
   printf '%s/%s' "$(state_home)" "$CWC_VERIFY_RUN_ID"
 }
 
 prepare_evidence() {
-  local dir
+  local dir parent
   if [[ -n "${CWC_VERIFY_EVIDENCE:-}" ]]; then
     case "$CWC_VERIFY_EVIDENCE" in
       /*) ;;
@@ -114,12 +185,20 @@ prepare_evidence() {
       echo "verify-cwc: refusing a symlinked evidence directory" >&2
       exit 1
     fi
-    mkdir -p -- "$CWC_VERIFY_EVIDENCE"
-    dir=$(readlink -f -- "$CWC_VERIFY_EVIDENCE")
+    if [[ -e "$CWC_VERIFY_EVIDENCE" ]]; then
+      require_private_dir "$CWC_VERIFY_EVIDENCE" "evidence directory $CWC_VERIFY_EVIDENCE"
+      dir=$(py_realpath "$CWC_VERIFY_EVIDENCE")
+    else
+      parent=$(dirname -- "$CWC_VERIFY_EVIDENCE")
+      if [[ ! -d "$parent" ]]; then
+        mkdir -p -- "$parent"
+      fi
+      mkdir -m 700 -- "$CWC_VERIFY_EVIDENCE"
+      dir=$(py_realpath "$CWC_VERIFY_EVIDENCE")
+    fi
   else
-    dir=$(mktemp -d -- "${TMPDIR:-/tmp}/cwc-evidence.XXXXXXXX")
+    dir=$(mktemp -d "${TMPDIR:-/tmp}/cwc-evidence.XXXXXXXX")
   fi
-  chmod 700 "$dir"
   EVIDENCE=$dir
   CWC_VERIFY_EVIDENCE=$dir
   export CWC_VERIFY_EVIDENCE
@@ -134,52 +213,118 @@ copy_tracked() {
 }
 
 ensure_tools() {
-  local tools=$1
-  mkdir -p -- "$tools"
+  local tools=$1 stamp want
+  if [[ -L "$tools" ]]; then
+    echo "verify-cwc: refusing a symlinked tools directory" >&2
+    exit 1
+  fi
+  if [[ -e "$tools" ]]; then
+    require_private_dir "$tools" "tools directory $tools"
+  else
+    mkdir -m 700 -- "$tools"
+  fi
   cp "$SCRIPT_DIR/package.json" "$SCRIPT_DIR/package-lock.json" "$DAEMON" "$tools/"
-  if [[ ! -d "$tools/node_modules/playwright-core" ]]; then
+  chmod 700 "$tools/browser-daemon.mjs"
+  want=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$SCRIPT_DIR/package-lock.json")
+  stamp=""
+  if [[ -f "$tools/tools.stamp" && ! -L "$tools/tools.stamp" ]]; then
+    stamp=$(cat "$tools/tools.stamp")
+  fi
+  if [[ ! -d "$tools/node_modules/playwright-core" || "$stamp" != "$want" ]]; then
     npm ci --prefix "$tools" --omit=dev --no-fund --no-audit
+    printf '%s\n' "$want" >"$tools/tools.stamp"
+    chmod 600 "$tools/tools.stamp"
   fi
   if [[ -d "$SCRIPT_DIR/node_modules" ]]; then
     rm -rf -- "$SCRIPT_DIR/node_modules"
   fi
-  NODE_DAEMON="$tools/browser-daemon.mjs"
+  if ! cmp -s "$DAEMON" "$tools/browser-daemon.mjs"; then
+    echo "verify-cwc: browser daemon does not match the skill copy" >&2
+    exit 1
+  fi
+}
+
+apply_isolated_home() {
+  local home=$1 npm_cache
+  export HOME="$home"
+  export XDG_CACHE_HOME="$home/.cache"
+  export XDG_CONFIG_HOME="$home/.config"
+  export XDG_DATA_HOME="$home/.local/share"
+  export XDG_RUNTIME_DIR="$home/run"
+  export GOTELEMETRY=off
+  mkdir -p -- "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_RUNTIME_DIR"
+  if [[ -n "$SAVED_PUB_CACHE" ]]; then
+    export PUB_CACHE="$SAVED_PUB_CACHE"
+  elif [[ -d "$USER_HOME/.pub-cache" ]]; then
+    export PUB_CACHE="$USER_HOME/.pub-cache"
+  else
+    export PUB_CACHE="$home/.pub-cache"
+  fi
+  if [[ -n "$SAVED_NPM_CONFIG_CACHE" ]]; then
+    npm_cache=$SAVED_NPM_CONFIG_CACHE
+  elif [[ -n "$SAVED_npm_config_cache" ]]; then
+    npm_cache=$SAVED_npm_config_cache
+  elif [[ -d "$USER_HOME/.npm" ]]; then
+    npm_cache=$USER_HOME/.npm
+  else
+    npm_cache=$home/.npm
+  fi
+  export NPM_CONFIG_CACHE="$npm_cache"
+  export npm_config_cache="$npm_cache"
+  if [[ -n "$SAVED_PLAYWRIGHT_BROWSERS_PATH" ]]; then
+    export PLAYWRIGHT_BROWSERS_PATH="$SAVED_PLAYWRIGHT_BROWSERS_PATH"
+  fi
+  if [[ -n "$SAVED_GOMODCACHE" ]]; then
+    export GOMODCACHE="$SAVED_GOMODCACHE"
+  fi
+  if [[ -n "$SAVED_GOENV" ]]; then
+    export GOENV="$SAVED_GOENV"
+  fi
+  if [[ -n "$SAVED_GOPATH" ]]; then
+    export GOPATH="$SAVED_GOPATH"
+  fi
+  if [[ "$(uname -s)" == Darwin ]]; then
+    export CFFIXED_USER_HOME="$home"
+  fi
 }
 
 isolate_home() {
-  local state=$1
-  mkdir -p -- "$state/home/.cache" "$state/home/.config" "$state/home/.local/share" "$state/home/run"
-  export HOME="$state/home"
-  export XDG_CACHE_HOME="$HOME/.cache"
-  export XDG_CONFIG_HOME="$HOME/.config"
-  export XDG_DATA_HOME="$HOME/.local/share"
-  export XDG_RUNTIME_DIR="$HOME/run"
-  export PUB_CACHE="$HOME/.pub-cache"
-  chmod 700 "$HOME" "$XDG_RUNTIME_DIR"
-  RUN_HOME=$HOME
+  local state=$1 home
+  home="$state/home"
+  if [[ -L "$home" ]]; then
+    echo "verify-cwc: refusing a symlinked isolated home" >&2
+    exit 1
+  fi
+  if [[ -e "$home" ]]; then
+    require_private_dir "$home" "isolated home $home"
+  else
+    mkdir -m 700 -- "$home"
+  fi
+  apply_isolated_home "$home"
 }
 
 use_run_home() {
-  if [[ -z "${RUN_HOME:-}" || ! -d "$RUN_HOME" || -L "$RUN_HOME" ]]; then
+  local home
+  home="$(state_path)/home"
+  if [[ ! -d "$home" || -L "$home" ]]; then
     echo "verify-cwc: this run has no isolated home" >&2
     exit 1
   fi
-  export HOME="$RUN_HOME"
-  export XDG_CACHE_HOME="$HOME/.cache"
-  export XDG_CONFIG_HOME="$HOME/.config"
-  export XDG_DATA_HOME="$HOME/.local/share"
-  export XDG_RUNTIME_DIR="$HOME/run"
-  export PUB_CACHE="$HOME/.pub-cache"
-  mkdir -p -- "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_RUNTIME_DIR"
+  require_private_dir "$home" "isolated home $home"
+  apply_isolated_home "$home"
+}
+
+daemon_script() {
+  printf '%s/tools/browser-daemon.mjs' "$(state_path)"
 }
 
 # run.env is data. Never source it.
 load_state_file() {
   local file=$1 line key val
   RUN_ID='' PORT='' URL='' PID='' REPO='' APP_DIR='' EVIDENCE=''
-  GIT_SHA='' FLUTTER_BIN='' FLUTTER_VERSION='' BROWSER_PID=''
+  GIT_SHA='' FLUTTER_VERSION='' BROWSER_PID=''
   LISTENER_PID='' READY='' FLUTTER_START='' FLUTTER_UID='' FLUTTER_PGRP=''
-  BROWSER_START='' BROWSER_UID='' BROWSER_PGRP='' RUN_HOME='' NODE_DAEMON=''
+  BROWSER_START='' BROWSER_UID='' BROWSER_PGRP=''
   FLUTTER_CMDLINE='' BROWSER_CMDLINE=''
   [[ -f "$file" && ! -L "$file" ]] || return 1
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -191,7 +336,10 @@ load_state_file() {
     key=${line%%=*}
     val=${line#*=}
     case "$key" in
-      RUN_ID|PORT|URL|PID|REPO|APP_DIR|EVIDENCE|GIT_SHA|FLUTTER_BIN|FLUTTER_VERSION|BROWSER_PID|LISTENER_PID|READY|FLUTTER_START|FLUTTER_UID|FLUTTER_PGRP|BROWSER_START|BROWSER_UID|BROWSER_PGRP|RUN_HOME|NODE_DAEMON|FLUTTER_CMDLINE|BROWSER_CMDLINE)
+      NODE_DAEMON|RUN_HOME|FLUTTER_BIN)
+        # Accepted so an older file still parses. Never used as a path.
+        ;;
+      RUN_ID|PORT|URL|PID|REPO|APP_DIR|EVIDENCE|GIT_SHA|FLUTTER_VERSION|BROWSER_PID|LISTENER_PID|READY|FLUTTER_START|FLUTTER_UID|FLUTTER_PGRP|BROWSER_START|BROWSER_UID|BROWSER_PGRP|FLUTTER_CMDLINE|BROWSER_CMDLINE)
         printf -v "$key" '%s' "$val"
         ;;
       *)
@@ -209,7 +357,7 @@ load_state_file() {
 
 write_state() {
   local file=$1 tmp
-  tmp=$(mktemp -- "${file}.XXXXXX")
+  tmp=$(mktemp "${file}.XXXXXX")
   chmod 600 "$tmp"
   emit() {
     case "$2" in
@@ -228,7 +376,6 @@ write_state() {
   emit APP_DIR "${APP_DIR-}"
   emit EVIDENCE "${EVIDENCE-}"
   emit GIT_SHA "${GIT_SHA-}"
-  emit FLUTTER_BIN "${FLUTTER_BIN-}"
   emit FLUTTER_VERSION "${FLUTTER_VERSION-}"
   emit BROWSER_PID "${BROWSER_PID-}"
   emit LISTENER_PID "${LISTENER_PID-}"
@@ -239,8 +386,6 @@ write_state() {
   emit BROWSER_START "${BROWSER_START-}"
   emit BROWSER_UID "${BROWSER_UID-}"
   emit BROWSER_PGRP "${BROWSER_PGRP-}"
-  emit RUN_HOME "${RUN_HOME-}"
-  emit NODE_DAEMON "${NODE_DAEMON-}"
   emit FLUTTER_CMDLINE "${FLUTTER_CMDLINE-}"
   emit BROWSER_CMDLINE "${BROWSER_CMDLINE-}"
   mv -f -- "$tmp" "$file"
@@ -266,19 +411,43 @@ port_status() {
   python3 "$SCRIPT_DIR/port_status.py" "$1"
 }
 
+read_proc_ps() {
+  local pid=$1 start uid pgrp cmd
+  PROC_START=''
+  PROC_PGRP=''
+  PROC_UID=''
+  PROC_CMD=''
+  start=$(ps -p "$pid" -o lstart= 2>/dev/null) || return 1
+  uid=$(ps -p "$pid" -o uid= 2>/dev/null) || return 1
+  pgrp=$(ps -p "$pid" -o pgid= 2>/dev/null) || return 1
+  cmd=$(ps -p "$pid" -o command= 2>/dev/null) || return 1
+  PROC_START=$(printf '%s' "$start" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  PROC_UID=$(printf '%s' "$uid" | tr -d '[:space:]')
+  PROC_PGRP=$(printf '%s' "$pgrp" | tr -d '[:space:]')
+  PROC_CMD=$cmd
+  [[ -n "$PROC_START" && -n "$PROC_UID" && -n "$PROC_PGRP" ]]
+}
+
 read_proc() {
   local pid=$1 enc out
   PROC_START=''
   PROC_PGRP=''
   PROC_UID=''
   PROC_CMD=''
-  out=$(python3 "$SCRIPT_DIR/proc_facts.py" "$pid") || return 1
-  PROC_START=$(printf '%s\n' "$out" | sed -n '1p')
-  PROC_PGRP=$(printf '%s\n' "$out" | sed -n '2p')
-  PROC_UID=$(printf '%s\n' "$out" | sed -n '3p')
-  enc=$(printf '%s\n' "$out" | sed -n '4p')
-  PROC_CMD=$(printf '%s' "$enc" | base64 -d 2>/dev/null || true)
-  [[ -n "$PROC_START" && -n "$PROC_UID" && -n "$PROC_PGRP" ]]
+  if [[ ! "$pid" =~ ^[0-9]+$ ]] || [[ "$pid" -lt 2 ]]; then
+    return 1
+  fi
+  if [[ -r "/proc/$pid/stat" ]]; then
+    out=$(python3 "$SCRIPT_DIR/proc_facts.py" "$pid") || return 1
+    PROC_START=$(printf '%s\n' "$out" | sed -n '1p')
+    PROC_PGRP=$(printf '%s\n' "$out" | sed -n '2p')
+    PROC_UID=$(printf '%s\n' "$out" | sed -n '3p')
+    enc=$(printf '%s\n' "$out" | sed -n '4p')
+    PROC_CMD=$(python3 -c 'import base64, sys; sys.stdout.buffer.write(base64.b64decode(sys.argv[1]))' "$enc")
+    [[ -n "$PROC_START" && -n "$PROC_UID" && -n "$PROC_PGRP" ]]
+    return
+  fi
+  read_proc_ps "$pid"
 }
 
 identity_reason() {
@@ -287,7 +456,7 @@ identity_reason() {
     printf '%s' "unreadable"
     return 0
   fi
-  if [[ "$PROC_START" != "$start" || ! "$start" =~ ^[0-9]+$ ]]; then
+  if [[ -z "$start" || "$PROC_START" != "$start" ]]; then
     printf '%s' "start time differs"
     return 0
   fi
@@ -395,7 +564,7 @@ copy_into_evidence() {
   if [[ -z "${EVIDENCE:-}" || ! -d "$EVIDENCE" || -L "$EVIDENCE" ]]; then
     return 0
   fi
-  root=$(readlink -f -- "$EVIDENCE")
+  root=$(py_realpath "$EVIDENCE")
   if [[ "$root" == "/" ]]; then
     echo "verify-cwc: refusing to write evidence at the filesystem root" >&2
     return 1
@@ -411,7 +580,12 @@ copy_into_evidence() {
 
 on_launch_err() {
   trap - ERR
-  cleanup_instance || true
+  if [[ -n "${state:-}" && -f "$state/run.env" && ! -L "$state/run.env" ]]; then
+    cleanup_instance || true
+  elif [[ "${CREATED_RUN_DIR:-0}" == 1 && -n "${state:-}" ]]; then
+    kill_if_born "${pid:-}" "${born_start:-}"
+    remove_state_dir "$state" || true
+  fi
   exit 1
 }
 
@@ -429,9 +603,9 @@ remove_state_dir() {
     echo "verify-cwc: refusing to delete $state" >&2
     exit 1
   fi
-  parent=$(readlink -f -- "$(dirname -- "$state")")
+  parent=$(py_realpath "$(dirname -- "$state")")
   if [[ -d "$home" ]]; then
-    home_real=$(readlink -f -- "$home")
+    home_real=$(py_realpath "$home")
   else
     home_real=$home
   fi
@@ -439,7 +613,27 @@ remove_state_dir() {
     echo "verify-cwc: refusing to delete $state" >&2
     exit 1
   fi
+  chmod -R u+w "$state" 2>/dev/null || true
   rm -rf -- "$state"
+}
+
+kill_if_born() {
+  local pid=$1 born=$2
+  if [[ -z "$pid" || -z "$born" ]]; then
+    return 0
+  fi
+  if ! pid_alive "$pid" || ! read_proc "$pid"; then
+    return 0
+  fi
+  if [[ "$PROC_START" != "$born" || "$PROC_UID" != "$(id -u)" ]]; then
+    echo "verify-cwc: not killing pid $pid (start time or owner changed)" >&2
+    return 0
+  fi
+  if [[ "$PROC_PGRP" == "$pid" ]]; then
+    kill -TERM "-$pid" 2>/dev/null || true
+  else
+    kill -TERM "$pid" 2>/dev/null || true
+  fi
 }
 
 stop_recorded_processes() {
@@ -450,22 +644,30 @@ stop_recorded_processes() {
 cleanup_instance() {
   local state
   state=$(state_path)
-  if [[ -f "$state/run.env" ]]; then
-    if load_state_file "$state/run.env"; then
-      copy_into_evidence "$state/flutter.log" flutter.log || true
-      copy_into_evidence "$state/opens.log" opens.log || true
-      if [[ -n "${EVIDENCE:-}" && -d "$EVIDENCE" && ! -L "$EVIDENCE" ]]; then
-        chmod 700 "$EVIDENCE"
-      fi
-      stop_recorded_processes
-    else
-      echo "verify-cwc: state file was not usable. No processes were killed." >&2
-    fi
+  if [[ ! -e "$state" && ! -L "$state" ]]; then
+    return 0
   fi
+  if [[ -L "$state" ]]; then
+    echo "verify-cwc: refusing to delete a symlinked state directory" >&2
+    exit 1
+  fi
+  require_private_dir "$state" "run directory $state"
+  if [[ ! -f "$state/run.env" || -L "$state/run.env" ]]; then
+    echo "verify-cwc: refusing to delete $state (no run.env from this helper)" >&2
+    exit 1
+  fi
+  if ! load_state_file "$state/run.env"; then
+    echo "verify-cwc: refusing to delete $state (run.env is not ours)" >&2
+    exit 1
+  fi
+  copy_into_evidence "$state/flutter.log" flutter.log || true
+  copy_into_evidence "$state/opens.log" opens.log || true
+  stop_recorded_processes
   remove_state_dir "$state"
 }
 
 cmd_cleanup() {
+  guard_existing_home
   cleanup_instance
   echo "cleaned run $CWC_VERIFY_RUN_ID"
   if [[ -n "${EVIDENCE:-}" ]]; then
@@ -477,28 +679,32 @@ cmd_cleanup() {
 
 evidence_inside_state() {
   local ev=$1 state=$2 ev_real state_real
-  ev_real=$(readlink -f -- "$ev")
-  state_real=$(readlink -f -- "$state")
+  ev_real=$(py_realpath "$ev")
+  state_real=$(py_realpath "$state")
   [[ "$ev_real" == "$state_real" || "$ev_real" == "$state_real"/* ]]
 }
 
 cmd_launch() {
-  local state port url repo sha flutter_version app pid listen ctype code i
+  local state port url repo sha flutter_version app pid listen ctype code i born_start daemon
   echo "run_id: $CWC_VERIFY_RUN_ID"
   port=${CWC_VERIFY_PORT:-8773}
   validate_port "$port"
   repo=${CWC_VERIFY_REPO:-$REPO}
+  guard_existing_home
   state=$(state_path)
-  if [[ -f "$state/run.env" ]]; then
-    if load_state_file "$state/run.env"; then
-      local reason=""
-      if [[ -n "${PID-}" ]]; then
-        reason=$(identity_reason "$PID" "${FLUTTER_START-}" "${FLUTTER_UID-}" "${FLUTTER_PGRP-}" flutter "${PORT-}")
-      fi
-      if pid_alive "${PID-}" && [[ -z "$reason" ]]; then
-        echo "verify-cwc: run $CWC_VERIFY_RUN_ID is already up at ${URL:-unknown}. Refusing to start a second server for the same id." >&2
-        exit 1
-      fi
+  if [[ -e "$state" || -L "$state" ]]; then
+    require_private_dir "$state" "run directory $state"
+    if [[ ! -f "$state/run.env" || -L "$state/run.env" ]] || ! load_state_file "$state/run.env"; then
+      echo "verify-cwc: refusing to use $state (no run.env from this helper)" >&2
+      exit 1
+    fi
+    local reason=""
+    if [[ -n "${PID-}" ]]; then
+      reason=$(identity_reason "$PID" "${FLUTTER_START-}" "${FLUTTER_UID-}" "${FLUTTER_PGRP-}" flutter "${PORT-}")
+    fi
+    if pid_alive "${PID-}" && [[ -z "$reason" ]]; then
+      echo "verify-cwc: run $CWC_VERIFY_RUN_ID is already up at ${URL:-unknown}. Refusing to start a second server for the same id." >&2
+      exit 1
     fi
     cleanup_instance
   fi
@@ -509,13 +715,15 @@ cmd_launch() {
     exit 1
   fi
   need_flutter
-  mkdir -p -- "$state"
-  chmod 700 "$state"
+  create_state_home
+  mkdir -m 700 -- "$state"
+  CREATED_RUN_DIR=1
+  require_private_dir "$state" "run directory $state"
   trap on_launch_err ERR
   prepare_evidence
   if evidence_inside_state "$EVIDENCE" "$state"; then
     echo "verify-cwc: evidence must sit outside the run state directory" >&2
-    exit 1
+    on_launch_err
   fi
   isolate_home "$state"
   ensure_tools "$state/tools"
@@ -541,18 +749,18 @@ cmd_launch() {
       >"$state/flutter.log" 2>&1
   ) &
   pid=$!
+  born_start=''
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    if read_proc "$pid"; then
+      born_start=$PROC_START
+      break
+    fi
+    sleep 0.05
+  done
   if ! wait_cmdline "$pid" web-server 50; then
     echo "verify-cwc: flutter did not stay up" >&2
     tail -n 40 "$state/flutter.log" >&2 || true
-    if pid_alive "$pid" && read_proc "$pid"; then
-      if [[ "$PROC_UID" == "$(id -u)" && "$PROC_CMD" == *"--web-port"* ]]; then
-        if [[ "$PROC_PGRP" == "$pid" ]]; then
-          kill -TERM "-$pid" 2>/dev/null || true
-        else
-          kill -TERM "$pid" 2>/dev/null || true
-        fi
-      fi
-    fi
+    kill_if_born "$pid" "$born_start"
     remove_state_dir "$state"
     exit 1
   fi
@@ -609,8 +817,8 @@ cmd_launch() {
     exit 1
   fi
   echo "verify-cwc: waiting until Before you continue is on screen"
-  if ! CWC_URL="$url" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" \
-    node "$NODE_DAEMON" probe; then
+  if ! CWC_URL="$url" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" CWC_SKILL_DIR="$SCRIPT_DIR" \
+    node "$(daemon_script)" probe; then
     echo "verify-cwc: the server answered but the care disclaimer was not usable" >&2
     tail -n 40 "$state/flutter.log" >&2 || true
     cleanup_instance
@@ -629,11 +837,12 @@ cmd_launch() {
   echo "listener: ${LISTENER_PID:-unknown}"
   echo "sha: $sha"
   echo "evidence: $EVIDENCE"
-  echo "home: $RUN_HOME"
+  echo "home: $state/home"
   echo "ready: Before you continue"
 }
 
 cmd_doctor() {
+  guard_existing_home
   load_state
   local ok=yes
   say() { printf '%s\n' "$1"; }
@@ -643,7 +852,7 @@ cmd_doctor() {
   say "git_sha: $GIT_SHA"
   say "flutter: $FLUTTER_VERSION"
   say "evidence: $EVIDENCE"
-  say "home: ${RUN_HOME:-}"
+  say "home: $(state_path)/home"
   if ! pid_alive "$PID"; then
     say "flutter_alive: no"
     ok=no
@@ -711,17 +920,24 @@ cmd_doctor() {
 }
 
 send_browser() {
+  guard_existing_home
   load_state
-  use_run_home
   local state daemon json
   state=$(state_path)
-  daemon=${NODE_DAEMON:-$DAEMON}
+  require_private_dir "$state" "run directory $state"
+  use_run_home
+  daemon=$(daemon_script)
+  if [[ ! -f "$daemon" || -L "$daemon" ]] || ! cmp -s "$DAEMON" "$daemon"; then
+    echo "verify-cwc: browser daemon does not match the skill copy" >&2
+    exit 1
+  fi
   if [[ ! -S "$state/browser.sock" ]]; then
     echo "verify-cwc: browser is not started. Run: verify-cwc browser start" >&2
     exit 1
   fi
   json=$(node -e 'process.stdout.write(JSON.stringify(JSON.parse(process.argv[1])))' "$1")
-  CWC_EVIDENCE="$EVIDENCE" CWC_STATE="$state" node "$daemon" client "$state/browser.sock" "$json"
+  CWC_EVIDENCE="$EVIDENCE" CWC_STATE="$state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+    node "$daemon" client "$state/browser.sock" "$json"
 }
 
 phone_name_blocked() {
@@ -738,30 +954,33 @@ cmd_browser() {
   shift || true
   case "$sub" in
     start)
+      guard_existing_home
       load_state
-      use_run_home
-      local state bpid i
+      local state bpid i born daemon
       state=$(state_path)
+      require_private_dir "$state" "run directory $state"
+      use_run_home
       if [[ -S "$state/browser.sock" ]] && pid_alive "${BROWSER_PID:-}"; then
         echo "verify-cwc: browser already started for run $CWC_VERIFY_RUN_ID" >&2
         exit 1
       fi
       ensure_tools "$state/tools"
-      CWC_URL="$URL" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" \
-        node "$NODE_DAEMON" serve >"$state/browser.log" 2>&1 &
+      daemon=$(daemon_script)
+      CWC_URL="$URL" CWC_STATE="$state" CWC_EVIDENCE="$EVIDENCE" CWC_SKILL_DIR="$SCRIPT_DIR" \
+        node "$daemon" serve >"$state/browser.log" 2>&1 &
       bpid=$!
+      born=''
+      for i in 1 2 3 4 5 6 7 8 9 10; do
+        if read_proc "$bpid"; then
+          born=$PROC_START
+          break
+        fi
+        sleep 0.05
+      done
       if ! wait_cmdline "$bpid" browser-daemon.mjs 40; then
         echo "verify-cwc: browser exited" >&2
         cat "$state/browser.log" >&2 || true
-        if pid_alive "$bpid" && read_proc "$bpid"; then
-          if [[ "$PROC_UID" == "$(id -u)" && "$PROC_CMD" == *"$state/tools"* ]]; then
-            if [[ "$PROC_PGRP" == "$bpid" ]]; then
-              kill -TERM "-$bpid" 2>/dev/null || true
-            else
-              kill -TERM "$bpid" 2>/dev/null || true
-            fi
-          fi
-        fi
+        kill_if_born "$bpid" "$born"
         exit 1
       fi
       BROWSER_PID=$bpid
@@ -825,7 +1044,11 @@ cmd_browser() {
         exit 1
       fi
       local text_json payload
-      text_json=$(node -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "${texts[@]+"${texts[@]}"}")
+      if [[ ${#texts[@]} -eq 0 ]]; then
+        text_json='[]'
+      else
+        text_json=$(node -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' -- "${texts[@]}")
+      fi
       payload=$(node -e '
         const [cmd, role, name, value, file, feature, exact, withinRole, withinName, textJson] = process.argv.slice(1);
         const texts = JSON.parse(textJson);

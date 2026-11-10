@@ -43,7 +43,7 @@ verify-cwc browser expect-order \
 ## Gotchas
 
 - The visible label is **911 Emergency**. The accessible name is the longer sentence. This recipe checks the spoken name and does not click it.
-- The helper refuses a click whose name is a phone or text row, including 911 and 988. Do not press those rows.
+- The helper refuses a click when the requested name or the matched element's rendered name is a phone or text row. Exact and contains matches both go through that check. Do not press those rows.
 - `HELP_NOW_LIVE=false` changes the sentence on the page. The app code behind the row still has a phone URL. The helper drops `tel:` and `sms:` `window.open` calls so a press cannot hand the number to the system. This run does not press the row.
 - The emergency card switch reads **Show my emergency card here**. Leave it off. The default is off.
 - Warmline and wellness-center rows appear only when launch passed `HELP_NOW_UNCONFIRMED=true`. This helper does not pass that flag. Those rows have no number.

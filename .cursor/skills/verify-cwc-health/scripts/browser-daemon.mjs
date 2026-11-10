@@ -65,6 +65,7 @@ export function resolveEvidenceFile(file) {
       if (err.code !== 'ENOENT') throw new Error('refusing evidence path');
       const finalPath = path.join(current, part, ...parts.slice(i + 1));
       assertInside(root, finalPath);
+      assertNotReserved(finalPath);
       return { root, finalPath };
     }
     if (st.isSymbolicLink()) {
@@ -77,6 +78,7 @@ export function resolveEvidenceFile(file) {
       const rest = parts.slice(i + 1);
       const finalPath = rest.length === 0 ? target : path.join(target, ...rest);
       assertInside(root, finalPath);
+      assertNotReserved(finalPath);
       if (rest.length === 0) return { root, finalPath: target };
       current = target;
       continue;
@@ -84,21 +86,39 @@ export function resolveEvidenceFile(file) {
     current = next;
   }
   assertInside(root, current);
+  assertNotReserved(current);
   return { root, finalPath: current };
 }
 
 function chmodUp(start, root) {
   let current = start;
-  while (current.startsWith(root)) {
+  const prefix = `${root}${path.sep}`;
+  while (current.startsWith(prefix)) {
     try {
       fs.chmodSync(current, 0o700);
     } catch {
       // The directory may have been removed. The write still has to pass the path check.
     }
-    if (current === root) break;
     const next = path.dirname(current);
     if (next === current) break;
     current = next;
+  }
+}
+
+function assertNotReserved(file) {
+  for (const envName of ['CWC_SKILL_DIR', 'CWC_STATE']) {
+    const raw = process.env[envName];
+    if (!raw) continue;
+    let root;
+    try {
+      root = fs.realpathSync(raw);
+    } catch {
+      continue;
+    }
+    const rel = path.relative(root, file);
+    if (rel === '' || (!rel.startsWith(`..${path.sep}`) && rel !== '..' && !path.isAbsolute(rel))) {
+      throw new Error('refusing to overwrite a helper file');
+    }
   }
 }
 
@@ -113,19 +133,20 @@ function evidencePath(file) {
   return checked;
 }
 
-function refuseSymlink(file) {
-  try {
-    if (fs.lstatSync(file).isSymbolicLink()) {
-      throw new Error('refusing to follow an evidence symlink');
-    }
-  } catch (err) {
-    if (err.code !== 'ENOENT') throw err;
-  }
-}
-
 function writePrivate(file, data) {
-  refuseSymlink(file);
-  fs.writeFileSync(file, data, { mode: 0o600 });
+  const flags = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC;
+  const noFollow = fs.constants.O_NOFOLLOW || 0;
+  let fd;
+  try {
+    fd = fs.openSync(file, flags | noFollow, 0o600);
+  } catch {
+    throw new Error('refusing to follow an evidence symlink');
+  }
+  try {
+    fs.writeFileSync(fd, data);
+  } finally {
+    fs.closeSync(fd);
+  }
   fs.chmodSync(file, 0o600);
 }
 
@@ -264,11 +285,24 @@ async function dispatch(page, msg) {
     return { ok: false, error: 'this helper does not confirm phone opens' };
   }
   if (msg.cmd === 'click') {
-    await locatorFor(page, msg).click({ timeout: 20000 });
+    const loc = locatorFor(page, msg);
+    const shown = await loc.evaluate((el) => {
+      const label = el.getAttribute('aria-label');
+      if (label && label.trim()) return label.trim();
+      return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    });
+    const blockedShown = phoneTapError({ cmd: 'click', name: shown });
+    if (blockedShown) return { ok: false, error: blockedShown };
+    await loc.click({ timeout: 20000 });
     return { ok: true, message: `clicked ${msg.role} ${msg.name}` };
   }
   if (msg.cmd === 'fill') {
-    await locatorFor(page, msg).fill(msg.value, { timeout: 20000 });
+    const loc = locatorFor(page, msg);
+    await loc.click({ timeout: 20000 });
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(String(msg.value ?? ''), { delay: 15 });
+    await page.keyboard.press('Tab');
     return { ok: true, message: `filled ${msg.name}` };
   }
   if (msg.cmd === 'expect-text' || msg.cmd === 'expect-absent') {
@@ -340,8 +374,11 @@ async function dispatch(page, msg) {
   }
   if (msg.cmd === 'screenshot') {
     const file = evidencePath(msg.path);
-    refuseSymlink(file);
+    writePrivate(file, '');
     await page.screenshot({ path: file, fullPage: false });
+    if (fs.lstatSync(file).isSymbolicLink()) {
+      throw new Error('refusing to follow an evidence symlink');
+    }
     fs.chmodSync(file, 0o600);
     return { ok: true, message: `wrote ${file}` };
   }
@@ -416,7 +453,7 @@ function runClient() {
 async function runSession(mode) {
   const url = process.env.CWC_URL;
   const stateDir = process.env.CWC_STATE;
-  if (!url || !stateDir) {
+  if (!stateDir || (mode !== 'serve-fixture' && !url)) {
     process.stderr.write('CWC_URL and CWC_STATE are required\n');
     process.exit(1);
   }
@@ -428,7 +465,16 @@ async function runSession(mode) {
   });
   const page = await context.newPage();
   try {
-    await openApp(page, url);
+    if (mode === 'serve-fixture') {
+      await page.setContent(
+        '<!doctype html><title>fixture</title><body>' +
+          '<button aria-label="Call Poison Control. Opens your phone dialer.">Poison Control</button>' +
+          '<button aria-label="Sample control">Sample</button>' +
+          '</body>',
+      );
+    } else {
+      await openApp(page, url);
+    }
   } catch (err) {
     await browser.close();
     process.stderr.write(`${err.message}\n`);
@@ -525,12 +571,12 @@ async function main() {
     runClient();
     return;
   }
-  if (mode === 'probe' || mode === 'serve') {
+  if (mode === 'probe' || mode === 'serve' || mode === 'serve-fixture') {
     await runSession(mode);
     return;
   }
   process.stderr.write(
-    'usage: browser-daemon.mjs probe|serve|client|check-path|write-text\n',
+    'usage: browser-daemon.mjs probe|serve|serve-fixture|client|check-path|write-text\n',
   );
   process.exit(2);
 }

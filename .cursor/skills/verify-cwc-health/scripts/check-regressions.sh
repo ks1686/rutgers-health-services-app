@@ -30,6 +30,8 @@ same_tree() {
 sandbox=$(mktemp -d)
 leader=''
 holder=''
+fixture_pid=''
+spare_pid=''
 finish_bg() {
   if [[ -n "${leader:-}" ]] && kill -0 "$leader" 2>/dev/null; then
     local child
@@ -41,8 +43,31 @@ finish_bg() {
   if [[ -n "${holder:-}" ]]; then
     kill "$holder" 2>/dev/null || true
   fi
+  if [[ -n "${fixture_pid:-}" ]]; then
+    kill "$fixture_pid" 2>/dev/null || true
+  fi
+  if [[ -n "${spare_pid:-}" ]]; then
+    kill "$spare_pid" 2>/dev/null || true
+  fi
 }
-trap finish_bg EXIT
+cleanup_sandbox() {
+  finish_bg
+  if [[ -n "${sandbox:-}" && -d "$sandbox" ]]; then
+    chmod -R u+w "$sandbox" 2>/dev/null || true
+    rm -rf "$sandbox"
+  fi
+  if [[ -n "${foreign_home:-}" ]]; then
+    sudo -n rm -rf "$foreign_home" 2>/dev/null || rm -rf "$foreign_home" 2>/dev/null || true
+  fi
+  rm -f "${out:-}" "${out}.2" "${out}.3" "${out}.4" "${out}.5" 2>/dev/null || true
+  if [[ -n "${e1:-}" ]]; then
+    rm -rf "$e1"
+  fi
+  if [[ -n "${e2:-}" ]]; then
+    rm -rf "$e2"
+  fi
+}
+trap cleanup_sandbox EXIT
 
 if grep -nE '^[[:space:]]*(source|\.)[[:space:]]' "$VERIFY"; then
   fail "verify-cwc sources a file"
@@ -53,11 +78,18 @@ pass "H1 run.env is not sourced"
 h1=$(mktemp -d "$sandbox/h1.XXXX")
 mkdir -p "$h1/home" "$h1/victim"
 echo important >"$h1/victim/keep.txt"
-default_root=/tmp/cwc-verify
+unset CWC_VERIFY_HOME
+default_root=$(state_home)
+legacy_root=/tmp/cwc-verify
 if [[ -d "$default_root" ]]; then
   default_before=$(listing "$default_root")
 else
   default_before='__absent__'
+fi
+if [[ -d "$legacy_root" ]]; then
+  legacy_before=$(listing "$legacy_root")
+else
+  legacy_before='__absent__'
 fi
 before=$(listing "$h1")
 out=$(mktemp)
@@ -118,6 +150,12 @@ else
   default_after='__absent__'
 fi
 [[ "$default_before" == "$default_after" ]] || fail "H1 touched the default state root"
+if [[ -d "$legacy_root" ]]; then
+  legacy_after=$(listing "$legacy_root")
+else
+  legacy_after='__absent__'
+fi
+[[ "$legacy_before" == "$legacy_after" ]] || fail "H1 touched the legacy state root"
 pass "H1 default state root untouched"
 
 if ( validate_run_id 'a.b' ); then
@@ -173,7 +211,10 @@ leader=$!
 sleep 0.4
 kill -0 "$leader" || fail "M1 leader exited before cleanup"
 python3 "$SCRIPT_DIR/proc_facts.py" "$leader" >"$sandbox/leader.facts"
-mapfile -t fact_lines <"$sandbox/leader.facts"
+fact_lines=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  fact_lines+=("$line")
+done <"$sandbox/leader.facts"
 start=${fact_lines[0]}
 pgrp=${fact_lines[1]}
 uid=${fact_lines[2]}
@@ -181,7 +222,11 @@ cmdline=$(printf '%s' "${fact_lines[3]}" | base64 -d)
 ps_pgrp=$(ps -o pgid= -p "$leader" | tr -d ' ')
 [[ "$ps_pgrp" == "$pgrp" ]] || fail "M1 proc_facts pgrp $pgrp != ps $ps_pgrp"
 [[ "$pgrp" == "$leader" ]] || fail "M1 leader $leader is not its process group $pgrp"
-mapfile -t kids < <(ps -o pid= --ppid "$leader" | awk '{print $1}')
+kids=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  kids+=("$line")
+done < <(ps -o pid= --ppid "$leader" | awk '{print $1}')
 [[ "${#kids[@]}" -ge 1 ]] || fail "M1 leader has no children"
 python3 - "$m1_state/run.env" "$leader" "$start" "$uid" "$pgrp" "$cmdline" "$m1_evidence" <<'PY'
 import sys
@@ -349,7 +394,7 @@ printf -- '--- M3 click refusal (exit %s) ---\n' "$code"
 cat "$out"
 [[ "$code" -ne 0 ]] || fail "M3 click exited 0"
 grep -q 'refusing to tap a phone or text row' "$out" || fail "M3 click missing refusal"
-[[ ! -e /tmp/cwc-verify/regclick ]] || fail "M3 click created state"
+[[ ! -e /tmp/cwc-verify/regclick && ! -e "$default_root/regclick" ]] || fail "M3 click created state"
 set +e
 env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_RUN_ID=regclick \
   "$VERIFY" browser click --role button --name "I understand" --expect-open tel:911 \
@@ -429,5 +474,344 @@ HOME="$tools_home" \
 [[ ! -d "$ROOT/web" ]] || fail "web/ landed in the repo"
 pass "M3 tel and sms do not call window.open"
 pass "L4 node_modules stayed out of the repo"
+
+# N1: a loose or foreign state home is refused before any planted file runs.
+loose_home=$(mktemp -d "$sandbox/loose.XXXX")
+chmod 0777 "$loose_home"
+loose_marker="$sandbox/loose-ran"
+cat >"$sandbox/loose-evil.mjs" <<EOF
+import fs from 'node:fs';
+fs.writeFileSync('${loose_marker}', 'ran');
+EOF
+mkdir -m 0777 "$loose_home/looseid"
+python3 - "$loose_home/looseid/run.env" "$sandbox/loose-evil.mjs" <<'PY'
+import sys
+path, evil = sys.argv[1:]
+open(path, "w", encoding="utf-8").write(
+    "\n".join(
+        [
+            "RUN_ID=looseid",
+            "PORT=9",
+            "URL=http://127.0.0.1:9",
+            f"NODE_DAEMON={evil}",
+            "RUN_HOME=/tmp/cwc-not-a-home",
+            f"FLUTTER_BIN={evil}",
+            "READY=yes",
+            "",
+        ]
+    )
+)
+PY
+python3 -c 'import socket,time,sys; s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.bind(sys.argv[1]); s.listen(1); time.sleep(30)' \
+  "$loose_home/looseid/browser.sock" &
+holder=$!
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$loose_home" CWC_VERIFY_RUN_ID=looseid \
+  "$VERIFY" browser opens >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- N1 loose home (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -ne 0 ]] || fail "N1 loose home exited 0"
+grep -q 'group or world writable' "$out" || fail "N1 loose home missing refusal"
+[[ ! -e "$loose_marker" ]] || fail "N1 loose home executed a planted daemon"
+[[ -f "$loose_home/looseid/run.env" ]] || fail "N1 loose home deleted the planted file"
+kill "$holder" 2>/dev/null || true
+holder=''
+pass "N1 refuses a group or world writable state home"
+
+foreign_home=/tmp/cwc-foreign-$$
+sudo -n rm -rf "$foreign_home"
+sudo -n -u nobody mkdir -m 0777 "$foreign_home"
+echo keep >"$foreign_home/keep.txt"
+foreign_marker="$sandbox/foreign-ran"
+cat >"$sandbox/foreign-evil.mjs" <<EOF
+import fs from 'node:fs';
+fs.writeFileSync('${foreign_marker}', 'ran');
+EOF
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$foreign_home" CWC_VERIFY_RUN_ID=owned \
+  "$VERIFY" cleanup >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- N1 foreign home (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -ne 0 ]] || fail "N1 foreign home exited 0"
+grep -q 'owned by uid' "$out" || fail "N1 foreign home missing refusal"
+[[ ! -e "$foreign_marker" ]] || fail "N1 foreign home executed a planted daemon"
+[[ -f "$foreign_home/keep.txt" ]] || fail "N1 foreign home removed a file"
+pass "N1 refuses a foreign state home"
+
+# A private home still must not execute paths stored in run.env.
+plant_home=$(mktemp -d "$sandbox/plant.XXXX")
+plant_id=regplant
+plant_state="$plant_home/$plant_id"
+plant_marker="$sandbox/plant-ran"
+mkdir -m 700 "$plant_state" "$plant_state/home" "$plant_state/tools"
+cp "$DAEMON" "$plant_state/tools/browser-daemon.mjs"
+cat >"$sandbox/plant-evil.mjs" <<EOF
+import fs from 'node:fs';
+fs.writeFileSync('${plant_marker}', 'ran');
+EOF
+python3 - "$plant_state/run.env" "$sandbox/plant-evil.mjs" "$plant_state/home" <<'PY'
+import sys
+path, evil, home = sys.argv[1:]
+open(path, "w", encoding="utf-8").write(
+    "\n".join(
+        [
+            "RUN_ID=regplant",
+            "PORT=9",
+            "URL=http://127.0.0.1:9",
+            "PID=1",
+            f"EVIDENCE={home}",
+            f"NODE_DAEMON={evil}",
+            "RUN_HOME=/tmp/cwc-planted-home-missing",
+            f"FLUTTER_BIN={evil}",
+            "READY=yes",
+            "",
+        ]
+    )
+)
+PY
+python3 -c 'import socket,sys; s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.bind(sys.argv[1]); s.listen(1); c,_=s.accept(); c.close()' \
+  "$plant_state/browser.sock" &
+holder=$!
+flutter_kept=$(
+  CWC_VERIFY_RUN_ID=$plant_id
+  FLUTTER_BIN=/usr/bin/true
+  load_state_file "$plant_state/run.env"
+  printf '%s' "$FLUTTER_BIN"
+)
+[[ "$flutter_kept" == /usr/bin/true ]] || fail "N1 run.env replaced FLUTTER_BIN"
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$plant_home" CWC_VERIFY_RUN_ID="$plant_id" \
+  "$VERIFY" browser opens >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- N1 planted paths (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -ne 0 ]] || fail "N1 planted browser opens exited 0"
+grep -q 'no isolated home' "$out" && fail "N1 used RUN_HOME from the state file"
+[[ ! -e "$plant_marker" ]] || fail "N1 executed NODE_DAEMON from the state file"
+kill "$holder" 2>/dev/null || true
+holder=''
+pass "N1 ignores daemon, home, and flutter paths in run.env"
+
+# L-N2: cleanup deletes a run only when its run.env is ours.
+doc_home=$(mktemp -d "$sandbox/doc.XXXX")
+mkdir -m 700 "$doc_home/Documents"
+echo thesis >"$doc_home/Documents/thesis.txt"
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$doc_home" CWC_VERIFY_RUN_ID=Documents \
+  "$VERIFY" cleanup >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- cleanup without run.env (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -ne 0 ]] || fail "cleanup without run.env exited 0"
+[[ -f "$doc_home/Documents/thesis.txt" ]] || fail "cleanup deleted a folder with no run.env"
+echo 'this is not a state file' >"$doc_home/Documents/run.env"
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$doc_home" CWC_VERIFY_RUN_ID=Documents \
+  "$VERIFY" cleanup >"$out" 2>&1
+code=$?
+set -e
+[[ "$code" -ne 0 ]] || fail "cleanup of a bad run.env exited 0"
+[[ -f "$doc_home/Documents/thesis.txt" ]] || fail "cleanup deleted a folder with a bad run.env"
+pass "cleanup leaves a directory that has no run.env of ours"
+
+# Evidence directories the caller already has are not chmodded.
+ev755=$(mktemp -d "$sandbox/ev755.XXXX")
+chmod 755 "$ev755"
+(
+  CWC_VERIFY_EVIDENCE=$ev755 prepare_evidence
+)
+[[ "$(stat -c %a "$ev755")" == 755 ]] || fail "prepare_evidence chmodded a private directory"
+ev777=$(mktemp -d "$sandbox/ev777.XXXX")
+chmod 777 "$ev777"
+set +e
+(
+  CWC_VERIFY_EVIDENCE=$ev777 prepare_evidence
+)
+code=$?
+set -e
+[[ "$code" -ne 0 ]] || fail "world-writable evidence was accepted"
+[[ "$(stat -c %a "$ev777")" == 777 ]] || fail "world-writable evidence was chmodded"
+pass "evidence directory mode is left alone"
+
+# Start time must match before a kill. A full match is killed.
+start_proc() {
+  python3 -c 'import os
+pid = os.fork()
+if pid == 0:
+    os.setsid()
+    fd = os.open("/dev/null", os.O_RDWR)
+    os.dup2(fd, 0)
+    os.dup2(fd, 1)
+    os.dup2(fd, 2)
+    os.execv("/bin/sleep", ["flutter run -d web-server --web-port 18991 --dart-define=HELP_NOW_LIVE=false", "120"])
+else:
+    print(pid)'
+}
+write_gate_env() {
+  python3 - "$1" "$2" "$3" "$4" "$5" "$6" "$7" <<'PY'
+import sys
+path, pid, start, uid, pgrp, evidence, run_id = sys.argv[1:]
+open(path, "w", encoding="utf-8").write(
+    "\n".join(
+        [
+            f"RUN_ID={run_id}",
+            f"PID={pid}",
+            "PORT=18991",
+            "URL=http://127.0.0.1:18991",
+            f"EVIDENCE={evidence}",
+            f"FLUTTER_START={start}",
+            f"FLUTTER_UID={uid}",
+            f"FLUTTER_PGRP={pgrp}",
+            "BROWSER_PID=",
+            "READY=yes",
+            "",
+        ]
+    )
+)
+PY
+}
+gate_home=$(mktemp -d "$sandbox/gate.XXXX")
+gate_ev=$(mktemp -d "$sandbox/gate-ev.XXXX")
+echo stay >"$gate_ev/stay.txt"
+spare_pid=$(start_proc)
+sleep 0.3
+kill -0 "$spare_pid" || fail "start-time process exited early"
+read_proc "$spare_pid" || fail "could not read the start-time process"
+[[ "$PROC_CMD" == *web-server* && "$PROC_CMD" == *HELP_NOW_LIVE=false* && "$PROC_CMD" == *18991* ]] || fail "start-time cmdline was $PROC_CMD"
+[[ "$PROC_PGRP" == "$spare_pid" ]] || fail "start-time process is not its group leader"
+read_proc_ps "$spare_pid" || fail "ps fallback could not read the process"
+[[ "$PROC_UID" == "$(id -u)" && "$PROC_CMD" == *sleep* || "$PROC_CMD" == *HELP_NOW_LIVE=false* ]] || fail "ps fallback uid or command"
+read_proc "$spare_pid"
+real_start=$PROC_START
+real_uid=$PROC_UID
+real_pgrp=$PROC_PGRP
+mkdir -m 700 "$gate_home/regtime"
+write_gate_env "$gate_home/regtime/run.env" "$spare_pid" "$((real_start + 1))" "$real_uid" "$real_pgrp" "$gate_ev" regtime
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$gate_home" CWC_VERIFY_RUN_ID=regtime \
+  "$VERIFY" cleanup >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- start time mismatch (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -eq 0 ]] || fail "start time mismatch cleanup failed"
+grep -q "skip pid $spare_pid (start time differs)" "$out" || fail "start time gate missing skip"
+kill -0 "$spare_pid" || fail "start time gate killed the process"
+[[ -f "$gate_ev/stay.txt" ]] || fail "start time gate removed evidence"
+pass "cleanup skips a pid whose start time differs"
+
+mkdir -m 700 "$gate_home/regkill"
+write_gate_env "$gate_home/regkill/run.env" "$spare_pid" "$real_start" "$real_uid" "$real_pgrp" "$gate_ev" regkill
+set +e
+env -u CWC_VERIFY_EVIDENCE CWC_VERIFY_HOME="$gate_home" CWC_VERIFY_RUN_ID=regkill \
+  "$VERIFY" cleanup >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- genuine cleanup (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -eq 0 ]] || fail "genuine cleanup failed"
+if kill -0 "$spare_pid" 2>/dev/null; then
+  fail "genuine cleanup left the process alive"
+fi
+spare_pid=''
+[[ -f "$gate_ev/stay.txt" ]] || fail "genuine cleanup removed evidence"
+pass "cleanup kills a process whose facts all match"
+
+# Live snapshot and screenshot, including paths that must be refused.
+fix_state=$(mktemp -d "$sandbox/fix-state.XXXX")
+fix_ev=$(mktemp -d "$sandbox/fix-ev.XXXX")
+chmod 750 "$fix_ev"
+cp "$DAEMON" "$tools/browser-daemon.mjs"
+CWC_STATE="$fix_state" CWC_EVIDENCE="$fix_ev" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" serve-fixture >"$sandbox/fixture.log" 2>&1 &
+fixture_pid=$!
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40; do
+  [[ -S "$fix_state/browser.sock" ]] && break
+  sleep 0.25
+done
+[[ -S "$fix_state/browser.sock" ]] || {
+  cat "$sandbox/fixture.log" >&2 || true
+  fail "fixture browser did not open a socket"
+}
+set +e
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  '{"cmd":"click","role":"button","name":"Poison Control","exact":false}' >"$out" 2>&1
+code=$?
+set -e
+printf -- '--- contains phone row (exit %s) ---\n' "$code"
+cat "$out"
+[[ "$code" -ne 0 ]] || fail "contains click of Poison Control exited 0"
+grep -q 'refusing to tap a phone or text row' "$out" || fail "contains click missed the rendered name"
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  '{"cmd":"click","role":"button","name":"Sample control","exact":true}' >"$out"
+grep -q 'clicked button Sample control' "$out" || fail "fixture click missed Sample control"
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"snapshot\",\"path\":\"$fix_ev/nested/page.txt\"}" >"$out"
+[[ -f "$fix_ev/nested/page.txt" ]] || fail "live snapshot did not write"
+[[ "$(stat -c %a "$fix_ev/nested/page.txt")" == 600 ]] || fail "live snapshot mode"
+[[ "$(stat -c %a "$fix_ev")" == 750 ]] || fail "live snapshot chmodded the evidence root"
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"screenshot\",\"path\":\"$fix_ev/page.png\"}" >"$out"
+[[ -f "$fix_ev/page.png" && "$(stat -c %a "$fix_ev/page.png")" == 600 ]] || fail "live screenshot"
+abs_target="/tmp/cwc-abs-escape-$$.txt"
+set +e
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"snapshot\",\"path\":\"$abs_target\"}" >"$out" 2>&1
+code=$?
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"snapshot\",\"path\":\"$fix_state/evil.txt\"}" >"$out.2" 2>&1
+code2=$?
+ln -s "/tmp/cwc-no-file-$$" "$fix_ev/dangling-file"
+ln -s "/tmp/cwc-no-dir-$$" "$fix_ev/dangling-dir"
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"snapshot\",\"path\":\"$fix_ev/dangling-file\"}" >"$out.3" 2>&1
+code3=$?
+CWC_EVIDENCE="$fix_ev" CWC_STATE="$fix_state" CWC_SKILL_DIR="$SCRIPT_DIR" \
+  node "$tools/browser-daemon.mjs" client "$fix_state/browser.sock" \
+  "{\"cmd\":\"snapshot\",\"path\":\"$fix_ev/dangling-dir/out.txt\"}" >"$out.4" 2>&1
+code4=$?
+set -e
+printf -- '--- live path refusals (exits %s %s %s %s) ---\n' "$code" "$code2" "$code3" "$code4"
+cat "$out" "$out.2" "$out.3" "$out.4"
+[[ "$code" -ne 0 && "$code2" -ne 0 && "$code3" -ne 0 && "$code4" -ne 0 ]] || fail "live snapshot allowed an escaping path"
+[[ ! -e "$abs_target" && ! -e "$fix_state/evil.txt" && ! -e "/tmp/cwc-no-file-$$" && ! -e "/tmp/cwc-no-dir-$$" ]] || fail "live snapshot wrote outside"
+[[ "$(stat -c %a "$fix_ev")" == 750 ]] || fail "refused snapshot chmodded the evidence root"
+kill "$fixture_pid" 2>/dev/null || true
+fixture_pid=''
+pass "live snapshot stays inside a private evidence directory"
+pass "contains match refuses a rendered phone row"
+
+# HOME isolation leaves the caller home unchanged.
+canary=$(mktemp -d "$sandbox/canary.XXXX")
+echo secret >"$canary/keep"
+canary_before=$(ls -A "$canary" | sort)
+iso_state=$(mktemp -d "$sandbox/iso.XXXX")
+(
+  HOME=$canary
+  isolate_home "$iso_state"
+  touch "$HOME/from-run"
+  [[ "$HOME" == "$iso_state/home" ]]
+  [[ "$GOTELEMETRY" == off ]]
+  [[ "$PUB_CACHE" == "$USER_HOME/.pub-cache" || "$PUB_CACHE" == "$SAVED_PUB_CACHE" ]]
+)
+[[ -f "$iso_state/home/from-run" ]] || fail "isolated home did not receive the write"
+canary_after=$(ls -A "$canary" | sort)
+[[ "$canary_before" == "$canary_after" ]] || fail "isolated home wrote into the caller home"
+grep -q 'CFFIXED_USER_HOME' "$VERIFY" || fail "macOS home override is missing"
+grep -q 'GOTELEMETRY=off' "$VERIFY" || fail "Go telemetry is not turned off"
+pass "isolated home leaves the caller home unchanged"
 
 echo REGRESSIONS PASS
