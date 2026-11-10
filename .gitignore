@@ -12,10 +12,12 @@
 .swiftpm/
 migrate_working_dir/
 
-# Cursor: keep project rules; ignore the rest of .cursor/
+# Cursor: keep project rules and the verification skill; ignore the rest of .cursor/
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
 
 # IntelliJ related
 *.iml
