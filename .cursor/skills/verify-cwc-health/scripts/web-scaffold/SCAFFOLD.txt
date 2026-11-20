@@ -1,0 +1,6 @@
+Verification scaffolding for the Linux web stand-in.
+
+The study build does not ship Flutter web. This folder exists so
+verify-cwc can copy a web/ directory into a temporary app checkout.
+Do not copy it to web/ in the product tree, and do not commit a web/
+directory at the repo root.
