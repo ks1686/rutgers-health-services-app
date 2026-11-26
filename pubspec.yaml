@@ -44,7 +44,7 @@ dependencies:
   google_maps_flutter: ^2.19.0
   flutter_map: ^8.1.1
   latlong2: ^0.10.1
-  file_picker: ^13.1.0
+  file_picker: ^13.4.1
   # On-device My Health reminders only. No server push.
   flutter_local_notifications: ^22.3.3
   timezone: ^0.11.2
